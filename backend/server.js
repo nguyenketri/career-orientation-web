@@ -4,18 +4,27 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const app = express();
 
-// connectDB
-connectDB();
-
-// middleware
+// middleware : biến JSON -> OBJECT JS
 app.use(express.json());
 
-// route test
-app.get("/", (req, res) => {
-  res.send("API running....");
-});
+// ROUTER AUTHEN
 app.use("/api/auth", authRoutes);
-// start server
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-});
+
+// PORT SERVER
+const PORT = process.env.PORT || 3000;
+
+// START SERVER
+const startServer = async () => {
+  try {
+    // CONNECT DB
+    await connectDB();
+    // SERVER RUNNING PORT
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("DB connection failed", err);
+  }
+};
+// CALL FUNCTION START SERVER
+startServer();

@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
+const majorRoutes = require("./routes/major.routes");
 const app = express();
 
 // middleware : biến JSON -> OBJECT JS
@@ -9,7 +10,8 @@ app.use(express.json());
 
 // ROUTER AUTHEN
 app.use("/api/auth", authRoutes);
-
+// ROUTER MAJOR
+app.use("/api/majors", majorRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

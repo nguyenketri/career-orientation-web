@@ -3,6 +3,7 @@ const {
   getAllMajors,
   getMajorById,
   updateMajor,
+  deleteMajor,
 } = require("../services/major.service");
 
 // GET ALL MAJORS
@@ -71,6 +72,23 @@ exports.updateMajor = async (req, res) => {
     });
   } catch (err) {
     return res.status(400).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
+// DELETE MAJOR
+exports.deleteMajor = async (req, res) => {
+  try {
+    await deleteMajor(req.params.id);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Major deleted successfully",
+    });
+  } catch (err) {
+    return res.status(404).json({
       status: "error",
       message: err.message,
     });

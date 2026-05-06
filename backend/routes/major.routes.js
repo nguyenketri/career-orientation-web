@@ -6,6 +6,7 @@ const {
   getAllMajors,
   getMajorById,
   updateMajor,
+  deleteMajor,
 } = require("../controllers/major.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
@@ -17,5 +18,7 @@ router.get("/", getAllMajors);
 router.get("/:id", getMajorById);
 // PUT /api/majors/:id
 router.put("/:id", authMiddleware, updateMajor);
+// DELETE /api/majors/:id
+router.delete("/:id", authMiddleware, deleteMajor);
 
 module.exports = router;

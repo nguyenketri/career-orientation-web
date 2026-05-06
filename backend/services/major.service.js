@@ -4,26 +4,29 @@ const mongoose = require("mongoose");
 const getAllMajors = async (query) => {
   const { keyword } = query;
 
-  // filter cơ bản (search theo tên)
-  const filter = {};
+  const filter = {
+    isDeleted: false, // chỉ lấy chưa bị xoá
+  };
 
   if (keyword) {
-    filter.name = { $regex: keyword, $options: "i" }; // không phân biệt hoa thường
+    filter.name = { $regex: keyword, $options: "i" };
   }
 
   const majors = await Major.find(filter).sort({ createdAt: -1 });
-  console.log(majors);
+
   return majors;
 };
 
 // GET MAJOR BY ID
 const getMajorById = async (id) => {
-  // check id hợp lệ
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid major ID");
   }
 
-  const major = await Major.findById(id);
+  const major = await Major.findOne({
+    _id: id,
+    isDeleted: false, // thêm điều kiện
+  });
 
   if (!major) {
     throw new Error("Major not found");
@@ -53,15 +56,37 @@ const createMajor = async (data) => {
 
 // UPDATE MAJOR
 const updateMajor = async (id, data) => {
-  // check id hợp lệ
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid major ID");
   }
 
-  const major = await Major.findByIdAndUpdate(id, data, {
-    new: true, // trả về dữ liệu mới sau update
-    runValidators: true, // validate theo schema
-  });
+  const major = await Major.findOneAndUpdate(
+    { _id: id, isDeleted: false }, // thêm filter
+    data,
+    { new: true, runValidators: true },
+  );
+
+  if (!major) {
+    throw new Error("Major not found or deleted");
+  }
+
+  return major;
+};
+
+// DELETE MAJOR
+const deleteMajor = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid major ID");
+  }
+
+  const major = await Major.findByIdAndUpdate(
+    id,
+    {
+      isDeleted: true,
+      deletedAt: new Date(),
+    },
+    { new: true },
+  );
 
   if (!major) {
     throw new Error("Major not found");
@@ -75,4 +100,5 @@ module.exports = {
   getMajorById,
   createMajor,
   updateMajor,
+  deleteMajor,
 };

@@ -7,8 +7,18 @@ const majorSchema = new mongoose.Schema(
       required: true,
     },
     description: String,
-    benchmarkScore: Number, // điểm chuẩn
-    hollandTypes: [String], // ví dụ ["I", "R"]
+    benchmarkScore: Number,
+    hollandTypes: [String],
+
+    //Thêm field soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );

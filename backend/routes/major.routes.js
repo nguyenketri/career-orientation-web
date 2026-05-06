@@ -1,15 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-const authMiddleware = require("../middleware/auth.middleware");
+const { createMajor } = require("../controllers/major.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
-// API cần login mới dùng được
-router.post("/", authMiddleware, (req, res) => {
-  res.json({
-    status: "Success",
-    message: "Auth middleware working",
-    user: req.user,
-  });
-});
+// POST /api/majors
+router.post("/", authMiddleware, createMajor);
 
 module.exports = router;

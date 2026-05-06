@@ -1,5 +1,5 @@
 const Major = require("../models/major.model");
-
+const mongoose = require("mongoose");
 // GET ALL MAJORS
 const getAllMajors = async (query) => {
   const { keyword } = query;
@@ -14,6 +14,22 @@ const getAllMajors = async (query) => {
   const majors = await Major.find(filter).sort({ createdAt: -1 });
   console.log(majors);
   return majors;
+};
+
+// GET MAJOR BY ID
+const getMajorById = async (id) => {
+  // check id hợp lệ
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid major ID");
+  }
+
+  const major = await Major.findById(id);
+
+  if (!major) {
+    throw new Error("Major not found");
+  }
+
+  return major;
 };
 
 // CREATE MAJOR
@@ -37,5 +53,6 @@ const createMajor = async (data) => {
 
 module.exports = {
   getAllMajors,
+  getMajorById,
   createMajor,
 };

@@ -1,4 +1,8 @@
-const { createMajor, getAllMajors } = require("../services/major.service");
+const {
+  createMajor,
+  getAllMajors,
+  getMajorById,
+} = require("../services/major.service");
 
 // GET ALL MAJORS
 exports.getAllMajors = async (req, res) => {
@@ -17,6 +21,25 @@ exports.getAllMajors = async (req, res) => {
     });
   }
 };
+
+// GET MAJOR BY ID
+exports.getMajorById = async (req, res) => {
+  try {
+    const major = await getMajorById(req.params.id);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Get major successfully",
+      data: major,
+    });
+  } catch (err) {
+    return res.status(404).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
 // CREATE MAJOR
 exports.createMajor = async (req, res) => {
   try {

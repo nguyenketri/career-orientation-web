@@ -51,8 +51,28 @@ const createMajor = async (data) => {
   return major;
 };
 
+// UPDATE MAJOR
+const updateMajor = async (id, data) => {
+  // check id hợp lệ
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid major ID");
+  }
+
+  const major = await Major.findByIdAndUpdate(id, data, {
+    new: true, // trả về dữ liệu mới sau update
+    runValidators: true, // validate theo schema
+  });
+
+  if (!major) {
+    throw new Error("Major not found");
+  }
+
+  return major;
+};
+
 module.exports = {
   getAllMajors,
   getMajorById,
   createMajor,
+  updateMajor,
 };

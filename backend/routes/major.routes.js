@@ -5,6 +5,7 @@ const {
   createMajor,
   getAllMajors,
   getMajorById,
+  updateMajor,
 } = require("../controllers/major.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
@@ -14,5 +15,7 @@ router.post("/", authMiddleware, createMajor);
 router.get("/", getAllMajors);
 // GET /api/majors/:id
 router.get("/:id", getMajorById);
+// PUT /api/majors/:id
+router.put("/:id", authMiddleware, updateMajor);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const majorRoutes = require("./routes/major.routes");
 const recommendRoutes = require("./routes/recommend.routes");
+const hollandRoutes = require("./routes/holland.routes");
 const app = express();
 
 // middleware : biến JSON -> OBJECT JS
@@ -14,6 +15,8 @@ app.use("/api/auth", authRoutes);
 // ROUTER MAJOR
 app.use("/api/majors", majorRoutes);
 // ROUTER RECOMEND
+// ROUTER HOLLAND TEST
+app.use("/api/holland", hollandRoutes);
 app.use("/api/recommend", recommendRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;

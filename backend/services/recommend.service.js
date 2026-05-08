@@ -7,7 +7,7 @@ const recommendByScore = async (input) => {
     throw new Error("Score is required");
   }
 
-  // 🔥 lấy tất cả ngành chưa bị xoá
+  //  lấy tất cả ngành chưa bị xoá
   const majors = await Major.find({ isDeleted: false });
 
   const result = majors.map((major) => {

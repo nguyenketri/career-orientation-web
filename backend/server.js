@@ -3,6 +3,7 @@ const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const majorRoutes = require("./routes/major.routes");
+const recommendRoutes = require("./routes/recommend.routes");
 const app = express();
 
 // middleware : biến JSON -> OBJECT JS
@@ -12,6 +13,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 // ROUTER MAJOR
 app.use("/api/majors", majorRoutes);
+// ROUTER RECOMEND
+app.use("/api/recommend", recommendRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

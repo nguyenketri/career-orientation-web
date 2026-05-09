@@ -1,4 +1,5 @@
 require("dotenv").config();
+const cors = require("cors");
 const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
@@ -7,6 +8,7 @@ const recommendRoutes = require("./routes/recommend.routes");
 const hollandRoutes = require("./routes/holland.routes");
 const app = express();
 
+app.use(cors());
 // middleware : biến JSON -> OBJECT JS
 app.use(express.json());
 

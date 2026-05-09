@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { loginUser } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   // form state
@@ -11,6 +13,11 @@ const LoginForm = () => {
   // show password state
   const [showPassword, setShowPassword] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
   // handle input change
   const handleChange = (e) => {
     setFormData({
@@ -20,10 +27,31 @@ const LoginForm = () => {
   };
 
   // handle submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log(formData);
+    try {
+      setLoading(true);
+      setError("");
+
+      // call login API
+      const response = await loginUser(formData);
+
+      console.log(response);
+
+      // save token
+      localStorage.setItem("token", response.data.token);
+
+      // save user
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      // redirect
+      navigate("/");
+    } catch (error) {
+      setError(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,13 +122,20 @@ const LoginForm = () => {
             </button>
           </div>
         </div>
+        {/* Error */}
+        {error && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
         {/* Login Button */}
         <button
           type="submit"
-          className="w-full rounded-xl bg-white py-3 font-semibold text-black transition hover:scale-[1.02]"
+          disabled={loading}
+          className="w-full rounded-xl bg-white py-3 font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
 

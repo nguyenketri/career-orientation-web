@@ -1,6 +1,17 @@
 import { Link } from "react-router-dom";
+import { getUser, logoutUser } from "../utils/auth";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
+  const user = getUser();
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logoutUser();
+
+    navigate("/login");
+  };
   return (
     <nav className="fixed top-0 left-0 w-full border-b border-white/10 bg-black/30 backdrop-blur-lg z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -26,12 +37,25 @@ const Navbar = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Link
-            to="/login"
-            className="text-sm text-gray-300 hover:text-white transition"
-          >
-            Login
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-white">{user.name}</span>
+
+              <button
+                onClick={handleLogout}
+                className="rounded-xl border border-white/10 px-5 py-2 text-sm text-white transition hover:bg-white hover:text-black"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="rounded-xl bg-white px-5 py-2 text-sm font-semibold text-black transition hover:scale-105"
+            >
+              Login
+            </Link>
+          )}
 
           <Link
             to="/register"

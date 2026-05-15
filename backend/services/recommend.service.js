@@ -23,6 +23,7 @@ const recommendByScore = async (input) => {
       _id: major._id,
       name: major.name,
       benchmarkScore: major.benchmarkScore,
+      description: major.description,
       level,
     };
   });

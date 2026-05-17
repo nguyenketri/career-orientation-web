@@ -6,9 +6,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { hollandMaps } from "../utils/hollandMap";
+
 const HollandChart = ({ scores }) => {
   const data = Object.entries(scores).map(([key, value]) => ({
-    subject: key,
+    subject: hollandMaps[key]?.name || key,
     score: value,
   }));
 

@@ -2,14 +2,14 @@ import { useState } from "react";
 import { hollandMaps } from "../../utils/hollandMap";
 import hollandQuestions from "../../data/hollandQuestions";
 import { recommendByHolland } from "../../services/hollandService";
-
+import { useNavigate } from "react-router-dom";
 const HollandPage = () => {
   // answers state
   const [answers, setAnswers] = useState({});
 
   // result state
   const [result, setResult] = useState(null);
-
+  const navigate = useNavigate();
   // submit state
   const [submitted, setSubmitted] = useState(false);
   const [recommendedMajors, setRecommendedMajors] = useState([]);
@@ -91,9 +91,13 @@ const HollandPage = () => {
     <div className="min-h-screen bg-black px-6 py-20 text-white">
       {/* Hero */}
       <div className="mx-auto max-w-4xl text-center">
-        <p className="mb-4 text-sm uppercase tracking-[0.3em] text-purple-400">
-          Holland Career Test
-        </p>
+        <div className="flex items-center justify-between mb-8">
+          <button onClick={() => navigate(-1)}>← Back</button>
+
+          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-purple-400">
+            Holland Career Test
+          </p>
+        </div>
 
         <h1 className="mb-6 text-5xl font-bold">
           Discover Your Personality Type

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { recommendByScore } from "../../services/recommendService";
+import { useNavigate } from "react-router-dom";
 
 const RecommendPage = () => {
   // score input
@@ -11,6 +12,7 @@ const RecommendPage = () => {
   // loading
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   // handle recommend
   const handleRecommend = async () => {
@@ -41,9 +43,13 @@ const RecommendPage = () => {
     <div className="min-h-screen bg-black px-6 py-20 text-white">
       {/* Hero */}
       <div className="mx-auto max-w-4xl text-center">
-        <p className="mb-4 text-sm uppercase tracking-[0.3em] text-purple-400">
-          AI Career Recommendation
-        </p>
+        <div className="flex items-center justify-between mb-8">
+          <button onClick={() => navigate(-1)}>← Back</button>
+
+          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-purple-400">
+            AI Career Recommendation
+          </p>
+        </div>
 
         <h1 className="mb-6 text-5xl font-bold leading-tight">
           Discover Your Perfect Major

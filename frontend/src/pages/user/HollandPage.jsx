@@ -1,5 +1,5 @@
 import { useState } from "react";
-import hollandTypes from "../../utils/hollandTypes";
+import { hollandMaps } from "../../utils/hollandMap";
 import hollandQuestions from "../../data/hollandQuestions";
 import { recommendByHolland } from "../../services/hollandService";
 
@@ -208,7 +208,7 @@ const HollandPage = () => {
             </p>
 
             <h2 className="text-5xl font-bold">
-              {hollandTypes[result]} ({result})
+              {hollandMaps[result]} ({result})
             </h2>
 
             <p className="mt-4 text-gray-300">

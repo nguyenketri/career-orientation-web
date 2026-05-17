@@ -35,7 +35,25 @@ const recommendByScore = async (input) => {
 
   return result;
 };
+const recommendByHolland = async (input) => {
+  console.log(input);
+  const { type } = input;
+
+  if (!type) {
+    throw new Error("Score is required");
+  }
+
+  //  lấy tất cả ngành chưa bị xoá
+  const majors = await Major.find({ isDeleted: false });
+
+  const result = await Major.find({
+    hollandTypes: { $in: [type] },
+  });
+
+  return result;
+};
 
 module.exports = {
   recommendByScore,
+  recommendByHolland,
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
-
+import hollandTypes from "../utils/hollandTypes";
 import hollandQuestions from "../data/hollandQuestions";
+import { recommendByHolland } from "../services/hollandService";
 
 const HollandPage = () => {
   // answers state
@@ -11,10 +12,14 @@ const HollandPage = () => {
 
   // submit state
   const [submitted, setSubmitted] = useState(false);
-
+  const [recommendedMajors, setRecommendedMajors] = useState([]);
   // error state
   const [error, setError] = useState("");
+  const totalQuestions = hollandQuestions.length;
 
+  const answeredQuestions = Object.keys(answers).length;
+
+  const progress = (answeredQuestions / totalQuestions) * 100;
   // handle select answer
   const handleSelect = (questionId, value) => {
     // prevent changing answers after submit
@@ -27,7 +32,7 @@ const HollandPage = () => {
   };
 
   // submit holland test
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
 
     // validate all questions answered
@@ -62,7 +67,14 @@ const HollandPage = () => {
 
     // top result
     setResult(sorted[0][0]);
+    const topType = sorted[0][0];
 
+    setResult(topType);
+
+    // call API
+    const response = await recommendByHolland(topType);
+
+    setRecommendedMajors(response.data);
     // lock test
     setSubmitted(true);
   };
@@ -93,6 +105,26 @@ const HollandPage = () => {
         </p>
       </div>
 
+      {/* Progress */}
+      <div className="mx-auto mt-12 max-w-4xl">
+        <div className="mb-3 flex items-center justify-between text-sm text-gray-400">
+          <span>Progress</span>
+
+          <span>
+            {answeredQuestions}/{totalQuestions}
+          </span>
+        </div>
+
+        <div className="h-3 overflow-hidden rounded-full bg-white/10">
+          <div
+            style={{
+              width: `${progress}%`,
+            }}
+            className="h-full rounded-full bg-purple-500 transition-all duration-300"
+          ></div>
+        </div>
+      </div>
+
       {/* Questions */}
       <div className="mx-auto mt-16 max-w-4xl space-y-6">
         {hollandQuestions.map((question) => (
@@ -101,7 +133,13 @@ const HollandPage = () => {
             className="rounded-3xl border border-white/10 bg-white/5 p-8"
           >
             {/* Question */}
-            <h2 className="mb-6 text-xl font-semibold">{question.question}</h2>
+            <div className="mb-6">
+              <p className="mb-2 text-sm text-purple-400">
+                Question {question.id}
+              </p>
+
+              <h2 className="text-xl font-semibold">{question.question}</h2>
+            </div>
 
             {/* Answers */}
             <div className="flex gap-4">
@@ -169,7 +207,9 @@ const HollandPage = () => {
               Your Holland Type
             </p>
 
-            <h2 className="text-5xl font-bold">{result}</h2>
+            <h2 className="text-5xl font-bold">
+              {hollandTypes[result]} ({result})
+            </h2>
 
             <p className="mt-4 text-gray-300">
               This personality type matches your interests and strengths.
@@ -182,6 +222,31 @@ const HollandPage = () => {
             >
               Retake Test
             </button>
+          </div>
+        )}
+
+        {recommendedMajors.length > 0 && (
+          <div className="mt-10">
+            <h3 className="mb-6 text-3xl font-bold">Recommended Majors</h3>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {recommendedMajors.map((major) => (
+                <div
+                  key={major._id}
+                  className="rounded-3xl border border-white/10 bg-white/5 p-6"
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="text-2xl font-bold">{major.name}</h4>
+
+                    <span className="rounded-full bg-purple-500/20 px-4 py-1 text-sm text-purple-300">
+                      {major.benchmarkScore}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-400">{major.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

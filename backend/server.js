@@ -6,6 +6,7 @@ const authRoutes = require("./routes/auth.routes");
 const majorRoutes = require("./routes/major.routes");
 const recommendRoutes = require("./routes/recommend.routes");
 const hollandRoutes = require("./routes/holland.routes");
+const hollandResultRoutes = require("./routes/hollandResult.route");
 const app = express();
 
 app.use(cors());
@@ -17,9 +18,11 @@ app.use("/api/auth", authRoutes);
 // ROUTER MAJOR
 app.use("/api/majors", majorRoutes);
 // ROUTER RECOMEND
+app.use("/api/recommend", recommendRoutes);
 // ROUTER HOLLAND TEST
 app.use("/api/holland", hollandRoutes);
-app.use("/api/recommend", recommendRoutes);
+// ROUTER HOLLAND RESULT
+app.use("/api/holland-results", hollandResultRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

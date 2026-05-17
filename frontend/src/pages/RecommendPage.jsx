@@ -71,7 +71,14 @@ const RecommendPage = () => {
               className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-4 text-white outline-none transition focus:border-purple-500"
             />
           </div>
-
+          {/* 
+      No Score
+      */}
+          {error && (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+              {error}
+            </div>
+          )}
           <button
             onClick={handleRecommend}
             disabled={loading}
@@ -81,14 +88,6 @@ const RecommendPage = () => {
           </button>
         </div>
       </div>
-      {/* 
-      No Score
-      */}
-      {error && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-          {error}
-        </div>
-      )}
 
       {/* Result */}
       <div className="mx-auto mt-14 grid max-w-6xl gap-6 md:grid-cols-2">

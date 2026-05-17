@@ -1,7 +1,7 @@
 import { useState } from "react";
-import hollandTypes from "../utils/hollandTypes";
-import hollandQuestions from "../data/hollandQuestions";
-import { recommendByHolland } from "../services/hollandService";
+import hollandTypes from "../../utils/hollandTypes";
+import hollandQuestions from "../../data/hollandQuestions";
+import { recommendByHolland } from "../../services/hollandService";
 
 const HollandPage = () => {
   // answers state

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { recommendByScore } from "../services/recommendService";
+import { recommendByScore } from "../../services/recommendService";
 
 const RecommendPage = () => {
   // score input

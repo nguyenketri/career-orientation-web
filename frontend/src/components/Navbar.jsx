@@ -25,7 +25,7 @@ const Navbar = () => {
           <Link to="/" className="hover:text-white transition">
             Home
           </Link>
-
+          <Link to="/dashboard">Dashboard</Link>
           <Link to="/recommend" className="hover:text-white transition">
             Recommend
           </Link>

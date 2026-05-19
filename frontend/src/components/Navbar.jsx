@@ -29,6 +29,9 @@ const Navbar = () => {
           <Link to="/recommend" className="hover:text-white transition">
             Recommend
           </Link>
+          <Link to="/compare" className="hover:text-white transition">
+            Compare
+          </Link>
 
           <Link to="/holland" className="hover:text-white transition">
             Holland Test
@@ -37,13 +40,19 @@ const Navbar = () => {
           <Link to="/mbti" className="hover:text-white transition">
             MBTI Test
           </Link>
+
+          <Link to="/mentor" className="hover:text-white transition font-bold text-purple-400">
+            AI Mentor
+          </Link>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-white">{user.name}</span>
+              <Link to="/profile" className="text-sm font-semibold text-white hover:text-purple-400 transition">
+                {user.name}
+              </Link>
 
               <button
                 onClick={handleLogout}

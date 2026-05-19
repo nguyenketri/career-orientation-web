@@ -1,20 +1,17 @@
 const features = [
   {
-    title: "AI Career Recommendation",
-    description:
-      "Get personalized major and career suggestions based on your academic performance and interests.",
+    title: "AI Career Mentor",
+    description: "Chat with our intelligent AI advisor to get instant answers about universities, majors, and career paths.",
     icon: "🤖",
   },
   {
-    title: "Holland Personality Test",
-    description:
-      "Discover your personality type and explore careers that truly fit your strengths.",
+    title: "Holland & MBTI Tests",
+    description: "Deep dive into your personality with professional Holland and MBTI assessments mapped to real careers.",
     icon: "🧠",
   },
   {
     title: "University Matching",
-    description:
-      "Find universities and majors that match your scores and future goals.",
+    description: "Calculate your subject combination scores and find the perfect match among hundreds of universities.",
     icon: "🎓",
   },
 ];

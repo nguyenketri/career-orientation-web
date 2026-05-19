@@ -5,11 +5,12 @@ const {
 // SAVE
 const saveHollandResult = async (req, res) => {
   try {
-    const { hollandType, hollandScores, recommendedMajors } = req.body;
+    const { hollandType, topTypes, hollandScores, recommendedMajors } = req.body;
 
     const result = await createHollandResult({
       userId: req.user.id,
       hollandType,
+      topTypes,
       hollandScores,
       recommendedMajors,
     });

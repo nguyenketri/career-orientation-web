@@ -20,31 +20,29 @@ const submitHollandTest = async (answers) => {
     C: 0,
   };
 
-  //  đếm điểm
+  //  đếm điểm (cộng dồn điểm theo Likert scale)
   answers.forEach((answer) => {
     if (scores.hasOwnProperty(answer.type)) {
-      scores[answer.type]++;
+      // Nếu answer có score (từ Likert scale 1-5), cộng điểm đó, nếu không mặc định +1 như cũ
+      scores[answer.type] += answer.score ? Number(answer.score) : 1;
     }
   });
 
-  //  tìm type cao nhất
-  let topType = "R";
+  //  tìm top 3 type cao nhất
+  const sortedTypes = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+  const topTypes = sortedTypes.slice(0, 3);
+  const topType = topTypes[0];
 
-  for (const type in scores) {
-    if (scores[type] > scores[topType]) {
-      topType = type;
-    }
-  }
-
-  //  tìm ngành phù hợp
+  //  tìm ngành phù hợp với top 1, hoặc chứa bất kỳ type nào trong top 3 (tùy vào logic ưu tiên, ở đây dùng topType cho ngành rất phù hợp)
   const majors = await Major.find({
-    hollandTypes: topType,
+    hollandTypes: { $in: topTypes },
     isDeleted: false,
   });
 
   return {
     hollandScores: scores,
     topType,
+    topTypes,
     recommendedMajors: majors,
   };
 };

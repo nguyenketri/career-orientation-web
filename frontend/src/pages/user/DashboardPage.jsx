@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMyHollandResults } from "../../services/hollandResult.service";
-import { hollandMap } from "../../utils/hollandMap";
+import { hollandMaps } from "../../utils/hollandMap";
 import HollandChart from "../../components/HollandChart";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -85,18 +85,17 @@ const DashboardPage = () => {
               className="mb-12 rounded-3xl bg-gradient-to-br from-purple-600/20 via-pink-500/10 to-transparent p-10 backdrop-blur-md border border-white/10"
             >
               <p className="text-sm uppercase tracking-widest text-purple-300">
-                Your Personality Type
+                Nhóm Tính Cách Nổi Bật
               </p>
 
               <h2 className="mt-2 text-5xl font-bold">
-                {latest.hollandType}
-                <span className="ml-3 text-purple-400">
-                  {hollandMap[latest.hollandType]?.name}
+                <span className="text-purple-400">
+                  {hollandMaps[latest.hollandType]?.name || latest.hollandType}
                 </span>
               </h2>
 
               <p className="mt-4 max-w-xl text-gray-300">
-                {hollandMap[latest.hollandType]?.desc}
+                {hollandMaps[latest.hollandType]?.desc}
               </p>
             </motion.div>
 
@@ -108,7 +107,7 @@ const DashboardPage = () => {
               className="mb-12 rounded-3xl bg-white/5 p-8 border border-white/10 backdrop-blur-sm"
             >
               <h3 className="mb-6 text-2xl font-semibold">
-                Personality Breakdown
+                Bản Biểu Điểm (Personality Breakdown)
               </h3>
 
               <HollandChart scores={latest.hollandScores} />
@@ -116,10 +115,9 @@ const DashboardPage = () => {
 
             {/* TOP TRAITS */}
             <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {Object.entries(latest.hollandScores)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 3)
-                .map(([type, score], index) => (
+              {(latest.topTypes?.length ? latest.topTypes : Object.entries(latest.hollandScores).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,3)).map((type, index) => {
+                const score = latest.hollandScores[type];
+                return (
                   <motion.div
                     key={type}
                     initial={{ opacity: 0, y: 20 }}
@@ -133,10 +131,11 @@ const DashboardPage = () => {
                     }`}
                   >
                     <h4 className="text-lg font-bold">
-                      {hollandMap[type]?.name || type}
+                      {hollandMaps[type]?.name || type}
                     </h4>
 
                     <p className="text-sm text-gray-400">Score: {score}</p>
+
 
                     {index === 0 && (
                       <span className="mt-2 inline-block text-xs text-purple-300">
@@ -144,7 +143,8 @@ const DashboardPage = () => {
                       </span>
                     )}
                   </motion.div>
-                ))}
+                );
+              })}
             </div>
 
             {/* HISTORY */}
@@ -160,7 +160,7 @@ const DashboardPage = () => {
                   >
                     <div>
                       <p className="font-semibold">
-                        {hollandMap[r.hollandType]?.name}
+                        {hollandMaps[r.hollandType]?.name || r.hollandType}
                       </p>
 
                       <p className="text-sm text-gray-400">

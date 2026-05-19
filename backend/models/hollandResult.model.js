@@ -13,6 +13,11 @@ const hollandResultSchema = new mongoose.Schema(
       required: true,
     },
 
+    topTypes: {
+      type: [String],
+      default: [],
+    },
+
     hollandScores: {
       R: {
         type: Number,

@@ -4,12 +4,14 @@ const HollandResult = require("../models/hollandResult.model");
 const createHollandResult = async ({
   userId,
   hollandType,
+  topTypes,
   hollandScores,
   recommendedMajors,
 }) => {
   const newResult = await HollandResult.create({
     user: userId,
     hollandType,
+    topTypes,
     hollandScores,
     recommendedMajors,
   });

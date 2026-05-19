@@ -1,257 +1,307 @@
-import { useState } from "react";
-import { hollandMaps } from "../../utils/hollandMap";
-import hollandQuestions from "../../data/hollandQuestions";
-import { recommendByHolland } from "../../services/hollandService";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { hollandMaps } from "../../utils/hollandMap";
+import {
+  getHollandQuestions,
+  submitHollandTest,
+  saveHollandResult,
+} from "../../services/hollandService";
+
+const LIKERT_OPTIONS = [
+  { value: 1, label: "Rất không đúng" },
+  { value: 2, label: "Không đúng" },
+  { value: 3, label: "Phân vân" },
+  { value: 4, label: "Khá đúng" },
+  { value: 5, label: "Rất đúng" }
+];
+
 const HollandPage = () => {
-  // answers state
-  const [answers, setAnswers] = useState({});
-
-  // result state
-  const [result, setResult] = useState(null);
   const navigate = useNavigate();
-  // submit state
-  const [submitted, setSubmitted] = useState(false);
-  const [recommendedMajors, setRecommendedMajors] = useState([]);
-  // error state
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const totalQuestions = hollandQuestions.length;
 
-  const answeredQuestions = Object.keys(answers).length;
+  // Fetch questions on mount
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const res = await getHollandQuestions();
+        if (res.data) setQuestions(res.data);
+      } catch (err) {
+        setError("Không thể tải hệ thống câu hỏi, vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, []);
 
-  const progress = (answeredQuestions / totalQuestions) * 100;
-  // handle select answer
-  const handleSelect = (questionId, value) => {
-    // prevent changing answers after submit
-    if (submitted) return;
+  const totalQuestions = questions.length;
+  const progress = totalQuestions > 0 ? ((currentIndex) / totalQuestions) * 100 : 0;
 
+  const handleSelect = (value) => {
+    const currentQ = questions[currentIndex];
+    
+    // Save answer
     setAnswers({
       ...answers,
-      [questionId]: value,
+      [currentQ._id]: { type: currentQ.type, score: value }
     });
-  };
 
-  // submit holland test
-  const handleSubmit = async () => {
-    setError("");
-
-    // validate all questions answered
-    if (Object.keys(answers).length !== hollandQuestions.length) {
-      return setError("Please answer all questions before submitting.");
+    // Auto-next or suggest submit
+    if (currentIndex < totalQuestions - 1) {
+      setTimeout(() => setCurrentIndex(curr => curr + 1), 300);
     }
-
-    // reset old result
-    setResult(null);
-
-    // holland score object
-    const hollandScores = {
-      R: 0,
-      I: 0,
-      A: 0,
-      S: 0,
-      E: 0,
-      C: 0,
-    };
-
-    // calculate scores
-    hollandQuestions.forEach((question) => {
-      const answer = answers[question.id];
-
-      if (answer === "yes") {
-        hollandScores[question.type]++;
-      }
-    });
-
-    // sort highest score
-    const sorted = Object.entries(hollandScores).sort((a, b) => b[1] - a[1]);
-
-    // top result
-    setResult(sorted[0][0]);
-    const topType = sorted[0][0];
-
-    setResult(topType);
-
-    // call API
-    const response = await recommendByHolland(topType);
-
-    setRecommendedMajors(response.data);
-    // lock test
-    setSubmitted(true);
   };
 
-  // retake test
+  const handleBack = () => {
+    if (currentIndex > 0) setCurrentIndex(curr => curr - 1);
+  };
+
+  const handleSubmit = async () => {
+    if (Object.keys(answers).length < totalQuestions) {
+      setError("Vui lòng trả lời tất cả các câu hỏi.");
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      setError("");
+      
+      // format answers for API
+      const formattedAnswers = Object.values(answers);
+      
+      // Call analyze API
+      const res = await submitHollandTest(formattedAnswers);
+      const testResult = res.data;
+      
+      // Set to display
+      setResult(testResult);
+      
+      // Save to history automatically
+      await saveHollandResult({
+        hollandType: testResult.topType,
+        topTypes: testResult.topTypes,
+        hollandScores: testResult.hollandScores,
+        recommendedMajors: testResult.recommendedMajors?.map(m => m._id) || []
+      });
+      
+    } catch (err) {
+      setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleRetake = () => {
     setAnswers({});
     setResult(null);
-    setSubmitted(false);
+    setCurrentIndex(0);
     setError("");
   };
 
-  return (
-    <div className="min-h-screen bg-black px-6 py-20 text-white">
-      {/* Hero */}
-      <div className="mx-auto max-w-4xl text-center">
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={() => navigate(-1)}>← Back</button>
-
-          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-purple-400">
-            Holland Career Test
-          </p>
-        </div>
-
-        <h1 className="mb-6 text-5xl font-bold">
-          Discover Your Personality Type
-        </h1>
-
-        <p className="mx-auto max-w-2xl text-lg text-gray-400">
-          Answer several questions and discover which career path best matches
-          your personality.
-        </p>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <p className="text-xl animate-pulse">Đang nạp bộ câu hỏi...</p>
       </div>
+    );
+  }
 
-      {/* Progress */}
-      <div className="mx-auto mt-12 max-w-4xl">
-        <div className="mb-3 flex items-center justify-between text-sm text-gray-400">
-          <span>Progress</span>
-
-          <span>
-            {answeredQuestions}/{totalQuestions}
-          </span>
-        </div>
-
-        <div className="h-3 overflow-hidden rounded-full bg-white/10">
-          <div
-            style={{
-              width: `${progress}%`,
-            }}
-            className="h-full rounded-full bg-purple-500 transition-all duration-300"
-          ></div>
-        </div>
-      </div>
-
-      {/* Questions */}
-      <div className="mx-auto mt-16 max-w-4xl space-y-6">
-        {hollandQuestions.map((question) => (
-          <div
-            key={question.id}
-            className="rounded-3xl border border-white/10 bg-white/5 p-8"
-          >
-            {/* Question */}
-            <div className="mb-6">
-              <p className="mb-2 text-sm text-purple-400">
-                Question {question.id}
-              </p>
-
-              <h2 className="text-xl font-semibold">{question.question}</h2>
-            </div>
-
-            {/* Answers */}
-            <div className="flex gap-4">
-              {/* YES */}
-              <button
-                disabled={submitted}
-                onClick={() => handleSelect(question.id, "yes")}
-                className={`rounded-2xl px-6 py-3 transition ${
-                  answers[question.id] === "yes"
-                    ? "bg-purple-500 text-white"
-                    : "bg-white/10 text-gray-300"
-                } ${
-                  submitted
-                    ? "cursor-not-allowed opacity-60"
-                    : "hover:scale-105"
-                }`}
-              >
-                Yes
-              </button>
-
-              {/* NO */}
-              <button
-                disabled={submitted}
-                onClick={() => handleSelect(question.id, "no")}
-                className={`rounded-2xl px-6 py-3 transition ${
-                  answers[question.id] === "no"
-                    ? "bg-red-500 text-white"
-                    : "bg-white/10 text-gray-300"
-                } ${
-                  submitted
-                    ? "cursor-not-allowed opacity-60"
-                    : "hover:scale-105"
-                }`}
-              >
-                No
-              </button>
-            </div>
+  // RESULT VIEW
+  if (result) {
+    return (
+      <div className="min-h-screen bg-black px-6 py-20 text-white">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-8 flex justify-between">
+            <button onClick={() => navigate(-1)} className="hover:text-purple-400 transition">← Back to Dashboard</button>
           </div>
-        ))}
-
-        {/* Error */}
-        {error && (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-            {error}
+          
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-bold mb-4">Kết Quả Holland Của Bạn</h1>
+            <p className="text-gray-400 text-lg">Hệ thống đã phân tích và lưu kết quả vào hồ sơ của bạn.</p>
           </div>
-        )}
-
-        {/* Submit */}
-        <button
-          onClick={handleSubmit}
-          disabled={submitted}
-          className={`w-full rounded-3xl py-4 font-semibold transition ${
-            submitted
-              ? "cursor-not-allowed bg-gray-600 text-gray-300"
-              : "bg-white text-black hover:scale-[1.01]"
-          }`}
-        >
-          {submitted ? "Test Submitted" : "Submit Test"}
-        </button>
-
-        {/* Result */}
-        {result && (
-          <div className="rounded-3xl border border-purple-500/20 bg-purple-500/10 p-8 text-center">
-            <p className="mb-2 text-sm uppercase tracking-[0.3em] text-purple-300">
-              Your Holland Type
-            </p>
-
-            <h2 className="text-5xl font-bold">
-              {hollandMaps[result]} ({result})
-            </h2>
-
-            <p className="mt-4 text-gray-300">
-              This personality type matches your interests and strengths.
-            </p>
-
-            {/* Retake */}
-            <button
-              onClick={handleRetake}
-              className="mt-8 rounded-2xl border border-white/10 px-6 py-3 text-white transition hover:bg-white hover:text-black"
-            >
-              Retake Test
-            </button>
-          </div>
-        )}
-
-        {recommendedMajors.length > 0 && (
-          <div className="mt-10">
-            <h3 className="mb-6 text-3xl font-bold">Recommended Majors</h3>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              {recommendedMajors.map((major) => (
-                <div
-                  key={major._id}
-                  className="rounded-3xl border border-white/10 bg-white/5 p-6"
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <h4 className="text-2xl font-bold">{major.name}</h4>
-
-                    <span className="rounded-full bg-purple-500/20 px-4 py-1 text-sm text-purple-300">
-                      {major.benchmarkScore}
-                    </span>
+          
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {/* Top 3 Types Box */}
+            <div className="rounded-3xl border border-purple-500/20 bg-purple-500/10 p-8">
+              <h2 className="text-xl text-purple-300 uppercase tracking-widest mb-6">Đặc Trưng Nổi Bật Nhất</h2>
+              
+              {result.topTypes.map((type, idx) => (
+                <div key={type} className="mb-6 last:mb-0">
+                  <div className="flex justify-between items-end mb-2">
+                    <h3 className="text-3xl font-bold">
+                      <span className="text-purple-400 mr-2">Top {idx + 1}:</span> 
+                      {hollandMaps[type]?.name || type}
+                    </h3>
+                    <span className="text-gray-400 text-sm">Điểm: {result.hollandScores[type]}</span>
                   </div>
-
-                  <p className="text-gray-400">{major.description}</p>
+                  <p className="text-gray-400 text-sm mb-3">
+                    {hollandMaps[type]?.desc}
+                  </p>
+                  <div className="w-full bg-white/10 rounded-full h-2">
+                    <div 
+                      className="bg-purple-500 h-2 rounded-full" 
+                      style={{ width: `${(result.hollandScores[type] / (totalQuestions * 5)) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Overall Radar/Scores (simplified as text for now) */}
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+               <h2 className="text-xl text-gray-300 uppercase tracking-widest mb-6">Điểm Các Nhóm</h2>
+               <div className="grid grid-cols-2 gap-4">
+                 {Object.entries(result.hollandScores).map(([t, score]) => (
+                   <div key={t} className="bg-white/5 p-4 rounded-xl flex items-center justify-between">
+                     <span className="font-bold text-lg">{t}</span>
+                     <span className="text-purple-400">{score}</span>
+                   </div>
+                 ))}
+               </div>
+               
+               <button
+                  onClick={handleRetake}
+                  className="mt-8 w-full rounded-2xl border border-white/10 px-6 py-4 text-white transition hover:bg-white hover:text-black font-semibold"
+                >
+                  Làm Lại Bài Test
+                </button>
+            </div>
           </div>
+
+          {/* Recommended Majors */}
+          {result.recommendedMajors?.length > 0 && (
+            <div>
+              <h3 className="mb-6 text-3xl font-bold">Ngành Học Phù Hợp Đề Xuất</h3>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {result.recommendedMajors.map((major) => (
+                  <div key={major._id} className="rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:border-purple-500/50">
+                    <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
+                      <h4 className="text-xl font-bold">{major.name}</h4>
+                      <span className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-300 font-medium">
+                        Điểm chuẩn: {major.benchmarkScore}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-sm">{major.description}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {major.hollandTypes?.map((t) => (
+                        <span key={t} className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // WIZARD VIEW
+  const currentQuestion = questions[currentIndex];
+  const isStarted = questions.length > 0;
+  const isAllAnswered = Object.keys(answers).length === totalQuestions;
+
+  return (
+    <div className="min-h-screen bg-black px-6 py-20 text-white flex flex-col">
+      <div className="mx-auto w-full max-w-3xl flex-grow flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12">
+          <button onClick={() => navigate(-1)} className="hover:text-purple-400">← Trở về</button>
+          <p className="text-sm uppercase tracking-[0.3em] text-purple-400">Holland Test</p>
+        </div>
+
+        {!isStarted ? (
+          <div className="text-center">
+            <h1 className="text-4xl font-bold">Không tìm thấy bộ câu hỏi</h1>
+          </div>
+        ) : (
+          <>
+            {/* Progress Bar */}
+            <div className="mb-16">
+              <div className="mb-3 flex items-center justify-between text-sm text-gray-400 font-medium">
+                <span>Câu hỏi {currentIndex + 1} / {totalQuestions}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  style={{ width: `${progress}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300"
+                ></div>
+              </div>
+            </div>
+
+            {/* Question Box */}
+            <div className="flex-grow flex flex-col justify-center mb-12">
+              <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl font-semibold leading-relaxed">
+                  "{currentQuestion?.content}"
+                </h2>
+              </div>
+
+              {/* Likert Scale */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {LIKERT_OPTIONS.map((option) => {
+                  const isSelected = answers[currentQuestion._id]?.score === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => handleSelect(option.value)}
+                      className={`flex-1 rounded-2xl py-4 px-2 transition-all duration-200 border border-transparent 
+                        ${isSelected
+                          ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25 scale-105" 
+                          : "bg-white/5 hover:bg-white/10 text-gray-300 hover:border-white/20"}
+                      `}
+                    >
+                      <div className="text-lg font-bold mb-1">{option.value}</div>
+                      <div className="text-xs">{option.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-red-400">
+                {error}
+              </div>
+            )}
+
+            {/* Footer Navigation */}
+            <div className="flex items-center justify-between border-t border-white/10 pt-6">
+              <button 
+                onClick={handleBack}
+                disabled={currentIndex === 0}
+                className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                Câu trước
+              </button>
+
+              {isAllAnswered ? (
+                <button 
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="px-8 py-3 rounded-full bg-purple-500 text-white font-bold hover:bg-purple-600 transition shadow-lg shadow-purple-500/30 disabled:opacity-50"
+                >
+                  {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setCurrentIndex(curr => curr + 1)}
+                  disabled={currentIndex === totalQuestions - 1}
+                  className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-2"
+                >
+                  Bỏ qua <span className="text-xs">→</span>
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

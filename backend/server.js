@@ -7,6 +7,7 @@ const majorRoutes = require("./routes/major.routes");
 const recommendRoutes = require("./routes/recommend.routes");
 const hollandRoutes = require("./routes/holland.routes");
 const hollandResultRoutes = require("./routes/hollandResult.route");
+const mbtiRoutes = require("./routes/mbti.routes");
 const universityRoutes = require("./routes/university.routes");
 const app = express();
 
@@ -22,7 +23,9 @@ app.use("/api/majors", majorRoutes);
 app.use("/api/recommend", recommendRoutes);
 // ROUTER HOLLAND TEST
 app.use("/api/holland", hollandRoutes);
-// ROUTER HOLLAND RESULT
+// ROUTER MBTI TEST
+app.use("/api/mbti", mbtiRoutes);
+// ROUTER UNIVERSITIES
 app.use("/api/universities", universityRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;

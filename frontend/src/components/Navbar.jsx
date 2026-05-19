@@ -33,6 +33,10 @@ const Navbar = () => {
           <Link to="/holland" className="hover:text-white transition">
             Holland Test
           </Link>
+
+          <Link to="/mbti" className="hover:text-white transition">
+            MBTI Test
+          </Link>
         </div>
 
         {/* Actions */}

@@ -4,6 +4,7 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import HollandPage from "../pages/user/HollandPage";
+import MbtiPage from "../pages/user/MbtiPage";
 import RecommendPage from "../pages/user/RecommendPage";
 import DashboardPage from "../pages/user/DashboardPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -32,6 +33,7 @@ const AppRoutes = () => {
           }
         />
         <Route path="/holland" element={<HollandPage />} />
+        <Route path="/mbti" element={<MbtiPage />} />
       </Routes>
     </BrowserRouter>
   );

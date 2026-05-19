@@ -2,10 +2,19 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllUniversities, getUniversityById, createUniversity, updateUniversity, deleteUniversity } = require('../controllers/university.controller');
+const { 
+  getAllUniversities, 
+  getUniversityById, 
+  createUniversity, 
+  updateUniversity, 
+  deleteUniversity,
+  getAllUniversityMajors
+} = require('../controllers/university.controller');
 
 // PUBLIC: list all universities
 router.get('/', getAllUniversities);
+// PUBLIC: list all university-major combinations
+router.get('/majors/all', getAllUniversityMajors);
 router.get('/:id', getUniversityById);
 
 // PROTECTED (requires auth middleware) – for admin CRUD

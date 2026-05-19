@@ -1,7 +1,14 @@
 // controllers/university.controller.js
 // Controller cho các API CRUD của trường đại học
 
-const { getAllUniversities, getUniversityById, createUniversity, updateUniversity, deleteUniversity } = require('../services/university.service');
+const { 
+  getAllUniversities, 
+  getUniversityById, 
+  createUniversity, 
+  updateUniversity, 
+  deleteUniversity,
+  getAllUniversityMajors
+} = require('../services/university.service');
 
 // GET /api/universities
 exports.getAllUniversities = async (req, res) => {
@@ -50,5 +57,14 @@ exports.deleteUniversity = async (req, res) => {
     return res.status(200).json({ status: 'success', message: 'University deleted' });
   } catch (err) {
     return res.status(404).json({ status: 'error', message: err.message });
+  }
+};
+// GET /api/universities/majors
+exports.getAllUniversityMajors = async (req, res) => {
+  try {
+    const data = await getAllUniversityMajors();
+    return res.status(200).json({ status: 'success', data });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
   }
 };

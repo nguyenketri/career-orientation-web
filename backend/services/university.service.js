@@ -2,6 +2,7 @@
 // Service xử lý logic CRUD cho University
 
 const University = require('../models/university.model');
+const UniversityMajor = require('../models/universityMajor.model');
 const mongoose = require('mongoose');
 
 const getAllUniversities = async () => {
@@ -50,10 +51,18 @@ const deleteUniversity = async (id) => {
   return uni;
 };
 
+const getAllUniversityMajors = async () => {
+  return await UniversityMajor.find({ isDeleted: false })
+    .populate('university')
+    .populate('major')
+    .sort({ admissionScore: -1 });
+};
+
 module.exports = {
   getAllUniversities,
   getUniversityById,
   createUniversity,
   updateUniversity,
   deleteUniversity,
+  getAllUniversityMajors
 };

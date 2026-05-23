@@ -1,23 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { sendChatMessage, getSessionMessages } from "../../services/mentorService";
+import {
+  sendChatMessage,
+  getSessionMessages,
+} from "../../services/mentorService";
 
 const MentorChatPage = () => {
-  const [sessionId, setSessionId] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [sessionId, setSessionId] = useState(() => uuidv4());
+
+  const [messages, setMessages] = useState([
+    {
+      role: "model",
+      content:
+        "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp AI của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn cần hỗ trợ gì hôm nay nào? 😊",
+    },
+  ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Initialize Session
-  useEffect(() => {
-    // Luôn bắt đầu session mới cho mỗi phiên hoặc có thể tích hợp load history sidebar sau
-    const newSessionId = uuidv4();
-    setSessionId(newSessionId);
-    setMessages([
-      { role: "model", content: "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp AI của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn cần hỗ trợ gì hôm nay nào? 😊" }
-    ]);
-  }, []);
 
   // auto scroll to bottom
   const scrollToBottom = () => {
@@ -35,21 +36,30 @@ const MentorChatPage = () => {
     setInput("");
 
     // Optimistic UI updates
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
 
     try {
       const response = await sendChatMessage(sessionId, userMessage);
-      
+
       if (response && response.data) {
         // Có thể lấy thẳng message cuối cùng từ history thay vì lặp qua
         const chatHistory = response.data.history;
         const lastMessage = chatHistory[chatHistory.length - 1];
-        setMessages(prev => [...prev, { role: "model", content: lastMessage.content }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "model", content: lastMessage.content },
+        ]);
       }
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: "model", content: "Lỗi kết nối đến máy chủ AI, vui lòng thử lại sau." }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "model",
+          content: "Lỗi kết nối đến máy chủ AI, vui lòng thử lại sau.",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -70,18 +80,25 @@ const MentorChatPage = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r text-transparent bg-clip-text pb-1 from-purple-400 to-indigo-500">
             caZup Mentor AI
           </h1>
-          <p className="text-gray-400 text-sm mt-2">Hỏi bất cứ điều gì về hướng nghiệp & tuyển sinh</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Hỏi bất cứ điều gì về hướng nghiệp & tuyển sinh
+          </p>
         </div>
 
         {/* Chat Box */}
         <div className="flex-grow overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-6">
           {messages.map((msg, index) => (
-            <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div 
+            <div
+              key={index}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
                 className={`max-w-[80%] rounded-2xl p-4 whitespace-pre-wrap leading-relaxed
-                  ${msg.role === "user" 
-                    ? "bg-purple-600 rounded-tr-sm text-white shadow-lg shadow-purple-500/20" 
-                    : "bg-white/10 rounded-tl-sm text-gray-200 border border-white/5"}
+                  ${
+                    msg.role === "user"
+                      ? "bg-purple-600 rounded-tr-sm text-white shadow-lg shadow-purple-500/20"
+                      : "bg-white/10 rounded-tl-sm text-gray-200 border border-white/5"
+                  }
                 `}
               >
                 {msg.content}
@@ -115,8 +132,19 @@ const MentorChatPage = () => {
             disabled={loading || !input.trim()}
             className="m-2 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 flex-shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
             </svg>
           </button>
         </div>

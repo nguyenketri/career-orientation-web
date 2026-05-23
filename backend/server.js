@@ -8,7 +8,9 @@ const recommendRoutes = require("./routes/recommend.routes");
 const hollandRoutes = require("./routes/holland.routes");
 const hollandResultRoutes = require("./routes/hollandResult.route");
 const mbtiRoutes = require("./routes/mbti.routes");
+const mentorRoutes = require("./routes/mentor.routes");
 const universityRoutes = require("./routes/university.routes");
+const userRoutes = require("./routes/user.routes");
 const app = express();
 
 app.use(cors());
@@ -25,8 +27,12 @@ app.use("/api/recommend", recommendRoutes);
 app.use("/api/holland", hollandRoutes);
 // ROUTER MBTI TEST
 app.use("/api/mbti", mbtiRoutes);
+// ROUTER MENTOR AI
+app.use("/api/mentor", mentorRoutes);
 // ROUTER UNIVERSITIES
 app.use("/api/universities", universityRoutes);
+// ROUTER USERS
+app.use("/api/users", userRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

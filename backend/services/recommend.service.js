@@ -4,27 +4,57 @@ const ScoreAnalysis = require("../models/scoreAnalysis.model");
 
 // Hàm Helper để tính điểm theo tổ hợp
 const calculateCombinations = (scores) => {
-  const { math = 0, literature = 0, english = 0, physics = 0, chemistry = 0, biology = 0, history = 0, geography = 0, civicEducation = 0 } = scores;
-  
+  const {
+    math = 0,
+    literature = 0,
+    english = 0,
+    physics = 0,
+    chemistry = 0,
+    biology = 0,
+    history = 0,
+    geography = 0,
+    civicEducation = 0,
+  } = scores;
+
   const combinations = [
-    { name: "A00", subjects: ["math", "physics", "chemistry"], score: math + physics + chemistry },
-    { name: "A01", subjects: ["math", "physics", "english"], score: math + physics + english },
-    { name: "B00", subjects: ["math", "chemistry", "biology"], score: math + chemistry + biology },
-    { name: "C00", subjects: ["literature", "history", "geography"], score: literature + history + geography },
-    { name: "D01", subjects: ["math", "literature", "english"], score: math + literature + english },
+    {
+      name: "A00",
+      subjects: ["math", "physics", "chemistry"],
+      score: math + physics + chemistry,
+    },
+    {
+      name: "A01",
+      subjects: ["math", "physics", "english"],
+      score: math + physics + english,
+    },
+    {
+      name: "B00",
+      subjects: ["math", "chemistry", "biology"],
+      score: math + chemistry + biology,
+    },
+    {
+      name: "C00",
+      subjects: ["literature", "history", "geography"],
+      score: literature + history + geography,
+    },
+    {
+      name: "D01",
+      subjects: ["math", "literature", "english"],
+      score: math + literature + english,
+    },
   ];
 
-  return combinations.filter(c => c.score > 0);
+  return combinations.filter((c) => c.score > 0);
 };
 
 const recommendBySubjects = async (userId, scores) => {
   const combinations = calculateCombinations(scores);
-  
+
   // Sort descending by score
   combinations.sort((a, b) => b.score - a.score);
-  
+
   const eligibleUniversityMajors = [];
-  
+
   // Lấy danh sách ngành của các trường mà điểm của học sinh (theo từng tổ hợp) có khả năng đỗ
   // Khả năng đỗ: điểm chuẩn <= điểm của hs + 1 (cho tỷ lệ an toàn/thử thách)
   for (const combo of combinations) {
@@ -32,34 +62,40 @@ const recommendBySubjects = async (userId, scores) => {
       subjectCombination: combo.name,
       admissionScore: { $lte: combo.score + 1 }, // Điểm có thể với tới
       isDeleted: false,
-    }).populate("university").populate("major");
-    
+    })
+      .populate("university")
+      .populate("major");
+
     // Thêm thuộc tính để nhận dạng
-    const mapped = um.map(item => ({
+    const mapped = um.map((item) => ({
       ...item.toObject(),
       matchCombination: combo.name,
       userScoreForCombination: combo.score,
-      level: combo.score >= item.admissionScore ? "SAFE" : "CHALLENGE"
+      level: combo.score >= item.admissionScore ? "SAFE" : "CHALLENGE",
     }));
-    
+
     eligibleUniversityMajors.push(...mapped);
   }
 
   // Sắp xếp
-  eligibleUniversityMajors.sort((a,b) => b.userScoreForCombination - a.userScoreForCombination);
+  eligibleUniversityMajors.sort(
+    (a, b) => b.userScoreForCombination - a.userScoreForCombination,
+  );
 
   // Lưu lịch sử
   const analysisRecord = await ScoreAnalysis.create({
     user: userId,
     subjectScores: scores,
-    topCombinations: combinations.slice(0, 3).map(c => ({ combination: c.name, totalScore: c.score })),
-    recommendedUniversityMajors: eligibleUniversityMajors.map(e => e._id)
+    topCombinations: combinations
+      .slice(0, 3)
+      .map((c) => ({ combination: c.name, totalScore: c.score })),
+    recommendedUniversityMajors: eligibleUniversityMajors.map((e) => e._id),
   });
 
   return {
     combinations,
     recommendations: eligibleUniversityMajors,
-    analysisId: analysisRecord._id
+    analysisId: analysisRecord._id,
   };
 };
 
@@ -68,10 +104,7 @@ const getScoreAnalysisHistory = async (userId) => {
     .sort({ createdAt: -1 })
     .populate({
       path: "recommendedUniversityMajors",
-      populate: [
-        { path: "university" },
-        { path: "major" }
-      ]
+      populate: [{ path: "university" }, { path: "major" }],
     });
 };
 

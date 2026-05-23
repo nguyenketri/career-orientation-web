@@ -2,8 +2,16 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const ChatHistory = require("../models/chatHistory.model");
 const User = require("../models/user.model");
 
-// Khởi tạo Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy_key");
+// Hãy chắc chắn bạn đã tạo file .env ở thư mục gốc chứa GEMINI_API_KEY hợp lệ
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.warn("⚠️ CẢNH BÁO: Không tìm thấy GEMINI_API_KEY trong file .env!");
+}
+
+const genAI = new GoogleGenerativeAI(
+  apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
+);
 
 const getChatSession = async (userId, sessionId) => {
   let session = await ChatHistory.findOne({ user: userId, sessionId });
@@ -18,56 +26,68 @@ const getChatSession = async (userId, sessionId) => {
 };
 
 const sendChatMessage = async (userId, sessionId, message) => {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not configured.");
-  }
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const session = await getChatSession(userId, sessionId);
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Gemini
+    const formattedHistory = session.messages.map((msg) => ({
+      role: msg.role === "user" ? "user" : "model",
+      parts: [{ text: msg.content }],
+    }));
 
-  const session = await getChatSession(userId, sessionId);
+    // Tạo ngữ cảnh ban đầu (System Prompt) nếu phòng chat mới tinh
+    if (formattedHistory.length === 0) {
+      formattedHistory.push({
+        role: "user",
+        parts: [
+          {
+            text: "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji.",
+          },
+        ],
+      });
+      formattedHistory.push({
+        role: "model",
+        parts: [
+          {
+            text: "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn có câu hỏi gì cần hỗ trợ hôm nay không? 😊",
+          },
+        ],
+      });
+    }
 
-  // Chuẩn bị lịch sử trò chuyện cho Gemini
-  const formattedHistory = session.messages.map(msg => ({
-    role: msg.role === "user" ? "user" : "model",
-    parts: [{ text: msg.content }],
-  }));
-
-  // Tạo ngữ cảnh ban đầu (System Prompt) bằng cách thêm vào mảng history nếu mảng rỗng
-  if (formattedHistory.length === 0) {
-    formattedHistory.push({
-      role: "user",
-      parts: [{ text: "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji." }],
+    const chat = model.startChat({
+      history: formattedHistory,
     });
-    formattedHistory.push({
-      role: "model",
-      parts: [{ text: "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn có câu hỏi gì cần hỗ trợ hôm nay không? 😊" }],
-    });
+
+    // 1. Lưu tin nhắn thực tế của user vào database trước khi gọi API
+    session.messages.push({ role: "user", content: message });
+
+    // 2. Gọi API Google Gemini
+    const result = await chat.sendMessage(message);
+    const responseText = result.response.text();
+
+    // 3. Lưu phản hồi của AI vào database
+    session.messages.push({ role: "model", content: responseText });
+
+    // 4. Đồng bộ xuống Database
+    await session.save();
+
+    return {
+      response: responseText,
+      history: session.messages,
+    };
+  } catch (error) {
+    // In trực tiếp lỗi chi tiết ra màn hình đen Server để bắt bệnh chính xác
+    console.error("❌ LỖI TẠI HÀM SEND_CHAT_MESSAGE:", error.message);
+    throw error; // Đẩy lỗi ra ngoài để Controller xử lý trả lỗi văn minh về Frontend
   }
-
-  const chat = model.startChat({
-    history: formattedHistory,
-  });
-
-  // Lưu tin nhắn của user
-  session.messages.push({ role: "user", content: message });
-  
-  // Lấy phản hồi từ AI
-  const result = await chat.sendMessage(message);
-  const responseText = result.response.text();
-
-  // Lưu tin nhắn của hệ thống
-  session.messages.push({ role: "model", content: responseText });
-
-  await session.save();
-
-  return {
-    response: responseText,
-    history: session.messages,
-  };
 };
 
 const getChatSessions = async (userId) => {
-  return await ChatHistory.find({ user: userId }).sort({ updatedAt: -1 }).select("sessionId title updatedAt");
+  return await ChatHistory.find({ user: userId })
+    .sort({ updatedAt: -1 })
+    .select("sessionId title updatedAt");
 };
 
 const getChatSessionMessages = async (userId, sessionId) => {

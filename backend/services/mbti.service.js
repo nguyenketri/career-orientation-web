@@ -2,8 +2,12 @@ const MbtiQuestion = require("../models/mbtiQuestion.model");
 const MbtiResult = require("../models/mbtiResult.model");
 const Major = require("../models/major.model");
 
-const getQuestions = async () => {
-  return await MbtiQuestion.find({ isDeleted: false });
+const getQuestions = async (plan) => {
+  const allQuestions = await MbtiQuestion.find({ isDeleted: false });
+  if (plan === "FREE") {
+    return allQuestions.slice(0, 15);
+  }
+  return allQuestions;
 };
 
 const submitMbtiTest = async (userId, answers) => {

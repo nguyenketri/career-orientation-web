@@ -1,8 +1,17 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const HollandQuestion = require("../models/hollandQuestion.model");
 const Major = require("../models/major.model");
+const HollandResult = require("../models/hollandResult.model");
 
-const getQuestions = async () => {
-  return await HollandQuestion.find();
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90");
+
+const getQuestions = async (plan) => {
+  const allQuestions = await HollandQuestion.find();
+  if (plan === "FREE") {
+    return allQuestions.slice(0, 15);
+  }
+  return allQuestions;
 };
 
 const submitHollandTest = async (answers) => {
@@ -46,7 +55,62 @@ const submitHollandTest = async (answers) => {
     recommendedMajors: majors,
   };
 };
+
+const generateAiAnalysis = async (resultId) => {
+  try {
+    const result = await HollandResult.findById(resultId).populate("recommendedMajors");
+    if (!result) {
+      throw new Error("Holland result not found");
+    }
+
+    // Create prompt for AI analysis
+    const typeDescriptions = {
+      R: "Realistic - Thích công việc thực tế, kỹ thuật, xây dựng",
+      I: "Investigative - Thích nghiên cứu, phân tích, khám phá",
+      A: "Artistic - Thích sáng tạo, thiết kế, biểu diễn nghệ thuật",
+      S: "Social - Thích giúp đỡ người khác, giao tiếp, dạy dỗ",
+      E: "Enterprising - Thích lãnh đạo, quản lý, kinh doanh",
+      C: "Conventional - Thích tổ chức, quản lý thông tin, quy trình",
+    };
+
+    const topTypesText = result.topTypes.map(t => `${t} (${typeDescriptions[t]})`).join(", ");
+    const majorsText = result.recommendedMajors.slice(0, 5).map(m => m.name).join(", ");
+
+    const prompt = `Tôi vừa hoàn thành bài kiểm tra Holland Code. Kết quả của tôi là:
+- Loại Holland chính: ${result.hollandType}
+- Top 3 loại: ${topTypesText}
+- Điểm số: R=${result.hollandScores.R}, I=${result.hollandScores.I}, A=${result.hollandScores.A}, S=${result.hollandScores.S}, E=${result.hollandScores.E}, C=${result.hollandScores.C}
+
+Ngành học gợi ý: ${majorsText}
+
+Hãy phân tích chi tiết:
+1. Ý nghĩa của kết quả Holland này với tôi
+2. Ưu điểm và khả năng của tôi dựa vào loại Holland này
+3. Những công việc và ngành học phù hợp nhất
+4. Lời khuyên cho hướng nghiệp tương lai
+
+Giữ đáp án thân thiện, tích cực và xây dựng.`;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const response = await model.generateContent(prompt);
+    const analysisText = response.response.text();
+
+    // Save analysis to result
+    result.aiAnalysis = analysisText;
+    await result.save();
+
+    return {
+      hollandType: result.hollandType,
+      analysis: analysisText,
+    };
+  } catch (error) {
+    console.error("AI Analysis Error:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   getQuestions,
   submitHollandTest,
+  generateAiAnalysis,
 };

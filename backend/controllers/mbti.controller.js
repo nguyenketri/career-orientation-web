@@ -1,8 +1,10 @@
 const mbtiService = require("../services/mbti.service");
+const { getPlanFromRequest } = require("../middlewares/subscription.middleware");
 
 exports.getQuestions = async (req, res) => {
   try {
-    const questions = await mbtiService.getQuestions();
+    const plan = await getPlanFromRequest(req);
+    const questions = await mbtiService.getQuestions(plan);
     return res.status(200).json({ status: "success", data: questions });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });

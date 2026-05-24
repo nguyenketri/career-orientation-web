@@ -56,6 +56,10 @@ const hollandResultSchema = new mongoose.Schema(
         ref: "Major",
       },
     ],
+    aiAnalysis: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

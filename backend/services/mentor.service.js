@@ -13,6 +13,44 @@ const genAI = new GoogleGenerativeAI(
   apiKey || "AIzaSyC1yaicvcnjyBXwrX8W2w5HS0YfBB84wx4",
 );
 
+// Daily question limits by plan
+const DAILY_LIMITS = {
+  FREE: 5,
+  PAID: 50,
+  PREMIUM: Infinity,
+};
+
+// Helper to check daily usage
+const checkDailyQuota = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const plan = user.subscriptionPlan || "FREE";
+  const limit = DAILY_LIMITS[plan];
+
+  // Count messages sent by this user today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const sessionCount = await ChatHistory.countDocuments({
+    user: userId,
+    createdAt: { $gte: today },
+  });
+
+  // Each chat session has at least 1 message (user's first message)
+  const estimatedDailyMessages = sessionCount;
+
+  if (estimatedDailyMessages >= limit) {
+    throw new Error(
+      `Daily question limit reached for ${plan} plan (${limit}/day). Try again tomorrow or upgrade your plan.`
+    );
+  }
+
+  return { plan, limit, used: estimatedDailyMessages };
+};
+
 const getChatSession = async (userId, sessionId) => {
   let session = await ChatHistory.findOne({ user: userId, sessionId });
   if (!session) {
@@ -27,6 +65,10 @@ const getChatSession = async (userId, sessionId) => {
 
 const sendChatMessage = async (userId, sessionId, message) => {
   try {
+    // Check daily quota before processing
+    const quota = await checkDailyQuota(userId);
+    console.log(`[Mentor] User ${userId} quota status:`, quota);
+
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const session = await getChatSession(userId, sessionId);
 

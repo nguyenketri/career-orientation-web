@@ -1,6 +1,7 @@
 const Major = require("../models/major.model");
 const UniversityMajor = require("../models/universityMajor.model");
 const ScoreAnalysis = require("../models/scoreAnalysis.model");
+const User = require("../models/user.model");
 
 // Hàm Helper để tính điểm theo tổ hợp
 const calculateCombinations = (scores) => {
@@ -92,20 +93,54 @@ const recommendBySubjects = async (userId, scores) => {
     recommendedUniversityMajors: eligibleUniversityMajors.map((e) => e._id),
   });
 
+  const user = await User.findById(userId);
+  const plan = user ? user.subscriptionPlan : "FREE";
+
+  let recommendations = [];
+  if (plan === "PAID") {
+    recommendations = eligibleUniversityMajors.map((item) => ({
+      ...item,
+      university: { name: "Nâng cấp gói Cao Cấp để xem trường cụ thể" },
+    }));
+  } else if (plan === "PREMIUM") {
+    recommendations = eligibleUniversityMajors;
+  } else {
+    // FREE
+    recommendations = [];
+  }
+
   return {
     combinations,
-    recommendations: eligibleUniversityMajors,
+    recommendations,
     analysisId: analysisRecord._id,
   };
 };
 
 const getScoreAnalysisHistory = async (userId) => {
-  return await ScoreAnalysis.find({ user: userId })
+  const user = await User.findById(userId);
+  const plan = user ? user.subscriptionPlan : "FREE";
+
+  const history = await ScoreAnalysis.find({ user: userId })
     .sort({ createdAt: -1 })
     .populate({
       path: "recommendedUniversityMajors",
       populate: [{ path: "university" }, { path: "major" }],
     });
+
+  return history.map((record) => {
+    const recObj = record.toObject();
+    if (plan === "FREE") {
+      recObj.recommendedUniversityMajors = [];
+    } else if (plan === "PAID") {
+      recObj.recommendedUniversityMajors = recObj.recommendedUniversityMajors.map((item) => {
+        if (item && item.university) {
+          item.university = { name: "Nâng cấp gói Cao Cấp để xem trường cụ thể" };
+        }
+        return item;
+      });
+    }
+    return recObj;
+  });
 };
 
 const recommendByScore = async (input) => {

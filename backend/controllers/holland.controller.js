@@ -1,11 +1,14 @@
 const {
   getQuestions,
   submitHollandTest,
+  generateAiAnalysis: generateHollandAnalysis,
 } = require("../services/holland.service");
+const { getPlanFromRequest } = require("../middlewares/subscription.middleware");
 
 exports.getQuestions = async (req, res) => {
   try {
-    const questions = await getQuestions();
+    const plan = await getPlanFromRequest(req);
+    const questions = await getQuestions(plan);
 
     return res.status(200).json({
       status: "success",
@@ -26,6 +29,22 @@ exports.submitTest = async (req, res) => {
       status: "success",
       message: "Holland test submitted successfully",
       data: result,
+    });
+  } catch (err) {
+    return res.status(400).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
+exports.generateAiAnalysis = async (req, res) => {
+  try {
+    const { resultId } = req.params;
+    const analysis = await generateHollandAnalysis(resultId);
+    return res.status(200).json({
+      status: "success",
+      data: analysis,
     });
   } catch (err) {
     return res.status(400).json({

@@ -10,7 +10,7 @@ if (!apiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(
-  apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
+  apiKey || "AIzaSyC1yaicvcnjyBXwrX8W2w5HS0YfBB84wx4",
 );
 
 const getChatSession = async (userId, sessionId) => {

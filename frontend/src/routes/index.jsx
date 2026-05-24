@@ -10,6 +10,7 @@ import HollandPage from "../pages/user/HollandPage";
 import MbtiPage from "../pages/user/MbtiPage";
 import RecommendPage from "../pages/user/RecommendPage";
 import DashboardPage from "../pages/user/DashboardPage";
+import PricingPage from "../pages/user/PricingPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const AppRoutes = () => {
@@ -58,6 +59,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pricing"
+          element={
+            <ProtectedRoute>
+              <PricingPage />
             </ProtectedRoute>
           }
         />

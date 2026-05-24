@@ -44,6 +44,10 @@ const Navbar = () => {
           <Link to="/mentor" className="hover:text-white transition font-bold text-purple-400">
             AI Mentor
           </Link>
+
+          <Link to="/pricing" className="hover:text-white transition font-bold text-pink-400">
+            Nâng Cấp
+          </Link>
         </div>
 
         {/* Actions */}

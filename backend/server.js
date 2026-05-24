@@ -11,6 +11,7 @@ const mbtiRoutes = require("./routes/mbti.routes");
 const mentorRoutes = require("./routes/mentor.routes");
 const universityRoutes = require("./routes/university.routes");
 const userRoutes = require("./routes/user.routes");
+const paymentRoutes = require("./routes/payment.routes");
 const app = express();
 
 app.use(cors());
@@ -29,6 +30,8 @@ app.use("/api/holland", hollandRoutes);
 app.use("/api/mbti", mbtiRoutes);
 // ROUTER MENTOR AI
 app.use("/api/mentor", mentorRoutes);
+// ROUTER PAYMENT
+app.use("/api/payments", paymentRoutes);
 // ROUTER UNIVERSITIES
 app.use("/api/universities", universityRoutes);
 // ROUTER USERS

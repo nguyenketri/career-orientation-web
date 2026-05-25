@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const stats = [
   {
     number: "10K+",
@@ -56,9 +58,12 @@ const StatsSection = () => {
               majors and universities that match your strengths.
             </p>
 
-            <button className="rounded-full bg-white px-8 py-4 font-semibold text-black transition hover:scale-105">
+            <Link
+              to="/holland"
+              className="inline-block rounded-full bg-white px-8 py-4 font-semibold text-black transition hover:scale-105"
+            >
               Get Started Now
-            </button>
+            </Link>
           </div>
         </div>
       </div>

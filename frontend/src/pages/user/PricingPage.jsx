@@ -291,8 +291,8 @@ const PricingPage = () => {
                   className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all"
                 >
                   {paymentLoading
-                    ? "Đang kiểm tra..."
-                    : "Kiểm tra trạng thái thanh toán"}
+                    ? "Đang xác thực giao dịch..."
+                    : "Tôi đã thanh toán thành công"}
                 </button>
 
                 <p className="text-[10px] text-gray-500 mt-4 text-center italic">

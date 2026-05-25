@@ -9,7 +9,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const router = express.Router();
 
 // save holland result
-router.post("/", authMiddleware, saveHollandResult);
+router.post("/save", authMiddleware, saveHollandResult);
 // get history
-router.get("/me", authMiddleware, getMyHollandResults);
+router.get("/history", authMiddleware, getMyHollandResults);
 module.exports = router;

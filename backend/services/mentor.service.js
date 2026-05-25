@@ -67,7 +67,7 @@ const sendChatMessage = async (userId, sessionId, message) => {
     const quota = await checkDailyQuota(userId);
     console.log(`[Mentor] User ${userId} quota status:`, quota);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const session = await getChatSession(userId, sessionId);
 
     // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Gemini
@@ -120,7 +120,16 @@ const sendChatMessage = async (userId, sessionId, message) => {
   } catch (error) {
     // In trực tiếp lỗi chi tiết ra màn hình đen Server để bắt bệnh chính xác
     console.error("❌ LỖI TẠI HÀM SEND_CHAT_MESSAGE:", error.message);
-    throw error; // Đẩy lỗi ra ngoài để Controller xử lý trả lỗi văn minh về Frontend
+
+    if (error.message?.includes("429") || error.status === 429) {
+      throw new Error(
+        "Hệ thống AI đang bận do quá nhiều yêu cầu (Quota Limit). Vui lòng thử lại sau 1 phút hoặc nâng cấp gói để được ưu tiên. 😊",
+      );
+    }
+
+    throw new Error(
+      "Xin lỗi, Mentor đang gặp chút trục trặc kỹ thuật. Bạn thử lại sau nhé!",
+    );
   }
 };
 

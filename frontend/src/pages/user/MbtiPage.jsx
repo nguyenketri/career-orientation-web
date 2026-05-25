@@ -61,8 +61,13 @@ const MbtiPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length < totalQuestions) {
-      setError("Vui lòng trả lời tất cả các câu hỏi.");
+    const answeredCount = Object.keys(answers).length;
+    const minRequired = userPlan === "FREE" ? 10 : totalQuestions;
+
+    if (answeredCount < minRequired) {
+      setError(
+        `Vui lòng trả lời ít nhất ${minRequired} câu hỏi để xem kết quả.`,
+      );
       return;
     }
 

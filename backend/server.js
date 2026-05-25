@@ -26,6 +26,8 @@ app.use("/api/majors", majorRoutes);
 app.use("/api/recommend", recommendRoutes);
 // ROUTER HOLLAND TEST
 app.use("/api/holland", hollandRoutes);
+// ROUTER HOLLAND RESULTS
+app.use("/api/holland-results", hollandResultRoutes);
 // ROUTER MBTI TEST
 app.use("/api/mbti", mbtiRoutes);
 // ROUTER MENTOR AI

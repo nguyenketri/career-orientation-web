@@ -105,8 +105,11 @@ const recommendBySubjects = async (userId, scores) => {
   } else if (plan === "PREMIUM") {
     recommendations = eligibleUniversityMajors;
   } else {
-    // FREE
-    recommendations = [];
+    // FREE: Show top 3 but hide university name
+    recommendations = eligibleUniversityMajors.slice(0, 3).map((item) => ({
+      ...item,
+      university: { name: "Nâng cấp gói để xem trường cụ thể" },
+    }));
   }
 
   return {
@@ -132,12 +135,15 @@ const getScoreAnalysisHistory = async (userId) => {
     if (plan === "FREE") {
       recObj.recommendedUniversityMajors = [];
     } else if (plan === "PAID") {
-      recObj.recommendedUniversityMajors = recObj.recommendedUniversityMajors.map((item) => {
-        if (item && item.university) {
-          item.university = { name: "Nâng cấp gói Cao Cấp để xem trường cụ thể" };
-        }
-        return item;
-      });
+      recObj.recommendedUniversityMajors =
+        recObj.recommendedUniversityMajors.map((item) => {
+          if (item && item.university) {
+            item.university = {
+              name: "Nâng cấp gói Cao Cấp để xem trường cụ thể",
+            };
+          }
+          return item;
+        });
     }
     return recObj;
   });

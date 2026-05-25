@@ -33,10 +33,7 @@ const paymentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
-
-// Add index on transactionCode for faster webhook lookup
-paymentSchema.index({ transactionCode: 1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);

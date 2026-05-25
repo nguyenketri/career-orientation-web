@@ -68,7 +68,7 @@ const sendChatMessage = async (userId, sessionId, message) => {
     console.log(`[Mentor] User ${userId} quota status:`, quota);
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       systemInstruction:
         "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji.",
     });

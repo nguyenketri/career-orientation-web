@@ -11,5 +11,5 @@ const router = express.Router();
 // save holland result
 router.post("/save", authMiddleware, saveHollandResult);
 // get history
-router.get("/history", authMiddleware, getMyHollandResults);
+router.get("/me", authMiddleware, getMyHollandResults);
 module.exports = router;

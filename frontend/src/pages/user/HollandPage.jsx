@@ -74,8 +74,11 @@ const HollandPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length < totalQuestions) {
-      setError("Vui lòng trả lời tất cả các câu hỏi.");
+    const answeredCount = Object.keys(answers).length;
+    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
+
+    if (answeredCount < minRequired) {
+      setError(`Vui lòng trả lời ít nhất ${minRequired} câu hỏi.`);
       return;
     }
 
@@ -262,7 +265,9 @@ const HollandPage = () => {
   // WIZARD VIEW
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
-  const isAllAnswered = Object.keys(answers).length === totalQuestions;
+  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
+  const isAllAnswered =
+    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
 
   return (
     <div className="min-h-screen bg-black px-6 py-20 text-white flex flex-col">
@@ -304,37 +309,58 @@ const HollandPage = () => {
 
             {/* Question Box */}
             <div className="flex-grow flex flex-col justify-center mb-12">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-semibold leading-relaxed">
-                  "{currentQuestion?.content}"
-                </h2>
-              </div>
+              {isFreeLimitReached ? (
+                <div className="text-center p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
+                  <h2 className="text-3xl font-bold mb-4 text-purple-400">
+                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
+                  </h2>
+                  <p className="text-gray-300 mb-8 text-lg">
+                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
+                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
+                  </p>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="px-10 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50"
+                  >
+                    {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-4xl font-semibold leading-relaxed">
+                      "{currentQuestion?.content}"
+                    </h2>
+                  </div>
 
-              {/* Likert Scale */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {LIKERT_OPTIONS.map((option) => {
-                  const isSelected =
-                    answers[currentQuestion._id]?.score === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => handleSelect(option.value)}
-                      className={`flex-1 rounded-2xl py-4 px-2 transition-all duration-200 border border-transparent 
+                  {/* Likert Scale */}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    {LIKERT_OPTIONS.map((option) => {
+                      const isSelected =
+                        answers[currentQuestion._id]?.score === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => handleSelect(option.value)}
+                          className={`flex-1 rounded-2xl py-4 px-2 transition-all duration-200 border border-transparent 
                         ${
                           isSelected
                             ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25 scale-105"
                             : "bg-white/5 hover:bg-white/10 text-gray-300 hover:border-white/20"
                         }
                       `}
-                    >
-                      <div className="text-lg font-bold mb-1">
-                        {option.value}
-                      </div>
-                      <div className="text-xs">{option.label}</div>
-                    </button>
-                  );
-                })}
-              </div>
+                        >
+                          <div className="text-lg font-bold mb-1">
+                            {option.value}
+                          </div>
+                          <div className="text-xs">{option.label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             {error && (
@@ -353,7 +379,7 @@ const HollandPage = () => {
                 Câu trước
               </button>
 
-              {isAllAnswered ? (
+              {isAllAnswered || isFreeLimitReached ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}

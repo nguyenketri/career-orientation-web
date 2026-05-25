@@ -22,9 +22,9 @@ const ComparisonPage = () => {
 
   // Determine max comparison limit based on plan
   const getComparisonLimit = () => {
-    if (userPlan === "FREE") return 3;
-    if (userPlan === "PAID") return 6;
-    return 9; // PREMIUM can compare 9 universities
+    if (userPlan === "FREE") return 1; // FREE can only view 1 (no comparison)
+    if (userPlan === "PAID") return 3; // PAID can compare 3
+    return 10; // PREMIUM can compare 10 (unlimited)
   };
 
   const maxComparisons = getComparisonLimit();
@@ -53,13 +53,16 @@ const ComparisonPage = () => {
 
   const handleSelect = (item) => {
     if (selectedMajors.length >= maxComparisons) {
-      const limit =
-        maxComparisons === Infinity
-          ? "không giới hạn"
-          : `tối đa ${maxComparisons}`;
-      alert(
-        `Gói ${userPlan} của bạn cho phép so sánh ${limit} ngành cùng lúc.`,
-      );
+      if (userPlan === "FREE") {
+        alert(
+          "Gói Miễn Phí chỉ cho phép xem thông tin lẻ. Vui lòng nâng cấp lên gói Trả Phí để sử dụng tính năng So Sánh!",
+        );
+        navigate("/pricing");
+      } else {
+        alert(
+          `Gói ${userPlan} của bạn cho phép so sánh tối đa ${maxComparisons} ngành cùng lúc.`,
+        );
+      }
       return;
     }
     setSelectedMajors([...selectedMajors, item]);
@@ -130,8 +133,9 @@ const ComparisonPage = () => {
           {/* Show remaining slots */}
           {selectedMajors.length < maxComparisons && (
             <p className="text-xs text-gray-500 mt-2 text-center">
-              Bạn có thể so sánh {maxComparisons - selectedMajors.length} ngành
-              nữa (Gói {userPlan}: {maxComparisons} ngành)
+              {userPlan === "FREE"
+                ? "Gói Miễn Phí: Chọn 1 ngành để xem thông tin chi tiết"
+                : `Bạn có thể so sánh thêm ${maxComparisons - selectedMajors.length} ngành nữa (Gói ${userPlan})`}
             </p>
           )}
         </div>

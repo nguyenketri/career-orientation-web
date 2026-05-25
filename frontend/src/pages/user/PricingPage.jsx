@@ -8,6 +8,7 @@ const PricingPage = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [transactionCode, setTransactionCode] = useState(null);
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   const plans = [
     {
@@ -87,6 +88,7 @@ const PricingPage = () => {
         setTransactionCode(code);
         setSelectedPlan({ ...plan, paymentId }); // Store paymentId in selectedPlan
         setPaymentStatus("pending");
+        startPolling(paymentId);
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -97,9 +99,27 @@ const PricingPage = () => {
     }
   };
 
-  const checkPaymentStatus = async (paymentId) => {
+  // Auto-polling for payment status
+  const startPolling = (paymentId) => {
+    if (pollingInterval) clearInterval(pollingInterval);
+
+    const interval = setInterval(() => {
+      checkPaymentStatus(paymentId, true);
+    }, 5000); // Check every 5 seconds
+
+    setPollingInterval(interval);
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  };
+
+  const checkPaymentStatus = async (paymentId, isAuto = false) => {
     try {
-      setPaymentLoading(true);
+      if (!isAuto) setPaymentLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
         `http://localhost:3000/api/payments/status/${paymentId}`,
@@ -109,11 +129,12 @@ const PricingPage = () => {
       if (response.data.status === "success") {
         if (response.data.data.status === "SUCCESS") {
           setPaymentStatus("success");
+          stopPolling();
           setTimeout(() => {
             alert("Nâng cấp thành công! Hãy reload trang để cập nhật.");
             window.location.reload();
           }, 2000);
-        } else {
+        } else if (!isAuto) {
           alert(
             "Giao dịch đang được xử lý hoặc chưa nhận được tiền. Vui lòng đợi trong giây lát.",
           );
@@ -121,12 +142,14 @@ const PricingPage = () => {
       }
     } catch (error) {
       console.error("Check status error:", error);
-      alert(
-        "Lỗi khi kiểm tra trạng thái: " +
-          (error.response?.data?.message || error.message),
-      );
+      if (!isAuto) {
+        alert(
+          "Lỗi khi kiểm tra trạng thái: " +
+            (error.response?.data?.message || error.message),
+        );
+      }
     } finally {
-      setPaymentLoading(false);
+      if (!isAuto) setPaymentLoading(false);
     }
   };
 
@@ -292,16 +315,24 @@ const PricingPage = () => {
                 >
                   {paymentLoading
                     ? "Đang xác thực giao dịch..."
-                    : "Tôi đã thanh toán thành công"}
+                    : "Kiểm tra trạng thái thanh toán"}
                 </button>
 
+                <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-purple-400 animate-pulse">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>Đang tự động kiểm tra giao dịch mỗi 5 giây...</span>
+                </div>
+
                 <p className="text-[10px] text-gray-500 mt-4 text-center italic">
-                  Hệ thống sẽ tự động cập nhật sau 1-3 phút khi nhận được tiền
-                  chuyển khoản.
+                  Hệ thống sẽ tự động cập nhật ngay khi nhận được tiền chuyển
+                  khoản (thường từ 1-3 phút).
                 </p>
 
                 <button
-                  onClick={() => setSelectedPlan(null)}
+                  onClick={() => {
+                    stopPolling();
+                    setSelectedPlan(null);
+                  }}
                   className="w-full mt-3 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-xl transition-all"
                 >
                   Hủy

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mbtiMaps } from "../../utils/mbtiMap";
 import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
-import UpgradePrompt from "../../components/UpgradePrompt";
 
 const MbtiPage = () => {
   const navigate = useNavigate();
@@ -62,7 +61,7 @@ const MbtiPage = () => {
 
   const handleSubmit = async () => {
     const answeredCount = Object.keys(answers).length;
-    const minRequired = userPlan === "FREE" ? 10 : totalQuestions;
+    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
 
     if (answeredCount < minRequired) {
       setError(
@@ -93,16 +92,8 @@ const MbtiPage = () => {
     setError("");
   };
 
-  // MBTI full test requires PAID or PREMIUM, FREE can try 10 questions
-  if (!loading && userPlan === "FREE" && currentIndex >= 10) {
-    return (
-      <UpgradePrompt
-        feature="MBTI Personality Test (Bản đầy đủ)"
-        requiredPlan={["PAID", "PREMIUM"]}
-        currentPlan={userPlan}
-      />
-    );
-  }
+  // MBTI full test requires PAID or PREMIUM, FREE can try 15 questions
+  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
 
   if (loading) {
     return (
@@ -218,7 +209,8 @@ const MbtiPage = () => {
 
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
-  const isAllAnswered = Object.keys(answers).length === totalQuestions;
+  const isAllAnswered =
+    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
 
   return (
     <div className="min-h-screen bg-black px-6 py-20 text-white flex flex-col">
@@ -260,86 +252,107 @@ const MbtiPage = () => {
               </div>
             </div>
 
-            {/* Question */}
+            {/* Question Area */}
             <div className="flex-grow flex flex-col justify-center mb-12 relative">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl md:text-4xl font-normal leading-tight text-white/90">
-                  {currentQuestion?.question}
-                </h2>
-              </div>
-
-              {/* Options */}
-              <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
-                {/* Option A */}
-                <button
-                  onClick={() =>
-                    handleSelect(currentQuestion.optionA.typeValue)
-                  }
-                  className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
-                    ${
-                      answers[currentQuestion._id]?.typeValue ===
-                      currentQuestion.optionA.typeValue
-                        ? "bg-indigo-600/20 border-indigo-500 text-white"
-                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
-                    }
-                  `}
-                >
-                  <div className="flex items-center">
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
-                      ${
-                        answers[currentQuestion._id]?.typeValue ===
-                        currentQuestion.optionA.typeValue
-                          ? "border-indigo-400 bg-indigo-500"
-                          : "border-gray-500 group-hover:border-gray-400"
-                      }`}
-                    >
-                      {answers[currentQuestion._id]?.typeValue ===
-                        currentQuestion.optionA.typeValue && (
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      )}
-                    </div>
-                    <span className="text-lg">
-                      {currentQuestion.optionA.text}
-                    </span>
+              {isFreeLimitReached ? (
+                <div className="text-center p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
+                  <h2 className="text-3xl font-bold mb-4 text-purple-400">
+                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
+                  </h2>
+                  <p className="text-gray-300 mb-8 text-lg">
+                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
+                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
+                  </p>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="px-10 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50"
+                  >
+                    {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-12">
+                    <h2 className="text-3xl md:text-4xl font-normal leading-tight text-white/90">
+                      {currentQuestion?.question}
+                    </h2>
                   </div>
-                </button>
 
-                {/* Option B */}
-                <button
-                  onClick={() =>
-                    handleSelect(currentQuestion.optionB.typeValue)
-                  }
-                  className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
-                    ${
-                      answers[currentQuestion._id]?.typeValue ===
-                      currentQuestion.optionB.typeValue
-                        ? "bg-indigo-600/20 border-indigo-500 text-white"
-                        : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
-                    }
-                  `}
-                >
-                  <div className="flex items-center">
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
-                      ${
-                        answers[currentQuestion._id]?.typeValue ===
-                        currentQuestion.optionB.typeValue
-                          ? "border-indigo-400 bg-indigo-500"
-                          : "border-gray-500 group-hover:border-gray-400"
-                      }`}
+                  {/* Options */}
+                  <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
+                    {/* Option A */}
+                    <button
+                      onClick={() =>
+                        handleSelect(currentQuestion.optionA.typeValue)
+                      }
+                      className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
+                        ${
+                          answers[currentQuestion._id]?.typeValue ===
+                          currentQuestion.optionA.typeValue
+                            ? "bg-indigo-600/20 border-indigo-500 text-white"
+                            : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
+                        }
+                      `}
                     >
-                      {answers[currentQuestion._id]?.typeValue ===
-                        currentQuestion.optionB.typeValue && (
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      )}
-                    </div>
-                    <span className="text-lg">
-                      {currentQuestion.optionB.text}
-                    </span>
+                      <div className="flex items-center">
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
+                          ${
+                            answers[currentQuestion._id]?.typeValue ===
+                            currentQuestion.optionA.typeValue
+                              ? "border-indigo-400 bg-indigo-500"
+                              : "border-gray-500 group-hover:border-gray-400"
+                          }`}
+                        >
+                          {answers[currentQuestion._id]?.typeValue ===
+                            currentQuestion.optionA.typeValue && (
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          )}
+                        </div>
+                        <span className="text-lg">
+                          {currentQuestion.optionA.text}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Option B */}
+                    <button
+                      onClick={() =>
+                        handleSelect(currentQuestion.optionB.typeValue)
+                      }
+                      className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
+                        ${
+                          answers[currentQuestion._id]?.typeValue ===
+                          currentQuestion.optionB.typeValue
+                            ? "bg-indigo-600/20 border-indigo-500 text-white"
+                            : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
+                          ${
+                            answers[currentQuestion._id]?.typeValue ===
+                            currentQuestion.optionB.typeValue
+                              ? "border-indigo-400 bg-indigo-500"
+                              : "border-gray-500 group-hover:border-gray-400"
+                          }`}
+                        >
+                          {answers[currentQuestion._id]?.typeValue ===
+                            currentQuestion.optionB.typeValue && (
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          )}
+                        </div>
+                        <span className="text-lg">
+                          {currentQuestion.optionB.text}
+                        </span>
+                      </div>
+                    </button>
                   </div>
-                </button>
-              </div>
+                </>
+              )}
             </div>
 
             {error && (
@@ -358,7 +371,7 @@ const MbtiPage = () => {
                 Câu trước
               </button>
 
-              {isAllAnswered ? (
+              {isAllAnswered || isFreeLimitReached ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}

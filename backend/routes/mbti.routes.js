@@ -8,12 +8,7 @@ const { requirePlan } = require("../middlewares/subscription.middleware");
 router.get("/questions", mbtiController.getQuestions);
 
 // PROTECTED: submit and get history
-router.post(
-  "/submit",
-  authMiddleware,
-  requirePlan(["PAID", "PREMIUM"]),
-  mbtiController.submitTest,
-);
+router.post("/submit", authMiddleware, mbtiController.submitTest);
 router.get("/history", authMiddleware, mbtiController.getHistory);
 
 module.exports = router;

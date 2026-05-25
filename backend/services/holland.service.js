@@ -4,13 +4,19 @@ const Major = require("../models/major.model");
 const HollandResult = require("../models/hollandResult.model");
 
 const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90");
+const genAI = new GoogleGenerativeAI(
+  apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
+);
 
 const getQuestions = async (plan) => {
   const allQuestions = await HollandQuestion.find();
   if (plan === "FREE") {
     return allQuestions.slice(0, 15);
   }
+  if (plan === "PAID") {
+    return allQuestions.slice(0, 40);
+  }
+  // PREMIUM: full set
   return allQuestions;
 };
 
@@ -58,7 +64,8 @@ const submitHollandTest = async (answers) => {
 
 const generateAiAnalysis = async (resultId) => {
   try {
-    const result = await HollandResult.findById(resultId).populate("recommendedMajors");
+    const result =
+      await HollandResult.findById(resultId).populate("recommendedMajors");
     if (!result) {
       throw new Error("Holland result not found");
     }
@@ -73,8 +80,13 @@ const generateAiAnalysis = async (resultId) => {
       C: "Conventional - Thích tổ chức, quản lý thông tin, quy trình",
     };
 
-    const topTypesText = result.topTypes.map(t => `${t} (${typeDescriptions[t]})`).join(", ");
-    const majorsText = result.recommendedMajors.slice(0, 5).map(m => m.name).join(", ");
+    const topTypesText = result.topTypes
+      .map((t) => `${t} (${typeDescriptions[t]})`)
+      .join(", ");
+    const majorsText = result.recommendedMajors
+      .slice(0, 5)
+      .map((m) => m.name)
+      .join(", ");
 
     const prompt = `Tôi vừa hoàn thành bài kiểm tra Holland Code. Kết quả của tôi là:
 - Loại Holland chính: ${result.hollandType}

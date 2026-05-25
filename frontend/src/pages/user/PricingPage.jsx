@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 
@@ -74,13 +74,18 @@ const PricingPage = () => {
       const response = await axios.post(
         "http://localhost:3000/api/payments/create",
         { planType: plan.type },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.status === "success") {
-        const { qrCodeUrl, transactionCode: code } = response.data.data;
+        const {
+          qrCodeUrl,
+          transactionCode: code,
+          paymentId,
+        } = response.data.data;
         setQrCode(qrCodeUrl);
         setTransactionCode(code);
+        setSelectedPlan({ ...plan, paymentId }); // Store paymentId in selectedPlan
         setPaymentStatus("pending");
       }
     } catch (error) {
@@ -92,32 +97,34 @@ const PricingPage = () => {
     }
   };
 
-  const handleMockPayment = async () => {
-    if (!transactionCode) return;
-
+  const checkPaymentStatus = async (paymentId) => {
     try {
       setPaymentLoading(true);
-      const response = await axios.post(
-        "http://localhost:3000/api/payments/mock-webhook",
-        {
-          transactionCode,
-          amount: selectedPlan.price,
-        }
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3000/api/payments/status/${paymentId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.status === "success") {
-        setPaymentStatus("success");
-        setTimeout(() => {
-          alert("Nâng cấp thành công! Hãy reload trang để cập nhật.");
-          setSelectedPlan(null);
-          setQrCode(null);
-          setTransactionCode(null);
-        }, 2000);
+        if (response.data.data.status === "SUCCESS") {
+          setPaymentStatus("success");
+          setTimeout(() => {
+            alert("Nâng cấp thành công! Hãy reload trang để cập nhật.");
+            window.location.reload();
+          }, 2000);
+        } else {
+          alert(
+            "Giao dịch đang được xử lý hoặc chưa nhận được tiền. Vui lòng đợi trong giây lát.",
+          );
+        }
       }
     } catch (error) {
-      console.error("Mock payment error:", error);
-      setPaymentStatus("error");
-      alert("Lỗi: " + (error.response?.data?.message || error.message));
+      console.error("Check status error:", error);
+      alert(
+        "Lỗi khi kiểm tra trạng thái: " +
+          (error.response?.data?.message || error.message),
+      );
     } finally {
       setPaymentLoading(false);
     }
@@ -168,7 +175,9 @@ const PricingPage = () => {
 
             <div className="p-8">
               {/* Plan Name */}
-              <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {plan.name}
+              </h3>
               <p className="text-gray-400 mb-6">{plan.duration}</p>
 
               {/* Price */}
@@ -179,9 +188,12 @@ const PricingPage = () => {
                 </div>
                 {plan.price > 0 && (
                   <p className="text-sm text-gray-400 mt-2">
-                    {(plan.price / (plan.duration === "30 ngày" ? 30 : 90)).toLocaleString("vi-VN", {
+                    {(
+                      plan.price / (plan.duration === "30 ngày" ? 30 : 90)
+                    ).toLocaleString("vi-VN", {
                       maximumFractionDigits: 0,
-                    })}/ngày
+                    })}
+                    /ngày
                   </p>
                 )}
               </div>
@@ -230,13 +242,16 @@ const PricingPage = () => {
           >
             <h2 className="text-2xl font-bold text-white mb-2">Thanh toán</h2>
             <p className="text-gray-400 mb-6">
-              {selectedPlan.name} - {selectedPlan.price.toLocaleString("vi-VN")}đ
+              {selectedPlan.name} - {selectedPlan.price.toLocaleString("vi-VN")}
+              đ
             </p>
 
             {paymentStatus === "success" ? (
               <div className="text-center py-8">
                 <div className="text-5xl mb-4">✅</div>
-                <p className="text-green-400 font-bold">Thanh toán thành công!</p>
+                <p className="text-green-400 font-bold">
+                  Thanh toán thành công!
+                </p>
                 <p className="text-gray-300 text-sm mt-2">
                   Gói của bạn sẽ được kích hoạt ngay
                 </p>
@@ -245,9 +260,7 @@ const PricingPage = () => {
               <div className="text-center py-8">
                 <div className="text-5xl mb-4">❌</div>
                 <p className="text-red-400 font-bold">Lỗi thanh toán</p>
-                <p className="text-gray-300 text-sm mt-2">
-                  Vui lòng thử lại
-                </p>
+                <p className="text-gray-300 text-sm mt-2">Vui lòng thử lại</p>
               </div>
             ) : qrCode ? (
               <>
@@ -273,12 +286,19 @@ const PricingPage = () => {
                 </div>
 
                 <button
-                  onClick={handleMockPayment}
+                  onClick={() => checkPaymentStatus(selectedPlan.paymentId)}
                   disabled={paymentLoading}
-                  className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all"
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all"
                 >
-                  {paymentLoading ? "Đang xử lý..." : "✓ Tôi đã chuyển khoản (Dev)"}
+                  {paymentLoading
+                    ? "Đang kiểm tra..."
+                    : "Kiểm tra trạng thái thanh toán"}
                 </button>
+
+                <p className="text-[10px] text-gray-500 mt-4 text-center italic">
+                  Hệ thống sẽ tự động cập nhật sau 1-3 phút khi nhận được tiền
+                  chuyển khoản.
+                </p>
 
                 <button
                   onClick={() => setSelectedPlan(null)}

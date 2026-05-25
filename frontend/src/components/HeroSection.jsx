@@ -33,7 +33,7 @@ const HeroSection = () => {
             to="/holland"
             className="rounded-full bg-white px-8 py-4 font-semibold text-black transition hover:scale-105"
           >
-            Start Holland Test
+            Get Started Now
           </Link>
 
           <Link

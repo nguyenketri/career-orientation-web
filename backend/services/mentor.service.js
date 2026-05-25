@@ -13,7 +13,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Daily question limits by plan
 const DAILY_LIMITS = {
-  FREE: 5,
+  FREE: 7,
   PAID: 50,
   PREMIUM: Infinity,
 };

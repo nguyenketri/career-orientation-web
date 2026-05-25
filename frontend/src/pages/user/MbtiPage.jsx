@@ -88,11 +88,11 @@ const MbtiPage = () => {
     setError("");
   };
 
-  // MBTI full test requires PAID or PREMIUM
-  if (!loading && userPlan === "FREE") {
+  // MBTI full test requires PAID or PREMIUM, FREE can try 10 questions
+  if (!loading && userPlan === "FREE" && currentIndex >= 10) {
     return (
       <UpgradePrompt
-        feature="MBTI Personality Test (đầy đủ)"
+        feature="MBTI Personality Test (Bản đầy đủ)"
         requiredPlan={["PAID", "PREMIUM"]}
         currentPlan={userPlan}
       />

@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import {
-  sendChatMessage,
-  getSessionMessages,
-} from "../../services/mentorService";
+import { sendChatMessage } from "../../services/mentorService";
 
 const MentorChatPage = () => {
-  const [sessionId, setSessionId] = useState(() => uuidv4());
+  const [sessionId] = useState(() => uuidv4());
 
   const [messages, setMessages] = useState([
     {
@@ -18,7 +15,6 @@ const MentorChatPage = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-
 
   // auto scroll to bottom
   const scrollToBottom = () => {
@@ -53,11 +49,22 @@ const MentorChatPage = () => {
       }
     } catch (error) {
       console.error(error);
+
+      // Check if error is due to quota limit
+      const isQuotaExceeded =
+        error.response?.data?.message?.includes(
+          "Daily question limit reached",
+        ) || error.message?.includes("Daily question limit reached");
+
+      const errorMessage = isQuotaExceeded
+        ? `Bạn đã hết lượt chat hôm nay. Hãy đăng ký gói nâng cấp để có thêm lượt chat, hoặc hãy quay lại vào ngày mai! 😊`
+        : "Lỗi kết nối đến máy chủ AI, vui lòng thử lại sau.";
+
       setMessages((prev) => [
         ...prev,
         {
           role: "model",
-          content: "Lỗi kết nối đến máy chủ AI, vui lòng thử lại sau.",
+          content: errorMessage,
         },
       ]);
     } finally {

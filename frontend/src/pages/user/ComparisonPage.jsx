@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { getAllUniversityMajors } from "../../services/universityService";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import UpgradePrompt from "../../components/UpgradePrompt";
 
 const ComparisonPage = () => {
   const [allMajors, setAllMajors] = useState([]);
@@ -23,9 +22,9 @@ const ComparisonPage = () => {
 
   // Determine max comparison limit based on plan
   const getComparisonLimit = () => {
-    if (userPlan === "FREE") return 0;
-    if (userPlan === "PAID") return 3;
-    return Infinity; // PREMIUM has unlimited
+    if (userPlan === "FREE") return 3;
+    if (userPlan === "PAID") return 6;
+    return 9; // PREMIUM can compare 9 universities
   };
 
   const maxComparisons = getComparisonLimit();
@@ -43,17 +42,6 @@ const ComparisonPage = () => {
     };
     fetchData();
   }, []);
-
-  // FREE plan users cannot access compare feature
-  if (userPlan === "FREE") {
-    return (
-      <UpgradePrompt
-        feature="Tính năng so sánh ngành và trường"
-        requiredPlan={["PAID", "PREMIUM"]}
-        currentPlan={userPlan}
-      />
-    );
-  }
 
   const filteredMajors = allMajors.filter(
     (item) =>
@@ -139,11 +127,11 @@ const ComparisonPage = () => {
             )}
           </AnimatePresence>
 
-          {/* Show remaining slots if PAID */}
-          {userPlan === "PAID" && selectedMajors.length < maxComparisons && (
+          {/* Show remaining slots */}
+          {selectedMajors.length < maxComparisons && (
             <p className="text-xs text-gray-500 mt-2 text-center">
               Bạn có thể so sánh {maxComparisons - selectedMajors.length} ngành
-              nữa
+              nữa (Gói {userPlan}: {maxComparisons} ngành)
             </p>
           )}
         </div>

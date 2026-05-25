@@ -1,18 +1,26 @@
+import { Link } from "react-router-dom";
+
 const features = [
   {
     title: "AI Career Mentor",
-    description: "Chat with our intelligent AI advisor to get instant answers about universities, majors, and career paths.",
+    description:
+      "Chat with our intelligent AI advisor to get instant answers about universities, majors, and career paths.",
     icon: "🤖",
+    link: "/mentor",
   },
   {
     title: "Holland & MBTI Tests",
-    description: "Deep dive into your personality with professional Holland and MBTI assessments mapped to real careers.",
+    description:
+      "Deep dive into your personality with professional Holland and MBTI assessments mapped to real careers.",
     icon: "🧠",
+    links: ["/holland", "/mbti"],
   },
   {
     title: "University Matching",
-    description: "Calculate your subject combination scores and find the perfect match among hundreds of universities.",
+    description:
+      "Calculate your subject combination scores and find the perfect match among hundreds of universities.",
     icon: "🎓",
+    link: "/recommend",
   },
 ];
 
@@ -42,26 +50,30 @@ const FeatureSection = () => {
 
         {/* Cards */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="group rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg transition hover:-translate-y-2 hover:border-purple-500/30"
-            >
-              {/* Icon */}
-              <div className="mb-6 text-5xl">{feature.icon}</div>
+          {features.map((feature, index) => {
+            const links = feature.links || [feature.link];
+            return (
+              <Link
+                key={index}
+                to={links[0]}
+                className="group rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg transition hover:-translate-y-2 hover:border-purple-500/30 cursor-pointer"
+              >
+                {/* Icon */}
+                <div className="mb-6 text-5xl">{feature.icon}</div>
 
-              {/* Title */}
-              <h3 className="mb-4 text-2xl font-semibold">{feature.title}</h3>
+                {/* Title */}
+                <h3 className="mb-4 text-2xl font-semibold">{feature.title}</h3>
 
-              {/* Description */}
-              <p className="leading-relaxed text-gray-400">
-                {feature.description}
-              </p>
+                {/* Description */}
+                <p className="leading-relaxed text-gray-400">
+                  {feature.description}
+                </p>
 
-              {/* Hover line */}
-              <div className="mt-6 h-1 w-0 bg-gradient-to-r from-purple-400 to-blue-500 transition-all duration-300 group-hover:w-full"></div>
-            </div>
-          ))}
+                {/* Hover line */}
+                <div className="mt-6 h-1 w-0 bg-gradient-to-r from-purple-400 to-blue-500 transition-all duration-300 group-hover:w-full"></div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

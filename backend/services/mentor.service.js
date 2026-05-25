@@ -67,7 +67,7 @@ const sendChatMessage = async (userId, sessionId, message) => {
     const quota = await checkDailyQuota(userId);
     console.log(`[Mentor] User ${userId} quota status:`, quota);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const session = await getChatSession(userId, sessionId);
 
     // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Gemini

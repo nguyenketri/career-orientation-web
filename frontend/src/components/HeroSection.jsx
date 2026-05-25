@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const HeroSection = () => {
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
@@ -27,13 +29,19 @@ const HeroSection = () => {
 
         {/* Buttons */}
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <button className="rounded-full bg-white px-8 py-4 font-semibold text-black transition hover:scale-105">
+          <Link
+            to="/holland"
+            className="rounded-full bg-white px-8 py-4 font-semibold text-black transition hover:scale-105"
+          >
             Start Holland Test
-          </button>
+          </Link>
 
-          <button className="rounded-full border border-white/20 px-8 py-4 font-semibold text-white transition hover:bg-white/10">
+          <Link
+            to="/recommend"
+            className="rounded-full border border-white/20 px-8 py-4 font-semibold text-white transition hover:bg-white/10"
+          >
             Explore Majors
-          </button>
+          </Link>
         </div>
       </div>
     </section>

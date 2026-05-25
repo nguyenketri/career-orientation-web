@@ -69,6 +69,8 @@ const sendChatMessage = async (userId, sessionId, message) => {
 
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash-latest",
+      systemInstruction:
+        "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji.",
     });
     const session = await getChatSession(userId, sessionId);
 
@@ -77,26 +79,6 @@ const sendChatMessage = async (userId, sessionId, message) => {
       role: msg.role === "user" ? "user" : "model",
       parts: [{ text: msg.content }],
     }));
-
-    // Tạo ngữ cảnh ban đầu (System Prompt) nếu phòng chat mới tinh
-    if (formattedHistory.length === 0) {
-      formattedHistory.push({
-        role: "user",
-        parts: [
-          {
-            text: "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji.",
-          },
-        ],
-      });
-      formattedHistory.push({
-        role: "model",
-        parts: [
-          {
-            text: "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn có câu hỏi gì cần hỗ trợ hôm nay không? 😊",
-          },
-        ],
-      });
-    }
 
     const chat = model.startChat({
       history: formattedHistory,

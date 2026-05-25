@@ -22,9 +22,9 @@ const ComparisonPage = () => {
 
   // Determine max comparison limit based on plan
   const getComparisonLimit = () => {
-    if (userPlan === "FREE") return 1; // FREE can only view 1 (no comparison)
-    if (userPlan === "PAID") return 3; // PAID can compare 3
-    return 10; // PREMIUM can compare 10 (unlimited)
+    if (userPlan === "FREE") return 3; // FREE can compare 3
+    if (userPlan === "PAID") return 6; // PAID can compare 6
+    return 999; // PREMIUM can compare unlimited
   };
 
   const maxComparisons = getComparisonLimit();
@@ -53,16 +53,10 @@ const ComparisonPage = () => {
 
   const handleSelect = (item) => {
     if (selectedMajors.length >= maxComparisons) {
-      if (userPlan === "FREE") {
-        alert(
-          "Gói Miễn Phí chỉ cho phép xem thông tin lẻ. Vui lòng nâng cấp lên gói Trả Phí để sử dụng tính năng So Sánh!",
-        );
-        navigate("/pricing");
-      } else {
-        alert(
-          `Gói ${userPlan} của bạn cho phép so sánh tối đa ${maxComparisons} ngành cùng lúc.`,
-        );
-      }
+      alert(
+        `Gói ${userPlan} của bạn cho phép so sánh tối đa ${userPlan === "PREMIUM" ? "không giới hạn" : maxComparisons} ngành cùng lúc.`,
+      );
+      if (userPlan === "FREE") navigate("/pricing");
       return;
     }
     setSelectedMajors([...selectedMajors, item]);
@@ -134,7 +128,7 @@ const ComparisonPage = () => {
           {selectedMajors.length < maxComparisons && (
             <p className="text-xs text-gray-500 mt-2 text-center">
               {userPlan === "FREE"
-                ? "Gói Miễn Phí: Chọn 1 ngành để xem thông tin chi tiết"
+                ? "Gói Miễn Phí: So sánh tối đa 3 ngành"
                 : `Bạn có thể so sánh thêm ${maxComparisons - selectedMajors.length} ngành nữa (Gói ${userPlan})`}
             </p>
           )}
@@ -177,15 +171,6 @@ const ComparisonPage = () => {
 
                   <div className="pb-4 border-b border-white/5">
                     <p className="text-gray-500 text-sm mb-1">
-                      Tổ Hợp Xét Tuyển
-                    </p>
-                    <p className="text-xl font-semibold text-blue-400">
-                      {item.subjectCombination}
-                    </p>
-                  </div>
-
-                  <div className="pb-4 border-b border-white/5">
-                    <p className="text-gray-500 text-sm mb-1">
                       Học Phí Ước Tính / Năm
                     </p>
                     <p className="text-xl font-semibold">
@@ -196,12 +181,67 @@ const ComparisonPage = () => {
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-gray-500 text-sm mb-1">Lĩnh Vực</p>
-                    <p className="px-3 py-1 bg-white/5 rounded-lg inline-block text-sm">
-                      {item.major?.hollandTypes?.join(", ") || "Đang cập nhật"}
-                    </p>
-                  </div>
+                  {userPlan !== "FREE" && (
+                    <>
+                      <div className="pb-4 border-b border-white/5">
+                        <p className="text-gray-500 text-sm mb-1">
+                          Tổ Hợp Xét Tuyển
+                        </p>
+                        <p className="text-xl font-semibold text-blue-400">
+                          {item.subjectCombination}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-500 text-sm mb-1">Lĩnh Vực</p>
+                        <p className="px-3 py-1 bg-white/5 rounded-lg inline-block text-sm">
+                          {item.major?.hollandTypes?.join(", ") ||
+                            "Đang cập nhật"}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* PAID & PREMIUM: 3-year trend chart placeholder */}
+                  {(userPlan === "PAID" || userPlan === "PREMIUM") && (
+                    <div className="mt-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                      <p className="text-indigo-400 text-xs font-bold uppercase mb-3">
+                        Biểu đồ biến động điểm 3 năm
+                      </p>
+                      <div className="h-20 flex items-end gap-2">
+                        <div
+                          className="flex-1 bg-indigo-500/40 rounded-t-sm"
+                          style={{ height: "60%" }}
+                        ></div>
+                        <div
+                          className="flex-1 bg-indigo-500/60 rounded-t-sm"
+                          style={{ height: "80%" }}
+                        ></div>
+                        <div
+                          className="flex-1 bg-indigo-500 rounded-t-sm"
+                          style={{ height: "100%" }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                        <span>2022</span>
+                        <span>2023</span>
+                        <span>2024</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PREMIUM: AI Suitability Evaluation placeholder */}
+                  {userPlan === "PREMIUM" && (
+                    <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
+                      <p className="text-purple-400 text-xs font-bold uppercase mb-2">
+                        AI Đánh giá mức độ vừa sức
+                      </p>
+                      <p className="text-sm text-gray-300 italic">
+                        "Dựa trên điểm số của bạn, ngành này có mức độ phù hợp
+                        85%. Bạn có khả năng trúng tuyển cao."
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}

@@ -17,10 +17,14 @@ const submitMbtiTest = async (userId, answers) => {
 
   // Khởi tạo điểm
   const scores = {
-    E: 0, I: 0,
-    S: 0, N: 0,
-    T: 0, F: 0,
-    J: 0, P: 0
+    E: 0,
+    I: 0,
+    S: 0,
+    N: 0,
+    T: 0,
+    F: 0,
+    J: 0,
+    P: 0,
   };
 
   // Đếm điểm: answer = { typeValue: 'E' }
@@ -40,7 +44,7 @@ const submitMbtiTest = async (userId, answers) => {
 
   // Tìm ngành phù hợp (chứa mbtiType)
   const majors = await Major.find({
-    mbtiTypes: mbtiType,
+    mbtiTypes: { $in: [mbtiType] },
     isDeleted: false,
   });
 
@@ -49,11 +53,13 @@ const submitMbtiTest = async (userId, answers) => {
     user: userId,
     mbtiType,
     scores,
-    recommendedMajors: majors.map(m => m._id)
+    recommendedMajors: majors.map((m) => m._id),
   });
 
   // Fetch populated data
-  const populatedResult = await MbtiResult.findById(newResult._id).populate("recommendedMajors");
+  const populatedResult = await MbtiResult.findById(newResult._id).populate(
+    "recommendedMajors",
+  );
 
   return populatedResult;
 };
@@ -67,5 +73,5 @@ const getMbtiHistory = async (userId) => {
 module.exports = {
   getQuestions,
   submitMbtiTest,
-  getMbtiHistory
+  getMbtiHistory,
 };

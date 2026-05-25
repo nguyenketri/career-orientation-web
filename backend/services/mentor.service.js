@@ -9,9 +9,7 @@ if (!apiKey) {
   console.warn("⚠️ CẢNH BÁO: Không tìm thấy GEMINI_API_KEY trong file .env!");
 }
 
-const genAI = new GoogleGenerativeAI(
-  apiKey || "AIzaSyC1yaicvcnjyBXwrX8W2w5HS0YfBB84wx4",
-);
+const genAI = new GoogleGenerativeAI(apiKey);
 
 // Daily question limits by plan
 const DAILY_LIMITS = {
@@ -33,7 +31,7 @@ const checkDailyQuota = async (userId) => {
   // Count messages sent by this user today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const sessionCount = await ChatHistory.countDocuments({
     user: userId,
     createdAt: { $gte: today },
@@ -44,7 +42,7 @@ const checkDailyQuota = async (userId) => {
 
   if (estimatedDailyMessages >= limit) {
     throw new Error(
-      `Daily question limit reached for ${plan} plan (${limit}/day). Try again tomorrow or upgrade your plan.`
+      `Daily question limit reached for ${plan} plan (${limit}/day). Try again tomorrow or upgrade your plan.`,
     );
   }
 
@@ -69,7 +67,7 @@ const sendChatMessage = async (userId, sessionId, message) => {
     const quota = await checkDailyQuota(userId);
     console.log(`[Mentor] User ${userId} quota status:`, quota);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const session = await getChatSession(userId, sessionId);
 
     // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Gemini

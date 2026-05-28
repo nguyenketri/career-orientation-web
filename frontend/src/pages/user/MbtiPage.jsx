@@ -1,131 +1,35 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { mbtiMaps } from "../../utils/mbtiMap";
-import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
 
 const MbtiPage = () => {
-  const navigate = useNavigate();
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-
-  // Get user subscription plan from localStorage/token
-  const userPlan = (() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      return user.subscriptionPlan || "FREE";
-    } catch {
-      return "FREE";
-    }
-  })();
 
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await getMbtiQuestions();
-        if (res.data) setQuestions(res.data);
-      } catch (err) {
-        setError("Không thể tải hệ thống câu hỏi, vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuestions();
-  }, []);
-
-  const totalQuestions = questions.length;
-  const progress =
-    totalQuestions > 0 ? (currentIndex / totalQuestions) * 100 : 0;
-
-  const handleSelect = (typeValue) => {
-    const currentQ = questions[currentIndex];
-
-    // Lưu kết quả của tuỳ chọn A hoặc B
-    setAnswers({
-      ...answers,
-      [currentQ._id]: { typeValue },
-    });
-
-    if (currentIndex < totalQuestions - 1) {
-      setTimeout(() => setCurrentIndex((curr) => curr + 1), 300);
+    if (location.state?.result) {
+      setResult(location.state.result);
     }
-  };
-
-  const handleBack = () => {
-    if (currentIndex > 0) setCurrentIndex((curr) => curr - 1);
-  };
-
-  const handleSubmit = async () => {
-    const answeredCount = Object.keys(answers).length;
-    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
-
-    if (answeredCount < minRequired) {
-      setError(
-        `Vui lòng trả lời ít nhất ${minRequired} câu hỏi để xem kết quả.`,
-      );
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setError("");
-
-      const formattedAnswers = Object.values(answers);
-
-      const res = await submitMbtiTest(formattedAnswers);
-      setResult(res.data);
-    } catch (err) {
-      setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [location.state?.result]);
 
   const handleRetake = () => {
-    setAnswers({});
-    setResult(null);
-    setCurrentIndex(0);
-    setError("");
+    window.open("/mbti-test", "_blank");
   };
-
-  // MBTI full test requires PAID or PREMIUM, FREE can try 15 questions
-  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <p className="text-xl animate-pulse">Đang nạp bộ câu hỏi MBTI...</p>
-      </div>
-    );
-  }
 
   if (result) {
     const mbtiData = mbtiMaps[result.mbtiType] || {
       name: result.mbtiType,
       desc: "",
-      color: "from-gray-500 to-gray-400",
+      color: "from-blue-500 to-blue-400",
     };
     return (
-      <div className="min-h-screen bg-black px-6 py-20 text-white">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8 flex justify-between">
-            <button
-              onClick={() => navigate(-1)}
-              className="hover:text-purple-400 transition"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
-
+      <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
+        <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12">
-            <p className="mb-2 text-sm uppercase tracking-[0.3em] text-purple-400">
+            <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-blue-600">
               Kết Quả Bài Đánh Giá MBTI
             </p>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r text-transparent bg-clip-text pb-2 from-white to-gray-400">
+            <h1 className="text-5xl font-black mb-4 text-slate-900">
               Khám Phá Bản Thân
             </h1>
           </div>
@@ -133,33 +37,35 @@ const MbtiPage = () => {
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             {/* Type Focus */}
             <div
-              className={`rounded-3xl p-8 bg-gradient-to-br ${mbtiData.color} bg-opacity-20 backdrop-blur`}
+              className={`rounded-3xl p-8 bg-gradient-to-br ${mbtiData.color} text-white shadow-xl shadow-blue-100`}
             >
-              <h2 className="text-6xl font-bold mb-2 text-white drop-shadow-md">
+              <h2 className="text-7xl font-black mb-2 drop-shadow-md">
                 {result.mbtiType}
               </h2>
-              <h3 className="text-2xl font-semibold mb-4 text-white/90">
+              <h3 className="text-3xl font-bold mb-6 opacity-90">
                 {mbtiData.name}
               </h3>
-              <p className="text-white/80 leading-relaxed text-lg">
+              <p className="leading-relaxed text-lg opacity-90">
                 {mbtiData.desc}
               </p>
             </div>
 
             {/* Radar summary */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 flex flex-col justify-between">
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-100 flex flex-col justify-between">
               <div>
-                <h2 className="text-xl text-gray-300 uppercase tracking-widest mb-6">
+                <h2 className="text-xl font-bold text-slate-800 uppercase tracking-widest mb-8">
                   Thành phần tính cách
                 </h2>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div className="grid grid-cols-2 gap-4">
                   {Object.entries(result.scores).map(([t, score]) => (
                     <div
                       key={t}
-                      className="bg-white/5 p-3 rounded-lg flex items-center justify-between"
+                      className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100"
                     >
-                      <span className="font-bold">{t}</span>
-                      <span className="text-purple-400 font-mono text-lg">
+                      <span className="font-black text-slate-700 text-xl">
+                        {t}
+                      </span>
+                      <span className="text-blue-600 font-mono text-2xl font-bold">
                         {score}
                       </span>
                     </div>
@@ -169,7 +75,7 @@ const MbtiPage = () => {
 
               <button
                 onClick={handleRetake}
-                className="mt-8 w-full rounded-2xl border border-white/10 px-6 py-4 text-white transition hover:bg-white hover:text-black font-semibold"
+                className="mt-10 w-full rounded-2xl bg-blue-600 px-6 py-4 text-white transition hover:bg-blue-700 font-bold text-lg shadow-lg shadow-blue-200"
               >
                 Làm Lại Bài Test
               </button>
@@ -178,23 +84,25 @@ const MbtiPage = () => {
 
           {/* Recommended Majors */}
           {result.recommendedMajors?.length > 0 && (
-            <div>
-              <h3 className="mb-6 text-3xl font-bold">
-                Ngành Học Đề Xuất Theo MBTI
+            <div className="mt-20">
+              <h3 className="mb-10 text-4xl font-black text-slate-900 text-center">
+                Ngành Học Đề Xuất Cho Bạn
               </h3>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {result.recommendedMajors.map((major) => (
                   <div
                     key={major._id}
-                    className="rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:border-purple-500/50 hover:bg-white/10"
+                    className="rounded-3xl border border-slate-100 bg-white p-8 shadow-lg shadow-slate-100 transition hover:shadow-xl hover:-translate-y-1"
                   >
-                    <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
-                      <h4 className="text-xl font-bold">{major.name}</h4>
-                      <span className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-300 font-medium">
+                    <div className="mb-6 flex flex-col gap-2">
+                      <h4 className="text-2xl font-bold text-slate-900">
+                        {major.name}
+                      </h4>
+                      <span className="inline-block w-fit rounded-full bg-blue-50 px-4 py-1 text-sm text-blue-600 font-bold border border-blue-100">
                         Điểm chuẩn: {major.benchmarkScore}
                       </span>
                     </div>
-                    <p className="text-gray-400 text-sm line-clamp-3">
+                    <p className="text-slate-600 leading-relaxed">
                       {major.description}
                     </p>
                   </div>
@@ -207,193 +115,278 @@ const MbtiPage = () => {
     );
   }
 
-  const currentQuestion = questions[currentIndex];
-  const isStarted = questions.length > 0;
-  const isAllAnswered =
-    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
-
   return (
-    <div className="min-h-screen bg-black px-6 py-20 text-white flex flex-col">
-      <div className="mx-auto w-full max-w-3xl flex-grow flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <button
-            onClick={() => navigate(-1)}
-            className="hover:text-purple-400"
-          >
-            ← Trở về
-          </button>
-          <p className="text-sm uppercase tracking-[0.3em] text-purple-400">
-            MBTI Personality Test
-          </p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 pt-32 pb-20">
+      <div className="mx-auto max-w-7xl px-6">
+        {/* Hero Section */}
+        <div className="bg-white border border-blue-50 rounded-[40px] p-8 md:p-20 mb-20 flex flex-col md:flex-row items-center gap-16 shadow-2xl shadow-blue-100/50">
+          <div className="flex-1 text-left">
+            <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1]">
+              Hiểu rõ chính mình
+              <br />
+              <span className="text-blue-600">Chọn nghề đúng cách</span>
+            </h1>
+            <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
+              Bài trắc nghiệm tính cách (MBTI) giúp bạn hiểu rõ về bản thân mình
+              hơn, từ đó đưa ra cho bạn những định hướng về nghề nghiệp phù hợp
+              nhất.
+            </p>
+            <button
+              onClick={() => window.open("/mbti-test", "_blank")}
+              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+            >
+              Làm bài test
+            </button>
+          </div>
+          <div className="flex-1 relative">
+            <div className="absolute inset-0 bg-blue-200 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/3534/3534139.png"
+              alt="MBTI Illustration"
+              className="w-full max-w-md mx-auto relative z-10"
+            />
+          </div>
         </div>
 
-        {!isStarted ? (
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-400">
-              Chưa có câu hỏi MBTI trong hệ thống
-            </h1>
-          </div>
-        ) : (
-          <>
-            {/* Progress */}
-            <div className="mb-16">
-              <div className="mb-3 flex items-center justify-between text-sm text-gray-400 font-medium">
-                <span>
-                  Câu {currentIndex + 1} / {totalQuestions}
-                </span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div
-                  style={{ width: `${progress}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
-                ></div>
-              </div>
-            </div>
-
-            {/* Question Area */}
-            <div className="flex-grow flex flex-col justify-center mb-12 relative">
-              {isFreeLimitReached ? (
-                <div className="text-center p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
-                  <h2 className="text-3xl font-bold mb-4 text-purple-400">
-                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
-                  </h2>
-                  <p className="text-gray-300 mb-8 text-lg">
-                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
-                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
-                  </p>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="px-10 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50"
-                  >
-                    {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
-                  </button>
+        {/* What is MBTI Section */}
+        <div className="mb-24">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-4xl font-black text-slate-900 mb-8">
+                Trắc nghiệm tính cách MBTI là gì?
+              </h2>
+              <p className="text-slate-600 text-xl mb-10 leading-relaxed">
+                Bài trắc nghiệm sử dụng bộ câu hỏi chia làm 74 câu trắc nghiệm,
+                giúp người trả lời định hướng bản thân rõ ràng dựa trên học
+                thuyết MBTI (Myers-Briggs Type Indicator)
+              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-100">
+                  <div className="text-5xl font-black text-blue-600 mb-2">
+                    4
+                  </div>
+                  <div className="text-slate-500 font-bold">
+                    Cặp đối lập cơ bản
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-normal leading-tight text-white/90">
-                      {currentQuestion?.question}
-                    </h2>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-100">
+                  <div className="text-5xl font-black text-blue-600 mb-2">
+                    16
                   </div>
-
-                  {/* Options */}
-                  <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
-                    {/* Option A */}
-                    <button
-                      onClick={() =>
-                        handleSelect(currentQuestion.optionA.typeValue)
-                      }
-                      className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
-                        ${
-                          answers[currentQuestion._id]?.typeValue ===
-                          currentQuestion.optionA.typeValue
-                            ? "bg-indigo-600/20 border-indigo-500 text-white"
-                            : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
-                        }
-                      `}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
-                          ${
-                            answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionA.typeValue
-                              ? "border-indigo-400 bg-indigo-500"
-                              : "border-gray-500 group-hover:border-gray-400"
-                          }`}
-                        >
-                          {answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionA.typeValue && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                        <span className="text-lg">
-                          {currentQuestion.optionA.text}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Option B */}
-                    <button
-                      onClick={() =>
-                        handleSelect(currentQuestion.optionB.typeValue)
-                      }
-                      className={`relative overflow-hidden group rounded-2xl p-6 text-left border transition-all duration-300
-                        ${
-                          answers[currentQuestion._id]?.typeValue ===
-                          currentQuestion.optionB.typeValue
-                            ? "bg-indigo-600/20 border-indigo-500 text-white"
-                            : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
-                        }
-                      `}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors
-                          ${
-                            answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionB.typeValue
-                              ? "border-indigo-400 bg-indigo-500"
-                              : "border-gray-500 group-hover:border-gray-400"
-                          }`}
-                        >
-                          {answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionB.typeValue && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                        <span className="text-lg">
-                          {currentQuestion.optionB.text}
-                        </span>
-                      </div>
-                    </button>
+                  <div className="text-slate-500 font-bold">
+                    Nhóm tính cách riêng biệt
                   </div>
-                </>
-              )}
-            </div>
-
-            {error && (
-              <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-red-400">
-                {error}
+                </div>
               </div>
-            )}
-
-            {/* Nav */}
-            <div className="flex items-center justify-between border-t border-white/10 pt-6">
-              <button
-                onClick={handleBack}
-                disabled={currentIndex === 0}
-                className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
-              >
-                Câu trước
-              </button>
-
-              {isAllAnswered || isFreeLimitReached ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="px-8 py-3 rounded-full bg-indigo-500 text-white font-bold hover:bg-indigo-600 transition shadow-lg shadow-indigo-500/30 disabled:opacity-50"
-                >
-                  {submitting ? "Đang xử lý..." : "Xem Kết Quả"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setCurrentIndex((curr) => curr + 1)}
-                  disabled={
-                    currentIndex === totalQuestions - 1 ||
-                    !answers[currentQuestion._id]
-                  }
-                  className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-2"
-                >
-                  Tiếp theo <span className="text-xs">→</span>
-                </button>
-              )}
             </div>
-          </>
-        )}
+            <div className="bg-blue-600 p-10 md:p-12 rounded-[40px] shadow-2xl shadow-blue-200 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+              <h3 className="text-2xl font-black mb-8">
+                Bài test MBTI giúp bạn
+              </h3>
+              <ul className="space-y-6 mb-10">
+                {[
+                  "Hiểu rõ bản thân: Nhận ra điểm mạnh, điểm yếu và sở thích tự nhiên.",
+                  "Định hướng nghề nghiệp: Chọn ngành học và công việc phù hợp năng lực.",
+                  "Thấu hiểu người khác: Xây dựng mối quan hệ tốt hơn thông qua sự đồng cảm.",
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-4 text-blue-50 text-lg"
+                  >
+                    <div className="mt-1 bg-white/20 rounded-full p-1 flex-shrink-0">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-blue-200 mb-8 italic opacity-80">
+                * Đặc biệt: Dựa trên kết quả bài test, caZup sẽ cung cấp gợi ý
+                về các ngành nghề & các trường đại học đào tạo phù hợp với bạn!
+              </p>
+              <button
+                onClick={() => window.open("/mbti-test", "_blank")}
+                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg"
+              >
+                Test miễn phí 100%
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Dimensions Section */}
+        <div className="bg-white rounded-[50px] py-20 px-8 md:px-16 shadow-xl shadow-slate-100 border border-slate-50 mb-24">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-black text-slate-900 mb-6">
+              Cách MBTI phân loại 16 nhóm tính cách
+            </h2>
+            <p className="text-slate-500 text-lg max-w-3xl mx-auto">
+              Kết quả MBTI xây dựng dựa trên sự kết hợp của 4 cặp yếu tố. Hãy
+              tưởng tượng mỗi cặp như một chiếc cân, nơi bạn nghiêng về một
+              phía.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto space-y-10">
+            {[
+              {
+                left: {
+                  label: "E",
+                  name: "Extroverts",
+                  sub: "Hướng ngoại",
+                  color: "bg-yellow-400 text-white",
+                },
+                right: {
+                  label: "I",
+                  name: "Introverts",
+                  sub: "Hướng nội",
+                  color: "bg-blue-600 text-white",
+                },
+                title: "TƯƠNG TÁC & NĂNG LƯỢNG",
+                desc: "Hướng ngoại (nạp năng lượng từ bên ngoài) so với Hướng nội (nạp năng lượng khi một mình).",
+              },
+              {
+                left: {
+                  label: "S",
+                  name: "Sensors",
+                  sub: "Cảm giác",
+                  color: "bg-blue-500 text-white",
+                },
+                right: {
+                  label: "N",
+                  name: "Intuitives",
+                  sub: "Trực giác",
+                  color: "bg-yellow-400 text-white",
+                },
+                title: "TIẾP NHẬN THÔNG TIN",
+                desc: "Cảm giác (thực tế, chi tiết) so với Trực giác (tổng thể, lý thuyết).",
+              },
+              {
+                left: {
+                  label: "T",
+                  name: "Thinkers",
+                  sub: "Lý trí",
+                  color: "bg-yellow-400 text-white",
+                },
+                right: {
+                  label: "F",
+                  name: "Feelers",
+                  sub: "Cảm xúc",
+                  color: "bg-blue-500 text-white",
+                },
+                title: "RA QUYẾT ĐỊNH",
+                desc: "Lý trí (logic, nguyên tắc) so với Cảm xúc (giá trị cá nhân, sự hài hòa).",
+              },
+              {
+                left: {
+                  label: "J",
+                  name: "Judgers",
+                  sub: "Nguyên tắc",
+                  color: "bg-blue-600 text-white",
+                },
+                right: {
+                  label: "P",
+                  name: "Perceivers",
+                  sub: "Linh hoạt",
+                  color: "bg-yellow-400 text-white",
+                },
+                title: "PHONG CÁCH SỐNG",
+                desc: "Nguyên tắc (kế hoạch, quy tắc) so với Linh hoạt (tùy cơ ứng biến, tự do).",
+              },
+            ].map((dim, i) => (
+              <div
+                key={i}
+                className="flex flex-col md:flex-row items-center gap-6 md:gap-12"
+              >
+                <div
+                  className={`${dim.left.color} w-full md:w-40 p-6 rounded-3xl text-center shadow-lg shadow-slate-100`}
+                >
+                  <div className="text-4xl font-black">{dim.left.label}</div>
+                  <div className="text-xs font-black uppercase tracking-tighter">
+                    {dim.left.name}
+                  </div>
+                  <div className="text-sm font-medium">{dim.left.sub}</div>
+                </div>
+                <div className="flex-1 text-center px-4">
+                  <div className="text-sm font-black text-blue-600 mb-2 tracking-widest">
+                    {dim.title}
+                  </div>
+                  <div className="text-slate-600 font-medium">{dim.desc}</div>
+                </div>
+                <div
+                  className={`${dim.right.color} w-full md:w-40 p-6 rounded-3xl text-center shadow-lg shadow-slate-100`}
+                >
+                  <div className="text-4xl font-black">{dim.right.label}</div>
+                  <div className="text-xs font-black uppercase tracking-tighter">
+                    {dim.right.name}
+                  </div>
+                  <div className="text-sm font-medium">{dim.right.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="max-w-4xl mx-auto mt-16 p-8 bg-blue-50 border border-blue-100 rounded-[32px] text-center text-blue-800">
+            <p className="text-lg italic leading-relaxed">
+              <strong>Lưu ý:</strong> Trong MBTI không có điểm tính cách nào
+              được coi là tốt hơn hay xấu hơn nhưng những đặc điểm khác. MBTI
+              chỉ giúp nhận ra thiếu sót trong bản thân để hoàn thiện mình.
+            </p>
+          </div>
+          <div className="text-center mt-12">
+            <button
+              onClick={() => window.open("/mbti-test", "_blank")}
+              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
+            >
+              Tôi đã sẵn sàng!
+            </button>
+          </div>
+        </div>
+
+        {/* 16 Types Grid */}
+        <div className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-slate-900">
+              16 nhóm tính cách <span className="text-blue-600">MBTI</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            {Object.keys(mbtiMaps).map((type) => (
+              <div
+                key={type}
+                className="bg-white p-6 rounded-3xl border border-slate-100 text-center hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all cursor-default group"
+              >
+                <div className="text-2xl font-black text-blue-600 group-hover:scale-110 transition-transform">
+                  {type}
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 leading-tight mt-2 uppercase">
+                  {mbtiMaps[type]?.name}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-20">
+            <button
+              onClick={() => window.open("/mbti-test", "_blank")}
+              className="bg-blue-600 text-white px-16 py-6 rounded-full font-black text-2xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-200 hover:scale-105"
+            >
+              Khám phá tính cách của tôi
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

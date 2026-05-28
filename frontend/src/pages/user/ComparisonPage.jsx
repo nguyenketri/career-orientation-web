@@ -68,29 +68,19 @@ const ComparisonPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black px-6 py-20 text-white">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-center justify-between mb-10">
-          <button
-            onClick={() => navigate(-1)}
-            className="hover:text-purple-400 transition"
-          >
-            ← Trở về
-          </button>
-          <h1 className="text-4xl font-bold">So Sánh Ngành & Trường</h1>
-        </div>
-
+    <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
+      <div className="mx-auto max-w-7xl">
         {/* Search & Select */}
         <div className="relative mb-12">
           {loading ? (
-            <div className="h-14 w-full bg-white/5 border border-white/10 rounded-2xl animate-pulse"></div>
+            <div className="h-14 w-full bg-slate-100 border border-slate-200 rounded-2xl animate-pulse"></div>
           ) : (
             <input
               type="text"
               placeholder="Tìm kiếm ngành hoặc trường để so sánh..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:border-blue-500 shadow-sm transition"
             />
           )}
 
@@ -100,23 +90,25 @@ const ComparisonPage = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full left-0 w-full mt-2 bg-gray-900 border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl max-h-60 overflow-y-auto"
+                className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-200 rounded-2xl overflow-hidden z-50 shadow-2xl max-h-60 overflow-y-auto"
               >
                 {filteredMajors.length > 0 ? (
                   filteredMajors.map((item) => (
                     <div
                       key={item._id}
                       onClick={() => handleSelect(item)}
-                      className="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0"
+                      className="p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
                     >
-                      <div className="font-bold">{item.major?.name}</div>
-                      <div className="text-sm text-gray-400">
+                      <div className="font-bold text-slate-900">
+                        {item.major?.name}
+                      </div>
+                      <div className="text-sm text-slate-500">
                         {item.university?.name}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 text-gray-500 text-center">
+                  <div className="p-4 text-slate-400 text-center">
                     Không tìm thấy kết quả
                   </div>
                 )}
@@ -126,7 +118,7 @@ const ComparisonPage = () => {
 
           {/* Show remaining slots */}
           {selectedMajors.length < maxComparisons && (
-            <p className="text-xs text-gray-500 mt-2 text-center">
+            <p className="text-xs text-slate-500 mt-2 text-center">
               {userPlan === "FREE"
                 ? "Gói Miễn Phí: So sánh tối đa 3 ngành"
                 : `Bạn có thể so sánh thêm ${maxComparisons - selectedMajors.length} ngành nữa (Gói ${userPlan})`}
@@ -143,37 +135,39 @@ const ComparisonPage = () => {
                 layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white/5 border border-white/10 rounded-3xl p-8 relative"
+                className="bg-white border border-slate-100 rounded-3xl p-8 relative shadow-lg shadow-slate-100"
               >
                 <button
                   onClick={() => handleRemove(item._id)}
-                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition"
+                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition"
                 >
                   ✕
                 </button>
 
                 <div className="mb-8">
-                  <h3 className="text-2xl font-bold mb-2">
+                  <h3 className="text-2xl font-bold mb-2 text-slate-900">
                     {item.major?.name}
                   </h3>
-                  <p className="text-purple-400 font-medium">
+                  <p className="text-blue-600 font-medium">
                     {item.university?.name}
                   </p>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="pb-4 border-b border-white/5">
-                    <p className="text-gray-500 text-sm mb-1">
+                  <div className="pb-4 border-b border-slate-100">
+                    <p className="text-slate-500 text-sm mb-1">
                       Điểm Chuẩn (2024)
                     </p>
-                    <p className="text-2xl font-bold">{item.admissionScore}</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {item.admissionScore}
+                    </p>
                   </div>
 
-                  <div className="pb-4 border-b border-white/5">
-                    <p className="text-gray-500 text-sm mb-1">
+                  <div className="pb-4 border-b border-slate-100">
+                    <p className="text-slate-500 text-sm mb-1">
                       Học Phí Ước Tính / Năm
                     </p>
-                    <p className="text-xl font-semibold">
+                    <p className="text-xl font-semibold text-slate-900">
                       {new Intl.NumberFormat("vi-VN", {
                         style: "currency",
                         currency: "VND",
@@ -183,18 +177,18 @@ const ComparisonPage = () => {
 
                   {userPlan !== "FREE" && (
                     <>
-                      <div className="pb-4 border-b border-white/5">
-                        <p className="text-gray-500 text-sm mb-1">
+                      <div className="pb-4 border-b border-slate-100">
+                        <p className="text-slate-500 text-sm mb-1">
                           Tổ Hợp Xét Tuyển
                         </p>
-                        <p className="text-xl font-semibold text-blue-400">
+                        <p className="text-xl font-semibold text-blue-600">
                           {item.subjectCombination}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-gray-500 text-sm mb-1">Lĩnh Vực</p>
-                        <p className="px-3 py-1 bg-white/5 rounded-lg inline-block text-sm">
+                        <p className="text-slate-500 text-sm mb-1">Lĩnh Vực</p>
+                        <p className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg inline-block text-sm font-medium">
                           {item.major?.hollandTypes?.join(", ") ||
                             "Đang cập nhật"}
                         </p>
@@ -204,25 +198,25 @@ const ComparisonPage = () => {
 
                   {/* PAID & PREMIUM: 3-year trend chart placeholder */}
                   {(userPlan === "PAID" || userPlan === "PREMIUM") && (
-                    <div className="mt-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
-                      <p className="text-indigo-400 text-xs font-bold uppercase mb-3">
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                      <p className="text-blue-600 text-xs font-bold uppercase mb-3">
                         Biểu đồ biến động điểm 3 năm
                       </p>
                       <div className="h-20 flex items-end gap-2">
                         <div
-                          className="flex-1 bg-indigo-500/40 rounded-t-sm"
+                          className="flex-1 bg-blue-300 rounded-t-sm"
                           style={{ height: "60%" }}
                         ></div>
                         <div
-                          className="flex-1 bg-indigo-500/60 rounded-t-sm"
+                          className="flex-1 bg-blue-400 rounded-t-sm"
                           style={{ height: "80%" }}
                         ></div>
                         <div
-                          className="flex-1 bg-indigo-500 rounded-t-sm"
+                          className="flex-1 bg-blue-600 rounded-t-sm"
                           style={{ height: "100%" }}
                         ></div>
                       </div>
-                      <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                         <span>2022</span>
                         <span>2023</span>
                         <span>2024</span>
@@ -232,11 +226,11 @@ const ComparisonPage = () => {
 
                   {/* PREMIUM: AI Suitability Evaluation placeholder */}
                   {userPlan === "PREMIUM" && (
-                    <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
-                      <p className="text-purple-400 text-xs font-bold uppercase mb-2">
+                    <div className="mt-6 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                      <p className="text-indigo-600 text-xs font-bold uppercase mb-2">
                         AI Đánh giá mức độ vừa sức
                       </p>
-                      <p className="text-sm text-gray-300 italic">
+                      <p className="text-sm text-slate-600 italic">
                         "Dựa trên điểm số của bạn, ngành này có mức độ phù hợp
                         85%. Bạn có khả năng trúng tuyển cao."
                       </p>
@@ -247,8 +241,8 @@ const ComparisonPage = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 border-2 border-dashed border-white/10 rounded-3xl">
-            <p className="text-gray-500 text-lg">
+          <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-3xl">
+            <p className="text-slate-500 text-lg">
               Chọn ít nhất một ngành để bắt đầu so sánh
             </p>
           </div>

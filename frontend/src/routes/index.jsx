@@ -9,9 +9,11 @@ import ProfilePage from "../pages/user/ProfilePage";
 import ComparisonPage from "../pages/user/ComparisonPage";
 import MentorChatPage from "../pages/user/MentorChatPage";
 import HollandPage from "../pages/user/HollandPage";
+import HollandTestPage from "../pages/user/HollandTestPage";
 import MbtiPage from "../pages/user/MbtiPage";
+import MbtiTestPage from "../pages/user/MbtiTestPage";
 import RecommendPage from "../pages/user/RecommendPage";
-import DashboardPage from "../pages/user/DashboardPage";
+import HistoryPage from "../pages/user/HistoryPage";
 import PricingPage from "../pages/user/PricingPage";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -24,10 +26,10 @@ const AppRoutes = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
-          path="/dashboard"
+          path="/history"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <HistoryPage />
             </ProtectedRoute>
           }
         />
@@ -40,7 +42,23 @@ const AppRoutes = () => {
           }
         />
         <Route path="/holland" element={<HollandPage />} />
+        <Route
+          path="/holland-test"
+          element={
+            <ProtectedRoute>
+              <HollandTestPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/mbti" element={<MbtiPage />} />
+        <Route
+          path="/mbti-test"
+          element={
+            <ProtectedRoute>
+              <MbtiTestPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/compare"
           element={

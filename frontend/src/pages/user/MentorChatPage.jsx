@@ -80,18 +80,8 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pt-20 flex flex-col">
-      <div className="flex-grow flex flex-col mx-auto w-full max-w-4xl p-6 h-[calc(100vh-80px)]">
-        {/* Header */}
-        <div className="pb-6 border-b border-white/10 mb-6 flex flex-col items-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r text-transparent bg-clip-text pb-1 from-purple-400 to-indigo-500">
-            caZup Mentor AI
-          </h1>
-          <p className="text-gray-400 text-sm mt-2">
-            Hỏi bất cứ điều gì về hướng nghiệp & tuyển sinh
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-slate-50 text-slate-900 pt-32 flex flex-col">
+      <div className="flex-grow flex flex-col mx-auto w-full max-w-7xl p-6 h-[calc(100vh-80px)]">
         {/* Chat Box */}
         <div className="flex-grow overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-6">
           {messages.map((msg, index) => (
@@ -103,8 +93,8 @@ const MentorChatPage = () => {
                 className={`max-w-[80%] rounded-2xl p-4 whitespace-pre-wrap leading-relaxed
                   ${
                     msg.role === "user"
-                      ? "bg-purple-600 rounded-tr-sm text-white shadow-lg shadow-purple-500/20"
-                      : "bg-white/10 rounded-tl-sm text-gray-200 border border-white/5"
+                      ? "bg-blue-600 rounded-tr-sm text-white shadow-lg shadow-blue-200"
+                      : "bg-white rounded-tl-sm text-slate-700 border border-slate-100 shadow-sm"
                   }
                 `}
               >
@@ -114,7 +104,7 @@ const MentorChatPage = () => {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 bg-white/10 text-gray-400 border border-white/5 flex items-center space-x-2">
+              <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 bg-white text-slate-400 border border-slate-100 shadow-sm flex items-center space-x-2">
                 <span className="animate-bounce">●</span>
                 <span className="animate-bounce delay-100">●</span>
                 <span className="animate-bounce delay-200">●</span>
@@ -125,19 +115,19 @@ const MentorChatPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-2 flex items-end shadow-2xl backdrop-blur-md">
+        <div className="bg-white border border-slate-200 rounded-2xl p-2 flex items-end shadow-2xl">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-grow bg-transparent p-4 outline-none resize-none text-white max-h-32"
+            className="flex-grow bg-transparent p-4 outline-none resize-none text-slate-900 max-h-32"
             rows="1"
             placeholder="Đặt câu hỏi cho AI Mentor..."
           ></textarea>
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="m-2 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 flex-shrink-0"
+            className="m-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 flex-shrink-0"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

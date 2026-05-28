@@ -4,7 +4,7 @@ import StatsSection from "../components/StatsSection";
 
 const HomePage = () => {
   return (
-    <div className="bg-black">
+    <div className="bg-slate-50">
       <HeroSection />
       <FeatureSection />
       <StatsSection />

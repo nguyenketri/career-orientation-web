@@ -1,29 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { hollandMaps } from "../../utils/hollandMap";
-import {
-  getHollandQuestions,
-  submitHollandTest,
-  saveHollandResult,
-} from "../../services/hollandService";
-
-const LIKERT_OPTIONS = [
-  { value: 1, label: "Rất không đúng" },
-  { value: 2, label: "Không đúng" },
-  { value: 3, label: "Phân vân" },
-  { value: 4, label: "Khá đúng" },
-  { value: 5, label: "Rất đúng" },
-];
 
 const HollandPage = () => {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
 
   // Get user subscription plan
   const userPlan = (() => {
@@ -35,161 +17,71 @@ const HollandPage = () => {
     }
   })();
 
-  // Fetch questions on mount
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await getHollandQuestions();
-        if (res.data) setQuestions(res.data);
-      } catch {
-        setError("Không thể tải hệ thống câu hỏi, vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuestions();
-  }, []);
-
-  const totalQuestions = questions.length;
-  const progress =
-    totalQuestions > 0 ? (currentIndex / totalQuestions) * 100 : 0;
-
-  const handleSelect = (value) => {
-    const currentQ = questions[currentIndex];
-
-    // Save answer
-    setAnswers({
-      ...answers,
-      [currentQ._id]: { type: currentQ.type, score: value },
-    });
-
-    // Auto-next or suggest submit
-    if (currentIndex < totalQuestions - 1) {
-      setTimeout(() => setCurrentIndex((curr) => curr + 1), 300);
+    if (location.state?.result) {
+      setResult(location.state.result);
     }
-  };
-
-  const handleBack = () => {
-    if (currentIndex > 0) setCurrentIndex((curr) => curr - 1);
-  };
-
-  const handleSubmit = async () => {
-    const answeredCount = Object.keys(answers).length;
-    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
-
-    if (answeredCount < minRequired) {
-      setError(`Vui lòng trả lời ít nhất ${minRequired} câu hỏi.`);
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setError("");
-
-      // format answers for API
-      const formattedAnswers = Object.values(answers);
-
-      // Call analyze API
-      const res = await submitHollandTest(formattedAnswers);
-      const testResult = res.data;
-
-      // Set to display
-      setResult(testResult);
-
-      // Save to history automatically
-      await saveHollandResult({
-        hollandType: testResult.topType,
-        topTypes: testResult.topTypes,
-        hollandScores: testResult.hollandScores,
-        recommendedMajors:
-          testResult.recommendedMajors?.map((m) => m._id) || [],
-      });
-    } catch {
-      setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [location.state?.result]);
 
   const handleRetake = () => {
-    setAnswers({});
-    setResult(null);
-    setCurrentIndex(0);
-    setError("");
+    window.open("/holland-test", "_blank");
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <p className="text-xl animate-pulse">Đang nạp bộ câu hỏi...</p>
-      </div>
-    );
-  }
 
   // RESULT VIEW
   if (result) {
     return (
-      <div className="min-h-screen bg-black px-6 py-20 text-white">
+      <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
         {userPlan === "FREE" && (
-          <div className="mx-auto max-w-4xl mb-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-center">
-            <p className="text-purple-300 text-sm">
+          <div className="mx-auto max-w-7xl mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-100 text-center">
+            <p className="text-blue-600 text-sm">
               Bạn đang xem kết quả từ <b>Bản rút gọn (15 câu)</b>. Nâng cấp lên
               gói <b>Trả Phí</b> hoặc <b>Cao Cấp</b> để có kết quả chính xác hơn
               với bộ câu hỏi đầy đủ!
             </p>
             <button
               onClick={() => navigate("/pricing")}
-              className="text-white font-bold text-sm underline mt-2 hover:text-purple-400"
+              className="text-blue-700 font-bold text-sm underline mt-2 hover:text-blue-800"
             >
               Nâng cấp ngay →
             </button>
           </div>
         )}
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8 flex justify-between">
-            <button
-              onClick={() => navigate(-1)}
-              className="hover:text-purple-400 transition"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
-
+        <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold mb-4">Kết Quả Holland Của Bạn</h1>
-            <p className="text-gray-400 text-lg">
+            <h1 className="text-5xl font-black mb-4 text-slate-900">
+              Kết Quả Holland Của Bạn
+            </h1>
+            <p className="text-slate-600 text-lg">
               Hệ thống đã phân tích và lưu kết quả vào hồ sơ của bạn.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             {/* Top 3 Types Box */}
-            <div className="rounded-3xl border border-purple-500/20 bg-purple-500/10 p-8">
-              <h2 className="text-xl text-purple-300 uppercase tracking-widest mb-6">
+            <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
+              <h2 className="text-xl text-blue-600 uppercase tracking-widest mb-6 font-bold">
                 Đặc Trưng Nổi Bật Nhất
               </h2>
 
               {result.topTypes.map((type, idx) => (
                 <div key={type} className="mb-6 last:mb-0">
                   <div className="flex justify-between items-end mb-2">
-                    <h3 className="text-3xl font-bold">
-                      <span className="text-purple-400 mr-2">
-                        Top {idx + 1}:
-                      </span>
+                    <h3 className="text-3xl font-bold text-slate-900">
+                      <span className="text-blue-600 mr-2">Top {idx + 1}:</span>
                       {hollandMaps[type]?.name || type}
                     </h3>
-                    <span className="text-gray-400 text-sm">
+                    <span className="text-slate-500 text-sm font-medium">
                       Điểm: {result.hollandScores[type]}
                     </span>
                   </div>
-                  <p className="text-gray-400 text-sm mb-3">
+                  <p className="text-slate-600 text-sm mb-3 leading-relaxed">
                     {hollandMaps[type]?.desc}
                   </p>
-                  <div className="w-full bg-white/10 rounded-full h-2">
+                  <div className="w-full bg-slate-100 rounded-full h-2">
                     <div
-                      className="bg-purple-500 h-2 rounded-full"
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                       style={{
-                        width: `${(result.hollandScores[type] / (totalQuestions * 5)) * 100}%`,
+                        width: `${(result.hollandScores[type] / 300) * 100}%`,
                       }}
                     ></div>
                   </div>
@@ -197,26 +89,30 @@ const HollandPage = () => {
               ))}
             </div>
 
-            {/* Overall Radar/Scores (simplified as text for now) */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-              <h2 className="text-xl text-gray-300 uppercase tracking-widest mb-6">
+            {/* Overall Radar/Scores */}
+            <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
+              <h2 className="text-xl text-slate-800 uppercase tracking-widest mb-6 font-bold">
                 Điểm Các Nhóm
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 {Object.entries(result.hollandScores).map(([t, score]) => (
                   <div
                     key={t}
-                    className="bg-white/5 p-4 rounded-xl flex items-center justify-between"
+                    className="bg-slate-50 p-4 rounded-xl flex items-center justify-between border border-slate-100"
                   >
-                    <span className="font-bold text-lg">{t}</span>
-                    <span className="text-purple-400">{score}</span>
+                    <span className="font-black text-slate-700 text-lg">
+                      {t}
+                    </span>
+                    <span className="text-blue-600 font-bold text-xl">
+                      {score}
+                    </span>
                   </div>
                 ))}
               </div>
 
               <button
                 onClick={handleRetake}
-                className="mt-8 w-full rounded-2xl border border-white/10 px-6 py-4 text-white transition hover:bg-white hover:text-black font-semibold"
+                className="mt-8 w-full rounded-2xl bg-blue-600 px-6 py-4 text-white transition hover:bg-blue-700 font-bold text-lg shadow-lg shadow-blue-200"
               >
                 Làm Lại Bài Test
               </button>
@@ -225,28 +121,32 @@ const HollandPage = () => {
 
           {/* Recommended Majors */}
           {result.recommendedMajors?.length > 0 && (
-            <div>
-              <h3 className="mb-6 text-3xl font-bold">
+            <div className="mt-20">
+              <h3 className="mb-10 text-4xl font-black text-slate-900 text-center">
                 Ngành Học Phù Hợp Đề Xuất
               </h3>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {result.recommendedMajors.map((major) => (
                   <div
                     key={major._id}
-                    className="rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:border-purple-500/50"
+                    className="rounded-3xl border border-slate-100 bg-white p-8 shadow-lg shadow-slate-100 transition hover:shadow-xl hover:-translate-y-1"
                   >
-                    <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
-                      <h4 className="text-xl font-bold">{major.name}</h4>
-                      <span className="rounded-full bg-purple-500/20 px-3 py-1 text-xs text-purple-300 font-medium">
+                    <div className="mb-6 flex flex-col gap-2">
+                      <h4 className="text-2xl font-bold text-slate-900">
+                        {major.name}
+                      </h4>
+                      <span className="inline-block w-fit rounded-full bg-blue-50 px-4 py-1 text-sm text-blue-600 font-bold border border-blue-100">
                         Điểm chuẩn: {major.benchmarkScore}
                       </span>
                     </div>
-                    <p className="text-gray-400 text-sm">{major.description}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <p className="text-slate-600 leading-relaxed mb-6">
+                      {major.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
                       {major.hollandTypes?.map((t) => (
                         <span
                           key={t}
-                          className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300"
+                          className="text-xs bg-slate-100 px-3 py-1 rounded-full text-slate-600 font-bold border border-slate-200"
                         >
                           {t}
                         </span>
@@ -262,146 +162,160 @@ const HollandPage = () => {
     );
   }
 
-  // WIZARD VIEW
-  const currentQuestion = questions[currentIndex];
-  const isStarted = questions.length > 0;
-  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
-  const isAllAnswered =
-    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
-
-  return (
-    <div className="min-h-screen bg-black px-6 py-20 text-white flex flex-col">
-      <div className="mx-auto w-full max-w-3xl flex-grow flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <button
-            onClick={() => navigate(-1)}
-            className="hover:text-purple-400"
-          >
-            ← Trở về
-          </button>
-          <p className="text-sm uppercase tracking-[0.3em] text-purple-400">
-            Holland Test
-          </p>
+  if (!result) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 pt-32 pb-20">
+        {/* Hero Section */}
+        <div className="bg-white border border-blue-50 rounded-[40px] mx-auto max-w-7xl p-8 md:p-20 mb-20 flex flex-col md:flex-row items-center gap-16 shadow-2xl shadow-blue-100/50">
+          <div className="flex-1 text-left">
+            <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1]">
+              Khám phá nghề nghiệp
+              <br />
+              <span className="text-blue-600">Phù hợp với bạn</span>
+            </h1>
+            <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
+              Trắc nghiệm sở thích Holland giúp bạn tìm ra nhóm tính cách nghề
+              nghiệp của mình, từ đó định hướng con đường học tập và sự nghiệp
+              một cách khoa học nhất.
+            </p>
+            <button
+              onClick={() => window.open("/holland-test", "_blank")}
+              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+            >
+              Bắt đầu khám phá
+            </button>
+          </div>
+          <div className="flex-1 relative">
+            <div className="absolute inset-0 bg-blue-200 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/1904/1904425.png"
+              alt="Holland Illustration"
+              className="w-full max-w-md mx-auto relative z-10"
+            />
+          </div>
         </div>
 
-        {!isStarted ? (
-          <div className="text-center">
-            <h1 className="text-4xl font-bold">Không tìm thấy bộ câu hỏi</h1>
-          </div>
-        ) : (
-          <>
-            {/* Progress Bar */}
-            <div className="mb-16">
-              <div className="mb-3 flex items-center justify-between text-sm text-gray-400 font-medium">
-                <span>
-                  Câu hỏi {currentIndex + 1} / {totalQuestions}
-                </span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div
-                  style={{ width: `${progress}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300"
-                ></div>
-              </div>
-            </div>
-
-            {/* Question Box */}
-            <div className="flex-grow flex flex-col justify-center mb-12">
-              {isFreeLimitReached ? (
-                <div className="text-center p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
-                  <h2 className="text-3xl font-bold mb-4 text-purple-400">
-                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
-                  </h2>
-                  <p className="text-gray-300 mb-8 text-lg">
-                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
-                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
-                  </p>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="px-10 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50"
-                  >
-                    {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
-                  </button>
+        {/* What is Holland Section */}
+        <div className="mx-auto max-w-7xl px-6 mb-24">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-4xl font-black text-slate-900 mb-8">
+                Mô hình Holland là gì?
+              </h2>
+              <p className="text-slate-600 text-xl mb-10 leading-relaxed">
+                Được phát triển bởi tiến sĩ tâm lý học John Holland, đây là mô
+                hình lý thuyết về chọn nghề được sử dụng rộng rãi nhất trên thế
+                giới hiện nay.
+              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-100">
+                  <div className="text-5xl font-black text-blue-600 mb-2">
+                    6
+                  </div>
+                  <div className="text-slate-500 font-bold">
+                    Nhóm sở thích nghề nghiệp
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-semibold leading-relaxed">
-                      "{currentQuestion?.content}"
-                    </h2>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-100">
+                  <div className="text-5xl font-black text-blue-600 mb-2">
+                    RIASEC
                   </div>
-
-                  {/* Likert Scale */}
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {LIKERT_OPTIONS.map((option) => {
-                      const isSelected =
-                        answers[currentQuestion._id]?.score === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          onClick={() => handleSelect(option.value)}
-                          className={`flex-1 rounded-2xl py-4 px-2 transition-all duration-200 border border-transparent 
-                        ${
-                          isSelected
-                            ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25 scale-105"
-                            : "bg-white/5 hover:bg-white/10 text-gray-300 hover:border-white/20"
-                        }
-                      `}
-                        >
-                          <div className="text-lg font-bold mb-1">
-                            {option.value}
-                          </div>
-                          <div className="text-xs">{option.label}</div>
-                        </button>
-                      );
-                    })}
+                  <div className="text-slate-500 font-bold">
+                    Tên gọi viết tắt của mô hình
                   </div>
-                </>
-              )}
-            </div>
-
-            {error && (
-              <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-red-400">
-                {error}
+                </div>
               </div>
-            )}
-
-            {/* Footer Navigation */}
-            <div className="flex items-center justify-between border-t border-white/10 pt-6">
-              <button
-                onClick={handleBack}
-                disabled={currentIndex === 0}
-                className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
-              >
-                Câu trước
-              </button>
-
-              {isAllAnswered || isFreeLimitReached ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="px-8 py-3 rounded-full bg-purple-500 text-white font-bold hover:bg-purple-600 transition shadow-lg shadow-purple-500/30 disabled:opacity-50"
-                >
-                  {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setCurrentIndex((curr) => curr + 1)}
-                  disabled={currentIndex === totalQuestions - 1}
-                  className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-2"
-                >
-                  Bỏ qua <span className="text-xs">→</span>
-                </button>
-              )}
             </div>
-          </>
-        )}
+            <div className="bg-blue-600 p-10 md:p-12 rounded-[40px] shadow-2xl shadow-blue-200 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+              <h3 className="text-2xl font-black mb-8">
+                Lợi ích khi làm bài test
+              </h3>
+              <ul className="space-y-6 mb-10">
+                {[
+                  "Xác định rõ đam mê và sở thích nghề nghiệp thực sự.",
+                  "Tìm ra môi trường làm việc lý tưởng cho bản thân.",
+                  "Kết nối sở thích với các ngành học và công việc cụ thể.",
+                  "Tăng khả năng thành công và hài lòng trong sự nghiệp tương lai.",
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-4 text-blue-50 text-lg"
+                  >
+                    <div className="mt-1 bg-white/20 rounded-full p-1 flex-shrink-0">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => window.open("/holland-test", "_blank")}
+                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg"
+              >
+                Test miễn phí 100%
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 6 Groups Section */}
+        <div className="bg-white rounded-[50px] py-20 px-8 md:px-16 shadow-xl shadow-slate-100 border border-slate-50 mb-24">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-black text-slate-900 mb-6">
+              6 Nhóm tính cách theo Holland
+            </h2>
+            <p className="text-slate-500 text-lg max-w-3xl mx-auto">
+              Mỗi người thường là sự kết hợp của 2-3 nhóm, trong đó có một nhóm
+              nổi trội nhất.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {Object.keys(hollandMaps).map((type) => (
+              <div
+                key={type}
+                className="bg-slate-50 p-8 rounded-3xl border border-slate-100 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group"
+              >
+                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+                  {type}
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                  {hollandMaps[type]?.name}
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  {hollandMaps[type]?.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-16">
+            <button
+              onClick={() => window.open("/holland-test", "_blank")}
+              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+            >
+              Bắt đầu làm bài ngay
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 };
 
 export default HollandPage;

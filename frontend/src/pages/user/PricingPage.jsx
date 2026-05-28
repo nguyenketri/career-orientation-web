@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
+import axiosClient from "../../api/axios";
 
 const PricingPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -71,12 +71,9 @@ const PricingPage = () => {
     // Request payment creation
     try {
       setPaymentLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:3000/api/payments/create",
-        { planType: plan.type },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const response = await axiosClient.post("/payments/create", {
+        planType: plan.type,
+      });
 
       if (response.data.status === "success") {
         const {
@@ -120,11 +117,7 @@ const PricingPage = () => {
   const checkPaymentStatus = async (paymentId, isAuto = false) => {
     try {
       if (!isAuto) setPaymentLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3000/api/payments/status/${paymentId}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const response = await axiosClient.get(`/payments/status/${paymentId}`);
 
       if (response.data.status === "success") {
         if (response.data.data.status === "SUCCESS") {
@@ -154,13 +147,13 @@ const PricingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-black px-6 py-20">
+    <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
       {/* Header */}
-      <div className="mx-auto max-w-6xl mb-16 text-center">
+      <div className="mx-auto max-w-7xl mb-16 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-4"
+          className="text-5xl font-black text-slate-900 mb-6"
         >
           Bảng Giá caZup
         </motion.h1>
@@ -168,9 +161,10 @@ const PricingPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-xl text-gray-300"
+          className="text-xl text-slate-600 max-w-2xl mx-auto"
         >
-          Chọn gói phù hợp với nhu cầu hướng nghiệp của bạn
+          Chọn gói phù hợp với nhu cầu hướng nghiệp của bạn để mở khóa toàn bộ
+          sức mạnh của AI.
         </motion.p>
       </div>
 
@@ -182,69 +176,87 @@ const PricingPage = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`relative rounded-3xl backdrop-blur-xl transition-all ${
-              plan.highlighted
-                ? "bg-gradient-to-br from-purple-500/40 via-purple-400/20 to-pink-500/20 border border-purple-400/50 shadow-2xl shadow-purple-500/30 scale-105"
-                : "bg-white/5 border border-white/10 hover:border-white/20"
-            }`}
+            className={`relative rounded-[40px] p-8 transition-all flex flex-col
+              ${
+                plan.highlighted
+                  ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
+                  : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
+              }`}
           >
             {plan.highlighted && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                  ⭐ Được yêu thích
+              <div className="absolute -top-5 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest shadow-lg">
+                  ⭐ Phổ biến nhất
                 </span>
               </div>
             )}
 
-            <div className="p-8">
+            <div className="flex-grow">
               {/* Plan Name */}
-              <h3 className="text-2xl font-bold text-white mb-2">
+              <h3 className="text-2xl font-black text-slate-900 mb-2">
                 {plan.name}
               </h3>
-              <p className="text-gray-400 mb-6">{plan.duration}</p>
+              <p className="text-slate-500 font-bold mb-8 uppercase tracking-wider text-sm">
+                {plan.duration}
+              </p>
 
               {/* Price */}
-              <div className="mb-8">
-                <div className="text-4xl font-bold text-white">
+              <div className="mb-10">
+                <div className="text-5xl font-black text-slate-900">
                   {plan.price.toLocaleString("vi-VN")}
-                  <span className="text-lg text-gray-400">đ</span>
+                  <span className="text-2xl text-slate-400 ml-1">đ</span>
                 </div>
                 {plan.price > 0 && (
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-sm text-slate-400 mt-3 font-bold">
                     {(
                       plan.price / (plan.duration === "30 ngày" ? 30 : 90)
                     ).toLocaleString("vi-VN", {
                       maximumFractionDigits: 0,
                     })}
-                    /ngày
+                    đ / ngày
                   </p>
                 )}
               </div>
 
-              {/* CTA Button */}
-              <button
-                onClick={() => handlePlanClick(plan)}
-                className={`w-full py-3 rounded-xl font-bold transition-all mb-8 ${
-                  plan.highlighted
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50"
-                    : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
-                }`}
-              >
-                {plan.cta}
-              </button>
-
               {/* Features */}
-              <div className="space-y-4">
+              <div className="space-y-5 mb-10">
                 {plan.features.map((feature, fidx) => (
-                  <div key={fidx} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-white text-xs">✓</span>
+                  <div key={fidx} className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
                     </div>
-                    <span className="text-gray-300 text-sm">{feature}</span>
+                    <span className="text-slate-600 font-medium leading-tight">
+                      {feature}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => handlePlanClick(plan)}
+              className={`w-full py-5 rounded-full font-black text-lg transition-all shadow-xl
+                ${
+                  plan.highlighted
+                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
+                    : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
+                }`}
+            >
+              {plan.cta}
+            </button>
           </motion.div>
         ))}
       </div>
@@ -254,96 +266,152 @@ const PricingPage = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-6"
           onClick={() => selectedPlan && setSelectedPlan(null)}
         >
           <motion.div
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            className="bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-8 max-w-md w-full mx-4"
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            className="bg-white rounded-[40px] p-8 lg:p-12 max-w-xl w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold text-white mb-2">Thanh toán</h2>
-            <p className="text-gray-400 mb-6">
-              {selectedPlan.name} - {selectedPlan.price.toLocaleString("vi-VN")}
-              đ
-            </p>
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 mb-2">
+                  Thanh toán
+                </h2>
+                <p className="text-slate-500 font-bold">
+                  {selectedPlan.name} •{" "}
+                  {selectedPlan.price.toLocaleString("vi-VN")}đ
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="p-2 hover:bg-slate-100 rounded-full transition"
+              >
+                <svg
+                  className="w-6 h-6 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
 
             {paymentStatus === "success" ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-4">✅</div>
-                <p className="text-green-400 font-bold">
+              <div className="text-center py-12">
+                <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg
+                    className="w-12 h-12 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-2xl font-black text-slate-900 mb-2">
                   Thanh toán thành công!
                 </p>
-                <p className="text-gray-300 text-sm mt-2">
-                  Gói của bạn sẽ được kích hoạt ngay
+                <p className="text-slate-500 font-medium">
+                  Gói của bạn sẽ được kích hoạt ngay lập tức.
                 </p>
               </div>
             ) : paymentStatus === "error" ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-4">❌</div>
-                <p className="text-red-400 font-bold">Lỗi thanh toán</p>
-                <p className="text-gray-300 text-sm mt-2">Vui lòng thử lại</p>
+              <div className="text-center py-12">
+                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg
+                    className="w-12 h-12 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+                <p className="text-2xl font-black text-slate-900 mb-2">
+                  Lỗi thanh toán
+                </p>
+                <p className="text-slate-500 font-medium">
+                  Vui lòng thử lại hoặc liên hệ hỗ trợ.
+                </p>
               </div>
             ) : qrCode ? (
-              <>
-                <div className="mb-6 text-center">
-                  <p className="text-gray-300 mb-4 text-sm">
-                    Quét mã QR bên dưới để chuyển khoản
+              <div className="space-y-8">
+                <div className="text-center">
+                  <p className="text-slate-600 font-medium mb-6">
+                    Quét mã QR bên dưới bằng ứng dụng Ngân hàng hoặc Ví điện tử
+                    để chuyển khoản
                   </p>
-                  <img
-                    src={qrCode}
-                    alt="Payment QR Code"
-                    className="w-full rounded-2xl border border-white/20"
-                  />
+                  <div className="relative inline-block p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
+                    <img
+                      src={qrCode}
+                      alt="Payment QR Code"
+                      className="w-64 h-64 rounded-xl"
+                    />
+                  </div>
                 </div>
 
-                <div className="bg-white/5 rounded-xl p-4 mb-6 border border-white/10">
-                  <p className="text-xs text-gray-400 mb-2">Mã giao dịch:</p>
-                  <p className="text-white font-mono font-bold text-lg">
-                    {transactionCode}
+                <div className="bg-blue-50 rounded-3xl p-6 border border-blue-100">
+                  <p className="text-xs text-blue-600 font-black uppercase tracking-widest mb-2">
+                    Nội dung chuyển khoản:
                   </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    (Ghi mã này vào nội dung chuyển khoản)
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-black text-blue-900 font-mono">
+                      {transactionCode}
+                    </p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(transactionCode);
+                        alert("Đã sao chép mã giao dịch!");
+                      }}
+                      className="text-blue-600 font-bold text-sm hover:underline"
+                    >
+                      Sao chép
+                    </button>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => checkPaymentStatus(selectedPlan.paymentId)}
                   disabled={paymentLoading}
-                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all"
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-5 rounded-full transition-all shadow-xl shadow-blue-200 text-lg"
                 >
                   {paymentLoading
                     ? "Đang xác thực giao dịch..."
-                    : "Kiểm tra trạng thái thanh toán"}
+                    : "Tôi đã chuyển khoản xong"}
                 </button>
 
-                <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-purple-400 animate-pulse">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <div className="flex items-center justify-center gap-3 text-sm text-blue-600 font-bold animate-pulse">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                   <span>Đang tự động kiểm tra giao dịch mỗi 5 giây...</span>
                 </div>
-
-                <p className="text-[10px] text-gray-500 mt-4 text-center italic">
-                  Hệ thống sẽ tự động cập nhật ngay khi nhận được tiền chuyển
-                  khoản (thường từ 1-3 phút).
-                </p>
-
-                <button
-                  onClick={() => {
-                    stopPolling();
-                    setSelectedPlan(null);
-                  }}
-                  className="w-full mt-3 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-xl transition-all"
-                >
-                  Hủy
-                </button>
-              </>
+              </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin">
-                  <div className="w-8 h-8 border-4 border-white/20 border-t-purple-400 rounded-full"></div>
+              <div className="text-center py-20">
+                <div className="inline-block animate-spin mb-6">
+                  <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full"></div>
                 </div>
-                <p className="text-gray-300 mt-4">Đang tạo mã QR...</p>
+                <p className="text-slate-500 font-bold">
+                  Đang tạo mã QR thanh toán...
+                </p>
               </div>
             )}
           </motion.div>

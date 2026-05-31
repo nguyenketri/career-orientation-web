@@ -80,10 +80,39 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pt-32 flex flex-col">
-      <div className="flex-grow flex flex-col mx-auto w-full max-w-7xl p-6 h-[calc(100vh-80px)]">
+    <div className="h-screen bg-slate-50 text-slate-900 pt-32 pb-6 px-6 overflow-hidden">
+      <div className="mx-auto w-full max-w-5xl h-[calc(100vh-150px)] flex flex-col bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
+        {/* Chat Header */}
+        <div className="px-6 py-4 border-b border-slate-100 bg-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-800">caZup AI Mentor</h2>
+              <p className="text-xs text-green-500 flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Đang trực tuyến
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Chat Box */}
-        <div className="flex-grow overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-6">
+        <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/30">
           {messages.map((msg, index) => (
             <div
               key={index}
@@ -93,8 +122,8 @@ const MentorChatPage = () => {
                 className={`max-w-[80%] rounded-2xl p-4 whitespace-pre-wrap leading-relaxed
                   ${
                     msg.role === "user"
-                      ? "bg-blue-600 rounded-tr-sm text-white shadow-lg shadow-blue-200"
-                      : "bg-white rounded-tl-sm text-slate-700 border border-slate-100 shadow-sm"
+                      ? "bg-blue-600 rounded-tr-sm text-white shadow-md"
+                      : "bg-white rounded-tl-sm text-slate-700 border border-slate-200 shadow-sm"
                   }
                 `}
               >
@@ -104,7 +133,7 @@ const MentorChatPage = () => {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 bg-white text-slate-400 border border-slate-100 shadow-sm flex items-center space-x-2">
+              <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 bg-white text-slate-400 border border-slate-200 shadow-sm flex items-center space-x-2">
                 <span className="animate-bounce">●</span>
                 <span className="animate-bounce delay-100">●</span>
                 <span className="animate-bounce delay-200">●</span>
@@ -115,35 +144,37 @@ const MentorChatPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-2 flex items-end shadow-2xl">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-grow bg-transparent p-4 outline-none resize-none text-slate-900 max-h-32"
-            rows="1"
-            placeholder="Đặt câu hỏi cho AI Mentor..."
-          ></textarea>
-          <button
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
-            className="m-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 flex-shrink-0"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <div className="p-4 bg-white border-t border-slate-100">
+          <div className="flex items-end gap-2 bg-slate-100 rounded-2xl p-2 focus-within:ring-2 ring-blue-500/20 transition-all">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-grow bg-transparent p-3 outline-none resize-none text-slate-900 max-h-32"
+              rows="1"
+              placeholder="Đặt câu hỏi cho AI Mentor..."
+            ></textarea>
+            <button
+              onClick={handleSend}
+              disabled={loading || !input.trim()}
+              className="m-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 text-white shadow-lg shadow-blue-200"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

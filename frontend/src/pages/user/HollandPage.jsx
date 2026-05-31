@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { hollandMaps } from "../../utils/hollandMap";
 
 const HollandPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [result, setResult] = useState(null);
+  const [result] = useState(() => location.state?.result || null);
 
   // Get user subscription plan
   const userPlan = (() => {
@@ -16,12 +16,6 @@ const HollandPage = () => {
       return "FREE";
     }
   })();
-
-  useEffect(() => {
-    if (location.state?.result) {
-      setResult(location.state.result);
-    }
-  }, [location.state?.result]);
 
   const handleRetake = () => {
     window.open("/holland-test", "_blank");
@@ -180,9 +174,23 @@ const HollandPage = () => {
             </p>
             <button
               onClick={() => window.open("/holland-test", "_blank")}
-              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-12 py-5 rounded-full font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group"
             >
               Bắt đầu khám phá
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
             </button>
           </div>
           <div className="flex-1 relative">
@@ -263,9 +271,23 @@ const HollandPage = () => {
               </ul>
               <button
                 onClick={() => window.open("/holland-test", "_blank")}
-                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg"
+                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg border border-blue-100 flex items-center justify-center gap-2 group"
               >
                 Test miễn phí 100%
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -305,9 +327,23 @@ const HollandPage = () => {
           <div className="text-center mt-16">
             <button
               onClick={() => window.open("/holland-test", "_blank")}
-              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-12 py-5 rounded-full font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group"
             >
               Bắt đầu làm bài ngay
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
             </button>
           </div>
         </div>

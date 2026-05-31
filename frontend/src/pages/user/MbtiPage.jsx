@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { mbtiMaps } from "../../utils/mbtiMap";
 
 const MbtiPage = () => {
   const location = useLocation();
-  const [result, setResult] = useState(null);
-
-  useEffect(() => {
-    if (location.state?.result) {
-      setResult(location.state.result);
-    }
-  }, [location.state?.result]);
+  const [result] = useState(() => location.state?.result || null);
 
   const handleRetake = () => {
     window.open("/mbti-test", "_blank");
@@ -133,9 +127,23 @@ const MbtiPage = () => {
             </p>
             <button
               onClick={() => window.open("/mbti-test", "_blank")}
-              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-12 py-5 rounded-full font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group"
             >
               Làm bài test
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
             </button>
           </div>
           <div className="flex-1 relative">
@@ -219,9 +227,23 @@ const MbtiPage = () => {
               </p>
               <button
                 onClick={() => window.open("/mbti-test", "_blank")}
-                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg"
+                className="w-full bg-white text-blue-600 py-5 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-lg border border-blue-100 flex items-center justify-center gap-2 group"
               >
                 Test miễn phí 100%
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -349,9 +371,23 @@ const MbtiPage = () => {
           <div className="text-center mt-12">
             <button
               onClick={() => window.open("/mbti-test", "_blank")}
-              className="bg-blue-600 text-white px-12 py-5 rounded-full font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-12 py-5 rounded-full font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group mx-auto"
             >
               Tôi đã sẵn sàng!
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
             </button>
           </div>
         </div>
@@ -381,9 +417,23 @@ const MbtiPage = () => {
           <div className="text-center mt-20">
             <button
               onClick={() => window.open("/mbti-test", "_blank")}
-              className="bg-blue-600 text-white px-16 py-6 rounded-full font-black text-2xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-200 hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-16 py-6 rounded-full font-black text-2xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-2xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-3 group mx-auto"
             >
               Khám phá tính cách của tôi
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-8 h-8 group-hover:translate-x-2 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
             </button>
           </div>
         </div>

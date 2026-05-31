@@ -15,7 +15,7 @@ const stats = [
   },
   {
     number: "50+",
-    label: "Nhóm ngành nghề",
+    label: "Nhóm ngành học",
   },
 ];
 

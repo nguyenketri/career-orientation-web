@@ -101,8 +101,13 @@ const HollandTestPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <p className="text-xl animate-pulse">Đang nạp bộ câu hỏi...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-900">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl font-bold text-slate-600 animate-pulse">
+            Đang nạp bộ câu hỏi...
+          </p>
+        </div>
       </div>
     );
   }
@@ -114,56 +119,81 @@ const HollandTestPage = () => {
     Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
 
   return (
-    <div className="min-h-screen bg-black px-6 pt-32 pb-20 text-white flex flex-col">
-      <div className="mx-auto w-full max-w-7xl flex-grow flex flex-col">
+    <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900 flex flex-col">
+      <div className="mx-auto w-full max-w-4xl flex-grow flex flex-col">
         {!isStarted ? (
-          <div className="text-center">
-            <h1 className="text-4xl font-bold">Không tìm thấy bộ câu hỏi</h1>
+          <div className="text-center bg-white p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <h1 className="text-4xl font-black text-slate-900">
+              Không tìm thấy bộ câu hỏi
+            </h1>
+            <p className="text-slate-500 mt-4">
+              Vui lòng quay lại sau hoặc liên hệ quản trị viên.
+            </p>
           </div>
         ) : (
           <>
-            <div className="mb-16">
-              <div className="mb-3 flex items-center justify-between text-sm text-gray-400 font-medium">
+            <div className="mb-12">
+              <div className="mb-4 flex items-center justify-between text-sm font-bold uppercase tracking-widest text-slate-400">
                 <span>
                   Câu hỏi {currentIndex + 1} / {totalQuestions}
                 </span>
-                <span>{Math.round(progress)}%</span>
+                <span className="text-blue-600">{Math.round(progress)}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div className="h-3 overflow-hidden rounded-full bg-slate-200 shadow-inner">
                 <div
                   style={{ width: `${progress}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-500 ease-out shadow-lg shadow-blue-200"
                 ></div>
               </div>
             </div>
 
             <div className="flex-grow flex flex-col justify-center mb-12">
               {isFreeLimitReached ? (
-                <div className="text-center p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
-                  <h2 className="text-3xl font-bold mb-4 text-purple-400">
+                <div className="text-center p-12 rounded-[40px] bg-white border border-blue-100 shadow-2xl shadow-blue-100/50">
+                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-8">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-10 w-10 text-blue-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-3xl font-black mb-4 text-slate-900">
                     Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
                   </h2>
-                  <p className="text-gray-300 mb-8 text-lg">
+                  <p className="text-slate-600 mb-10 text-lg leading-relaxed max-w-xl mx-auto">
                     Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
                     Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
                   </p>
                   <button
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="px-10 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50"
+                    className="px-12 py-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 disabled:opacity-50"
                   >
                     {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
                   </button>
                 </div>
               ) : (
-                <>
+                <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
                   <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-semibold leading-relaxed">
-                      "{currentQuestion?.content}"
+                    <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
+                      Câu hỏi hiện tại
+                    </span>
+                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                      {currentQuestion?.content}
                     </h2>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                     {LIKERT_OPTIONS.map((option) => {
                       const isSelected =
                         answers[currentQuestion._id]?.score === option.value;
@@ -171,38 +201,58 @@ const HollandTestPage = () => {
                         <button
                           key={option.value}
                           onClick={() => handleSelect(option.value)}
-                          className={`flex-1 rounded-2xl py-4 px-2 transition-all duration-200 border border-transparent 
+                          className={`group relative rounded-3xl py-6 px-2 transition-all duration-300 border-2 
                         ${
                           isSelected
-                            ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25 scale-105"
-                            : "bg-white/5 hover:bg-white/10 text-gray-300 hover:border-white/20"
+                            ? "bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-200 scale-105"
+                            : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200 hover:shadow-lg hover:shadow-slate-100"
                         }
                       `}
                         >
-                          <div className="text-lg font-bold mb-1">
+                          <div
+                            className={`text-2xl font-black mb-2 ${isSelected ? "text-white" : "text-slate-900 group-hover:text-blue-600"}`}
+                          >
                             {option.value}
                           </div>
-                          <div className="text-xs">{option.label}</div>
+                          <div
+                            className={`text-[10px] font-bold uppercase tracking-tighter ${isSelected ? "text-blue-100" : "text-slate-400"}`}
+                          >
+                            {option.label}
+                          </div>
                         </button>
                       );
                     })}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
             {error && (
-              <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-red-400">
+              <div className="mb-8 rounded-2xl border border-red-100 bg-red-50 p-4 text-center text-red-600 font-bold animate-shake">
                 {error}
               </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-white/10 pt-6">
+            <div className="flex items-center justify-between pt-8">
               <button
                 onClick={handleBack}
                 disabled={currentIndex === 0}
-                className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="px-8 py-4 rounded-full bg-white text-slate-600 font-bold border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
                 Câu trước
               </button>
 
@@ -210,7 +260,7 @@ const HollandTestPage = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="px-8 py-3 rounded-full bg-purple-500 text-white font-bold hover:bg-purple-600 transition shadow-lg shadow-purple-500/30 disabled:opacity-50"
+                  className="px-10 py-4 rounded-full bg-blue-600 text-white font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
                 >
                   {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
                 </button>
@@ -218,9 +268,23 @@ const HollandTestPage = () => {
                 <button
                   onClick={() => setCurrentIndex((curr) => curr + 1)}
                   disabled={currentIndex === totalQuestions - 1}
-                  className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-2"
+                  className="px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 >
-                  Bỏ qua <span className="text-xs">→</span>
+                  Bỏ qua
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
                 </button>
               )}
             </div>

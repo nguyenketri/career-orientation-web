@@ -119,7 +119,7 @@ const HollandTestPage = () => {
     Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
       <div className="mx-auto w-full max-w-4xl flex-grow flex flex-col">
         {!isStarted ? (
           <div className="text-center bg-white p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
@@ -233,11 +233,11 @@ const HollandTestPage = () => {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-8">
               <button
                 onClick={handleBack}
                 disabled={currentIndex === 0}
-                className="px-8 py-4 rounded-full bg-white text-slate-600 font-bold border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                className="px-6 md:px-8 py-4 rounded-full bg-white text-slate-600 font-bold border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -260,7 +260,7 @@ const HollandTestPage = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="px-10 py-4 rounded-full bg-blue-600 text-white font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
+                  className="px-8 md:px-10 py-4 rounded-full bg-blue-600 text-white font-black text-base md:text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
                 >
                   {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
                 </button>
@@ -268,7 +268,7 @@ const HollandTestPage = () => {
                 <button
                   onClick={() => setCurrentIndex((curr) => curr + 1)}
                   disabled={currentIndex === totalQuestions - 1}
-                  className="px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
                 >
                   Bỏ qua
                   <svg

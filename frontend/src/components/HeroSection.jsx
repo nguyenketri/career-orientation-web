@@ -11,18 +11,19 @@ const HeroSection = () => {
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-7xl text-center">
-        <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-blue-600">
-          Nền tảng định hướng ngành học AI hàng đầu
-        </p>
+        {/* Banner Image */}
+        <div className="mb-10 overflow-hidden rounded-2xl shadow-2xl shadow-blue-100 border border-blue-50">
+          <img
+            src="/banner.jpg"
+            alt="caZup - Giải pháp hướng ngành học toàn diện"
+            className="w-full h-auto object-cover"
+          />
+        </div>
 
-        <h1 className="mb-6 text-5xl font-extrabold leading-tight md:text-7xl text-slate-900">
-          Khám phá
-          <span className="text-blue-600"> Ngành Học Tương Lai</span>
-        </h1>
-
-        <p className="mx-auto mb-10 max-w-2xl text-xl text-slate-600 leading-relaxed">
-          Tìm kiếm ngành học, trường đại học phù hợp nhất dựa trên tính cách,
-          thế mạnh và năng lực của bạn.
+        {/* Simplified Text (Optional, keeping it subtle for SEO and context) */}
+        <p className="mx-auto mb-10 max-w-2xl text-lg md:text-xl text-slate-600 leading-relaxed px-4">
+          Nền tảng AI giúp bạn tìm kiếm ngành học và trường đại học phù hợp nhất
+          dựa trên tính cách và năng lực bản thân.
         </p>
 
         {/* Buttons */}

@@ -80,10 +80,10 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="h-screen bg-slate-50 text-slate-900 pt-32 pb-6 px-6 overflow-hidden">
-      <div className="mx-auto w-full max-w-5xl h-[calc(100vh-150px)] flex flex-col bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
+    <div className="h-screen bg-slate-50 text-slate-900 pt-20 md:pt-32 pb-4 md:pb-6 px-2 md:px-6 overflow-hidden">
+      <div className="mx-auto w-full max-w-5xl h-full md:h-[calc(100vh-150px)] flex flex-col bg-white border border-slate-200 rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
         {/* Chat Header */}
-        <div className="px-6 py-4 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 bg-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
               <svg
@@ -112,14 +112,14 @@ const MentorChatPage = () => {
         </div>
 
         {/* Chat Box */}
-        <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/30">
+        <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 custom-scrollbar bg-slate-50/30">
           {messages.map((msg, index) => (
             <div
               key={index}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl p-4 whitespace-pre-wrap leading-relaxed
+                className={`max-w-[90%] md:max-w-[80%] rounded-2xl p-3 md:p-4 text-sm md:text-base whitespace-pre-wrap leading-relaxed
                   ${
                     msg.role === "user"
                       ? "bg-blue-600 rounded-tr-sm text-white shadow-md"
@@ -144,13 +144,13 @@ const MentorChatPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-100">
-          <div className="flex items-end gap-2 bg-slate-100 rounded-2xl p-2 focus-within:ring-2 ring-blue-500/20 transition-all">
+        <div className="p-2 md:p-4 bg-white border-t border-slate-100">
+          <div className="flex items-end gap-2 bg-slate-100 rounded-xl md:rounded-2xl p-1.5 md:p-2 focus-within:ring-2 ring-blue-500/20 transition-all">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-grow bg-transparent p-3 outline-none resize-none text-slate-900 max-h-32"
+              className="flex-grow bg-transparent p-2 md:p-3 outline-none resize-none text-slate-900 text-sm md:text-base max-h-24 md:max-h-32"
               rows="1"
               placeholder="Đặt câu hỏi cho AI Mentor..."
             ></textarea>

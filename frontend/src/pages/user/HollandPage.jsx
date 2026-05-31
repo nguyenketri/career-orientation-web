@@ -24,7 +24,7 @@ const HollandPage = () => {
   // RESULT VIEW
   if (result) {
     return (
-      <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
+      <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-24 md:pt-32 pb-10 md:pb-20 text-slate-900">
         {userPlan === "FREE" && (
           <div className="mx-auto max-w-7xl mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-100 text-center">
             <p className="text-blue-600 text-sm">
@@ -41,26 +41,26 @@ const HollandPage = () => {
           </div>
         )}
         <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-black mb-4 text-slate-900">
+          <div className="text-center mb-8 md:mb-12">
+            <h1 className="text-3xl md:text-5xl font-black mb-4 text-slate-900">
               Kết Quả Holland Của Bạn
             </h1>
-            <p className="text-slate-600 text-lg">
+            <p className="text-slate-600 text-base md:text-lg">
               Hệ thống đã phân tích và lưu kết quả vào hồ sơ của bạn.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-12">
             {/* Top 3 Types Box */}
-            <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
-              <h2 className="text-xl text-blue-600 uppercase tracking-widest mb-6 font-bold">
+            <div className="rounded-2xl md:rounded-3xl border border-slate-100 bg-white p-5 md:p-8 shadow-xl shadow-slate-100">
+              <h2 className="text-lg md:text-xl text-blue-600 uppercase tracking-widest mb-6 font-bold">
                 Đặc Trưng Nổi Bật Nhất
               </h2>
 
               {result.topTypes.map((type, idx) => (
                 <div key={type} className="mb-6 last:mb-0">
-                  <div className="flex justify-between items-end mb-2">
-                    <h3 className="text-3xl font-bold text-slate-900">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-2 gap-1">
+                    <h3 className="text-xl md:text-3xl font-bold text-slate-900">
                       <span className="text-blue-600 mr-2">Top {idx + 1}:</span>
                       {hollandMaps[type]?.name || type}
                     </h3>
@@ -84,11 +84,11 @@ const HollandPage = () => {
             </div>
 
             {/* Overall Radar/Scores */}
-            <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
-              <h2 className="text-xl text-slate-800 uppercase tracking-widest mb-6 font-bold">
+            <div className="rounded-2xl md:rounded-3xl border border-slate-100 bg-white p-5 md:p-8 shadow-xl shadow-slate-100">
+              <h2 className="text-lg md:text-xl text-slate-800 uppercase tracking-widest mb-6 font-bold">
                 Điểm Các Nhóm
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 {Object.entries(result.hollandScores).map(([t, score]) => (
                   <div
                     key={t}
@@ -115,11 +115,11 @@ const HollandPage = () => {
 
           {/* Recommended Majors */}
           {result.recommendedMajors?.length > 0 && (
-            <div className="mt-20">
-              <h3 className="mb-10 text-4xl font-black text-slate-900 text-center">
+            <div className="mt-12 md:mt-20">
+              <h3 className="mb-6 md:mb-10 text-2xl md:text-4xl font-black text-slate-900 text-center">
                 Ngành Học Phù Hợp Đề Xuất
               </h3>
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {result.recommendedMajors.map((major) => (
                   <div
                     key={major._id}
@@ -158,23 +158,23 @@ const HollandPage = () => {
 
   if (!result) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 pt-32 pb-20">
+      <div className="min-h-screen bg-slate-50 text-slate-900 pt-24 md:pt-32 pb-10 md:pb-20 px-4 md:px-0">
         {/* Hero Section */}
-        <div className="bg-white border border-blue-50 rounded-[40px] mx-auto max-w-7xl p-8 md:p-20 mb-20 flex flex-col md:flex-row items-center gap-16 shadow-2xl shadow-blue-100/50">
-          <div className="flex-1 text-left">
-            <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1]">
+        <div className="bg-white border border-blue-50 rounded-[30px] md:rounded-[40px] mx-auto max-w-7xl p-6 md:p-20 mb-12 md:mb-20 flex flex-col md:flex-row items-center gap-10 md:gap-16 shadow-2xl shadow-blue-100/50">
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-3xl md:text-6xl font-black text-slate-900 mb-6 md:mb-8 leading-[1.1]">
               Khám phá ngành học
               <br />
               <span className="text-blue-600">Phù hợp với bạn</span>
             </h1>
-            <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
+            <p className="text-base md:text-xl text-slate-600 mb-8 md:mb-10 leading-relaxed max-w-xl">
               Trắc nghiệm sở thích Holland giúp bạn tìm ra nhóm tính cách ngành
               học của mình, từ đó định hướng con đường học tập một cách khoa học
               nhất.
             </p>
             <button
               onClick={() => window.open("/holland-test", "_blank")}
-              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-12 py-5 rounded-full font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group"
+              className="w-full md:w-fit bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 md:px-12 py-4 md:py-5 rounded-full font-black text-lg md:text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 group"
             >
               Bắt đầu khám phá
               <svg
@@ -204,13 +204,13 @@ const HollandPage = () => {
         </div>
 
         {/* What is Holland Section */}
-        <div className="mx-auto max-w-7xl px-6 mb-24">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-4xl font-black text-slate-900 mb-8">
+        <div className="mx-auto max-w-7xl px-0 md:px-6 mb-16 md:mb-24">
+          <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div className="text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 md:mb-8">
                 Mô hình Holland là gì?
               </h2>
-              <p className="text-slate-600 text-xl mb-10 leading-relaxed">
+              <p className="text-lg md:text-xl text-slate-600 mb-8 md:mb-10 leading-relaxed">
                 Được phát triển bởi tiến sĩ tâm lý học John Holland, đây là mô
                 hình lý thuyết về chọn ngành được sử dụng rộng rãi nhất trên thế
                 giới hiện nay.
@@ -294,12 +294,12 @@ const HollandPage = () => {
         </div>
 
         {/* 6 Groups Section */}
-        <div className="bg-white rounded-[50px] py-20 px-8 md:px-16 shadow-xl shadow-slate-100 border border-slate-50 mb-24">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl font-black text-slate-900 mb-6">
+        <div className="bg-white rounded-[30px] md:rounded-[50px] py-12 md:py-20 px-6 md:px-16 shadow-xl shadow-slate-100 border border-slate-50 mb-16 md:mb-24">
+          <div className="text-center mb-12 md:mb-20">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 md:mb-6">
               6 Nhóm tính cách theo Holland
             </h2>
-            <p className="text-slate-500 text-lg max-w-3xl mx-auto">
+            <p className="text-slate-500 text-base md:text-lg max-w-3xl mx-auto">
               Mỗi người thường là sự kết hợp của 2-3 nhóm, trong đó có một nhóm
               nổi trội nhất.
             </p>

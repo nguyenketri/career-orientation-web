@@ -8,7 +8,7 @@ const PLAN_DURATIONS = {
 };
 
 const PLAN_PRICES = {
-  PAID: 79000,
+  PAID: 5000,
   PREMIUM: 129000,
 };
 
@@ -52,8 +52,8 @@ exports.createPayment = async (req, res) => {
     });
 
     // Load bank info from env or fallback to demo account
-    const bankId = process.env.BANK_ID || "mbbank";
-    const bankAccount = process.env.BANK_ACCOUNT || "091106892c";
+    const bankId = process.env.BANK_ID || "tpbank";
+    const bankAccount = process.env.BANK_ACCOUNT || "00000807487";
     const accountName = process.env.BANK_ACCOUNT_NAME || "NGUYEN KE TRI";
 
     // Generate VietQR Url

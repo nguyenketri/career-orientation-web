@@ -138,7 +138,7 @@ const PricingPage = () => {
       if (!isAuto) {
         alert(
           "Lỗi khi kiểm tra trạng thái: " +
-            (error.response?.data?.message || error.message),
+          (error.response?.data?.message || error.message),
         );
       }
     } finally {
@@ -177,10 +177,9 @@ const PricingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
             className={`relative rounded-[40px] p-8 transition-all flex flex-col
-              ${
-                plan.highlighted
-                  ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
-                  : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
+              ${plan.highlighted
+                ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
+                : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
               }`}
           >
             {plan.highlighted && (
@@ -249,10 +248,9 @@ const PricingPage = () => {
             <button
               onClick={() => handlePlanClick(plan)}
               className={`w-full py-5 rounded-full font-black text-lg transition-all shadow-xl
-                ${
-                  plan.highlighted
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
-                    : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
+                ${plan.highlighted
+                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
+                  : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
                 }`}
             >
               {plan.cta}

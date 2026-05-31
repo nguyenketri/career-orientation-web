@@ -7,7 +7,7 @@ const paymentController = require("../controllers/payment.controller");
 router.post("/webhook", paymentController.webhookPayment);
 
 // Public mock simulation endpoint for development testing (Disabled for production)
-// router.post("/mock-webhook", paymentController.mockWebhook);
+router.post("/mock-webhook", paymentController.mockWebhook);
 
 // Protected endpoints (invoked by frontend web app)
 router.post("/create", authMiddleware, paymentController.createPayment);

@@ -12,17 +12,17 @@ const HeroSection = () => {
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-7xl text-center">
         <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-blue-600">
-          Nền tảng hướng nghiệp AI hàng đầu
+          Nền tảng định hướng ngành học AI hàng đầu
         </p>
 
         <h1 className="mb-6 text-5xl font-extrabold leading-tight md:text-7xl text-slate-900">
           Khám phá
-          <span className="text-blue-600"> Tương lai Nghề nghiệp</span>
+          <span className="text-blue-600"> Ngành Học Tương Lai</span>
         </h1>
 
         <p className="mx-auto mb-10 max-w-2xl text-xl text-slate-600 leading-relaxed">
-          Tìm kiếm ngành học, trường đại học và con đường sự nghiệp phù hợp nhất
-          dựa trên tính cách, thế mạnh và năng lực của bạn.
+          Tìm kiếm ngành học, trường đại học phù hợp nhất dựa trên tính cách,
+          thế mạnh và năng lực của bạn.
         </p>
 
         {/* Buttons */}

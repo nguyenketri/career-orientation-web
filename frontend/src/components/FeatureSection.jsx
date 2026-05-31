@@ -4,14 +4,14 @@ const features = [
   {
     title: "Cố vấn Nghề nghiệp AI",
     description:
-      "Trò chuyện với cố vấn AI thông minh để nhận câu trả lời tức thì về trường đại học, ngành học và định hướng nghề nghiệp.",
+      "Trò chuyện với cố vấn AI thông minh để nhận câu trả lời tức thì về trường đại học, ngành học .",
     icon: "🤖",
     link: "/mentor",
   },
   {
     title: "Trắc nghiệm Holland & MBTI",
     description:
-      "Khám phá sâu hơn về tính cách của bạn với các bài đánh giá Holland và MBTI chuyên nghiệp, kết nối trực tiếp với các nghề nghiệp thực tế.",
+      "Khám phá sâu hơn về tính cách của bạn với các bài đánh giá Holland và MBTI chuyên nghiệp.",
     icon: "🧠",
     links: ["/holland", "/mbti"],
   },
@@ -44,7 +44,7 @@ const FeatureSection = () => {
 
           <p className="mx-auto max-w-2xl text-slate-600 font-medium">
             Nền tảng của chúng tôi giúp học sinh khám phá các ngành học, trường
-            đại học, và con đường sự nghiệp phù hợp với sự hướng dẫn từ AI.
+            đại học phù hợp với sự hướng dẫn từ AI.
           </p>
         </div>
 

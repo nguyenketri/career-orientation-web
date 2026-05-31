@@ -18,7 +18,7 @@ const Navbar = () => {
   const navLinks = [
     { name: "Trang Chủ", path: "/" },
     { name: "Lịch sử", path: "/history" },
-    { name: "Gợi ý nghề nghiệp", path: "/recommend" },
+    { name: "Gợi ý ngành học", path: "/recommend" },
     { name: "So sánh ngành học", path: "/compare" },
     { name: "Trắc nghiệm Holland", path: "/holland" },
     { name: "Trắc nghiệm MBTI", path: "/mbti" },

@@ -124,11 +124,11 @@ const MbtiPage = () => {
             <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1]">
               Hiểu rõ chính mình
               <br />
-              <span className="text-blue-600">Chọn nghề đúng cách</span>
+              <span className="text-blue-600">Chọn ngành học đúng cách</span>
             </h1>
             <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
               Bài trắc nghiệm tính cách (MBTI) giúp bạn hiểu rõ về bản thân mình
-              hơn, từ đó đưa ra cho bạn những định hướng về nghề nghiệp phù hợp
+              hơn, từ đó đưa ra cho bạn những định hướng về ngành học phù hợp
               nhất.
             </p>
             <button
@@ -187,7 +187,7 @@ const MbtiPage = () => {
               <ul className="space-y-6 mb-10">
                 {[
                   "Hiểu rõ bản thân: Nhận ra điểm mạnh, điểm yếu và sở thích tự nhiên.",
-                  "Định hướng nghề nghiệp: Chọn ngành học và công việc phù hợp năng lực.",
+                  "Định hướng ngành học: Chọn ngành học và trường học phù hợp năng lực.",
                   "Thấu hiểu người khác: Xây dựng mối quan hệ tốt hơn thông qua sự đồng cảm.",
                 ].map((item, i) => (
                   <li
@@ -215,7 +215,7 @@ const MbtiPage = () => {
               </ul>
               <p className="text-sm text-blue-200 mb-8 italic opacity-80">
                 * Đặc biệt: Dựa trên kết quả bài test, caZup sẽ cung cấp gợi ý
-                về các ngành nghề & các trường đại học đào tạo phù hợp với bạn!
+                về các ngành học & các trường đại học đào tạo phù hợp với bạn!
               </p>
               <button
                 onClick={() => window.open("/mbti-test", "_blank")}

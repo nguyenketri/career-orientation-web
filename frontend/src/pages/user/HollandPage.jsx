@@ -169,14 +169,14 @@ const HollandPage = () => {
         <div className="bg-white border border-blue-50 rounded-[40px] mx-auto max-w-7xl p-8 md:p-20 mb-20 flex flex-col md:flex-row items-center gap-16 shadow-2xl shadow-blue-100/50">
           <div className="flex-1 text-left">
             <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-[1.1]">
-              Khám phá nghề nghiệp
+              Khám phá ngành học
               <br />
               <span className="text-blue-600">Phù hợp với bạn</span>
             </h1>
             <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
-              Trắc nghiệm sở thích Holland giúp bạn tìm ra nhóm tính cách nghề
-              nghiệp của mình, từ đó định hướng con đường học tập và sự nghiệp
-              một cách khoa học nhất.
+              Trắc nghiệm sở thích Holland giúp bạn tìm ra nhóm tính cách ngành
+              học của mình, từ đó định hướng con đường học tập một cách khoa học
+              nhất.
             </p>
             <button
               onClick={() => window.open("/holland-test", "_blank")}
@@ -204,7 +204,7 @@ const HollandPage = () => {
               </h2>
               <p className="text-slate-600 text-xl mb-10 leading-relaxed">
                 Được phát triển bởi tiến sĩ tâm lý học John Holland, đây là mô
-                hình lý thuyết về chọn nghề được sử dụng rộng rãi nhất trên thế
+                hình lý thuyết về chọn ngành được sử dụng rộng rãi nhất trên thế
                 giới hiện nay.
               </p>
               <div className="grid grid-cols-2 gap-6">
@@ -213,7 +213,7 @@ const HollandPage = () => {
                     6
                   </div>
                   <div className="text-slate-500 font-bold">
-                    Nhóm sở thích nghề nghiệp
+                    Nhóm sở thích ngành học
                   </div>
                 </div>
                 <div className="bg-white p-8 rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-100">
@@ -233,10 +233,10 @@ const HollandPage = () => {
               </h3>
               <ul className="space-y-6 mb-10">
                 {[
-                  "Xác định rõ đam mê và sở thích nghề nghiệp thực sự.",
-                  "Tìm ra môi trường làm việc lý tưởng cho bản thân.",
-                  "Kết nối sở thích với các ngành học và công việc cụ thể.",
-                  "Tăng khả năng thành công và hài lòng trong sự nghiệp tương lai.",
+                  "Xác định rõ đam mê và sở thích ngành học thực sự.",
+                  "Tìm ra môi trường học tập lý tưởng cho bản thân.",
+                  "Kết nối sở thích với các ngành học cụ thể.",
+                  "Tăng khả năng thành công và hài lòng trong học tập tương lai.",
                 ].map((item, i) => (
                   <li
                     key={i}

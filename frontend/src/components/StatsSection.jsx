@@ -50,7 +50,7 @@ const StatsSection = () => {
             </p>
 
             <h2 className="mb-6 text-4xl font-black md:text-6xl">
-              Khám phá sự nghiệp tương lai ngay hôm nay
+              Khám phá sự ngành học phù hợp ngay hôm nay
             </h2>
 
             <p className="mx-auto mb-10 max-w-2xl text-lg text-blue-50 font-medium">

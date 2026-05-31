@@ -36,23 +36,23 @@ const RegisterForm = () => {
     setError("");
     // Validate data input
     if (!formData.name.trim()) {
-      return setError("Name is required");
+      return setError("Vui lòng nhập họ tên");
     }
 
     if (!formData.email.trim()) {
-      return setError("Email is required");
+      return setError("Vui lòng nhập email");
     }
 
     if (!formData.password.trim()) {
-      return setError("Password is required");
+      return setError("Vui lòng nhập mật khẩu");
     }
 
     if (formData.password.length < 6) {
-      return setError("Password must be at least 6 characters");
+      return setError("Mật khẩu phải có ít nhất 6 ký tự");
     }
     // validate confirm password
     if (formData.password !== formData.confirmPassword) {
-      return setError("Passwords do not match");
+      return setError("Mật khẩu không khớp");
     }
 
     try {
@@ -73,88 +73,80 @@ const RegisterForm = () => {
       // redirect login
       navigate("/login");
     } catch (error) {
-      setError(error.response?.data?.message || "Register failed");
+      setError(error.response?.data?.message || "Đăng ký thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg">
-      {/* Back */}
-      <Link
-        to="/"
-        className="mb-6 inline-block text-sm text-gray-400 transition hover:text-white"
-      >
-        ← Back to Home
-      </Link>
-
+    <div className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-8 shadow-xl">
       {/* Heading */}
       <div className="mb-8 text-center">
-        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-purple-400">
-          Create Account
+        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-blue-600">
+          Tạo tài khoản
         </p>
 
-        <h2 className="text-4xl font-bold text-white">Register</h2>
+        <h2 className="text-4xl font-bold text-slate-900">Đăng ký</h2>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
         <div>
-          <label className="mb-2 block text-sm text-gray-300">Name</label>
+          <label className="mb-2 block text-sm text-slate-600">Họ và tên</label>
 
           <input
             type="text"
             name="name"
-            placeholder="Enter your name"
+            placeholder="Nhập họ và tên của bạn"
             value={formData.name}
             onChange={handleChange}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+            className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
           />
         </div>
 
         {/* Email */}
         <div>
-          <label className="mb-2 block text-sm text-gray-300">Email</label>
+          <label className="mb-2 block text-sm text-slate-600">Email</label>
 
           <input
             type="email"
             name="email"
-            placeholder="Enter your email"
+            placeholder="Nhập email của bạn"
             value={formData.email}
             onChange={handleChange}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+            className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
           />
         </div>
 
         {/* Password */}
         <div>
-          <label className="mb-2 block text-sm text-gray-300">Password</label>
+          <label className="mb-2 block text-sm text-slate-600">Mật khẩu</label>
 
           <input
             type={showPassword ? "text" : "password"}
             name="password"
-            placeholder="Enter password"
+            placeholder="Nhập mật khẩu"
             value={formData.password}
             onChange={handleChange}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+            className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
           />
         </div>
 
         {/* Confirm Password */}
         <div>
-          <label className="mb-2 block text-sm text-gray-300">
-            Confirm Password
+          <label className="mb-2 block text-sm text-slate-600">
+            Xác nhận mật khẩu
           </label>
 
           <input
             type={showPassword ? "text" : "password"}
             name="confirmPassword"
-            placeholder="Confirm password"
+            placeholder="Xác nhận mật khẩu"
             value={formData.confirmPassword}
             onChange={handleChange}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+            className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
           />
         </div>
 
@@ -162,9 +154,9 @@ const RegisterForm = () => {
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="text-sm text-purple-400 hover:text-purple-300"
+          className="text-sm text-blue-600 hover:text-blue-500"
         >
-          {showPassword ? "Hide Password" : "Show Password"}
+          {showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
         </button>
 
         {/* Error */}
@@ -178,20 +170,20 @@ const RegisterForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-white py-3 font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Creating account..." : "Register"}
+          {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
         </button>
       </form>
 
       {/* Login */}
-      <p className="mt-8 text-center text-sm text-gray-400">
-        Already have an account?{" "}
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Bạn đã có tài khoản?{" "}
         <Link
           to="/login"
-          className="font-semibold text-purple-400 hover:text-purple-300"
+          className="font-semibold text-blue-600 hover:text-blue-500"
         >
-          Login
+          Đăng nhập
         </Link>
       </p>
     </div>

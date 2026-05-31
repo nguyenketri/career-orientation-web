@@ -48,57 +48,49 @@ const LoginForm = () => {
       // redirect
       navigate("/");
     } catch (error) {
-      setError(error.response?.data?.message || "Login failed");
+      setError(error.response?.data?.message || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg">
-      {/* Back */}
-      <Link
-        to="/"
-        className="mb-6 inline-block text-sm text-gray-400 transition hover:text-white"
-      >
-        ← Back to Home
-      </Link>
-
+    <div className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-8 shadow-xl">
       {/* Heading */}
       <div className="mb-8 text-center">
-        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-purple-400">
-          Welcome Back
+        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-blue-600">
+          Chào mừng trở lại
         </p>
 
-        <h2 className="text-4xl font-bold text-white">Login</h2>
+        <h2 className="text-4xl font-bold text-slate-900">Đăng nhập</h2>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email */}
         <div>
-          <label className="mb-2 block text-sm text-gray-300">Email</label>
+          <label className="mb-2 block text-sm text-slate-600">Email</label>
 
           <input
             type="email"
             name="email"
-            placeholder="Enter your email"
+            placeholder="Nhập email của bạn"
             value={formData.email}
             onChange={handleChange}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+            className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
           />
         </div>
 
         {/* Password */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-sm text-gray-300">Password</label>
+            <label className="text-sm text-slate-600">Mật khẩu</label>
 
             <button
               type="button"
-              className="text-sm text-purple-400 hover:text-purple-300"
+              className="text-sm text-blue-600 hover:text-blue-500"
             >
-              Forgot password?
+              Quên mật khẩu?
             </button>
           </div>
 
@@ -106,19 +98,19 @@ const LoginForm = () => {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="Enter your password"
+              placeholder="Nhập mật khẩu của bạn"
               value={formData.password}
               onChange={handleChange}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+              className="w-full rounded-xl border border-blue-100 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
             />
 
             {/* Toggle password */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-white"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 hover:text-slate-600"
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? "Ẩn" : "Hiện"}
             </button>
           </div>
         </div>
@@ -133,20 +125,20 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-white py-3 font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
       </form>
 
       {/* Register */}
-      <p className="mt-8 text-center text-sm text-gray-400">
-        Don&apos;t have an account?{" "}
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Bạn chưa có tài khoản?{" "}
         <Link
           to="/register"
-          className="font-semibold text-purple-400 hover:text-purple-300"
+          className="font-semibold text-blue-600 hover:text-blue-500"
         >
-          Register
+          Đăng ký
         </Link>
       </p>
     </div>

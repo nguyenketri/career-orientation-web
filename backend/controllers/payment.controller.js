@@ -3,8 +3,8 @@ const User = require("../models/user.model");
 
 // Duration in milliseconds
 const PLAN_DURATIONS = {
-  PAID: 30 * 24 * 60 * 60 * 1000,     // 30 days
-  PREMIUM: 90 * 24 * 60 * 60 * 1000,  // 90 days
+  PAID: 30 * 24 * 60 * 60 * 1000, // 30 days
+  PREMIUM: 90 * 24 * 60 * 60 * 1000, // 90 days
 };
 
 const PLAN_PRICES = {
@@ -24,12 +24,14 @@ exports.createPayment = async (req, res) => {
     }
 
     const amount = PLAN_PRICES[planType];
-    
+
     // Generate a unique 6-digit transaction code: CZP + XXXXXX
     let transactionCode;
     let codeExists = true;
     while (codeExists) {
-      const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
+      const randomDigits = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
       transactionCode = `CZP${randomDigits}`;
       const existing = await Payment.findOne({ transactionCode });
       if (!existing) {
@@ -53,7 +55,7 @@ exports.createPayment = async (req, res) => {
     const bankId = process.env.BANK_ID || "mbbank";
     const bankAccount = process.env.BANK_ACCOUNT || "091106892c";
     const accountName = process.env.BANK_ACCOUNT_NAME || "NGUYEN KE TRI";
-    
+
     // Generate VietQR Url
     const qrCodeUrl = `https://img.vietqr.io/image/${bankId}-${bankAccount}-print.png?amount=${amount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(accountName)}`;
 
@@ -84,7 +86,10 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
   });
 
   if (!payment) {
-    return { success: false, reason: "No pending payment found with this code." };
+    return {
+      success: false,
+      reason: "No pending payment found with this code.",
+    };
   }
 
   if (payment.amount !== transferAmount) {
@@ -101,22 +106,30 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
   // Upgrade User plan
   const user = await User.findById(payment.user);
   if (!user) {
-    return { success: false, reason: "User associated with payment not found." };
+    return {
+      success: false,
+      reason: "User associated with payment not found.",
+    };
   }
 
   const duration = PLAN_DURATIONS[payment.planType];
   const now = new Date();
-  
+
   // Calculate new expiration date
   const currentExpiry = user.subscriptionExpiry;
-  const baseDate = (currentExpiry && new Date(currentExpiry) > now) ? new Date(currentExpiry) : now;
+  const baseDate =
+    currentExpiry && new Date(currentExpiry) > now
+      ? new Date(currentExpiry)
+      : now;
   const newExpiry = new Date(baseDate.getTime() + duration);
 
   user.subscriptionPlan = payment.planType;
   user.subscriptionExpiry = newExpiry;
   await user.save();
 
-  console.log(`[Payment] User ${user.email} successfully upgraded to ${payment.planType} until ${newExpiry.toISOString()}`);
+  console.log(
+    `[Payment] User ${user.email} successfully upgraded to ${payment.planType} until ${newExpiry.toISOString()}`,
+  );
   return { success: true, user, payment };
 };
 
@@ -129,9 +142,15 @@ exports.webhookPayment = async (req, res) => {
     // Handle authentication (optional token check for security if configured)
     const secretToken = process.env.PAYMENT_WEBHOOK_SECRET;
     if (secretToken) {
-      const headerToken = req.headers["secure-token"] || req.headers["authorization"];
-      if (headerToken !== secretToken && headerToken !== `Apikey ${secretToken}`) {
-        return res.status(401).json({ status: "error", message: "Unauthorized webhook caller" });
+      const headerToken =
+        req.headers["secure-token"] || req.headers["authorization"];
+      if (
+        headerToken !== secretToken &&
+        headerToken !== `Apikey ${secretToken}`
+      ) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "Unauthorized webhook caller" });
       }
     }
 
@@ -139,21 +158,23 @@ exports.webhookPayment = async (req, res) => {
 
     // Parse Casso format (array inside data property)
     if (payload.data && Array.isArray(payload.data)) {
-      transactions = payload.data.map(item => ({
+      transactions = payload.data.map((item) => ({
         content: item.description || "",
         amount: Number(item.amount || 0),
       }));
     }
     // Parse SePay format (direct body attributes)
     else if (payload.content || payload.transferAmount) {
-      transactions = [{
-        content: payload.content || "",
-        amount: Number(payload.transferAmount || payload.amount || 0),
-      }];
+      transactions = [
+        {
+          content: payload.content || "",
+          amount: Number(payload.transferAmount || payload.amount || 0),
+        },
+      ];
     }
     // Fallback: Generic array payload
     else if (Array.isArray(payload)) {
-      transactions = payload.map(item => ({
+      transactions = payload.map((item) => ({
         content: item.content || item.description || "",
         amount: Number(item.amount || item.transferAmount || 0),
       }));

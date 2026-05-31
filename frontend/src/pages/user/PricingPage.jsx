@@ -123,6 +123,18 @@ const PricingPage = () => {
         if (response.data.data.status === "SUCCESS") {
           setPaymentStatus("success");
           stopPolling();
+
+          // Sync localStorage with the new subscription plan
+          try {
+            const profileRes = await axiosClient.get("/users/me");
+            if (profileRes.data && profileRes.data.data) {
+              localStorage.setItem("user", JSON.stringify(profileRes.data.data));
+              window.dispatchEvent(new Event("userUpdate"));
+            }
+          } catch (e) {
+            console.error("Failed to sync profile after successful payment:", e);
+          }
+
           setTimeout(() => {
             alert("Nâng cấp thành công! Hãy reload trang để cập nhật.");
             window.location.reload();

@@ -1,14 +1,28 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUser, logoutUser } from "../utils/auth";
 
 const Navbar = () => {
-  const user = getUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const [user, setUser] = useState(getUser());
+
+  useEffect(() => {
+    setUser(getUser());
+  }, [location]);
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setUser(getUser());
+    };
+    window.addEventListener("userUpdate", handleUserUpdate);
+    return () => window.removeEventListener("userUpdate", handleUserUpdate);
+  }, []);
 
   const handleLogout = () => {
     logoutUser();
     navigate("/login");
+    window.dispatchEvent(new Event("userUpdate"));
   };
 
   const isActive = (path) => {
@@ -49,12 +63,27 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-300">
-                <Link
-                  to="/profile"
-                  className="text-sm font-bold text-gray-700 hover:text-blue-600 transition"
-                >
-                  {user.name}
-                </Link>
+                <div className="flex flex-col items-end">
+                  <Link
+                    to="/profile"
+                    className="text-sm font-bold text-gray-700 hover:text-blue-600 transition"
+                  >
+                    {user.name}
+                  </Link>
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-0.5 border ${
+                    user.subscriptionPlan === "PREMIUM"
+                      ? "bg-purple-50 text-purple-600 border-purple-200"
+                      : user.subscriptionPlan === "PAID"
+                      ? "bg-blue-50 text-blue-600 border-blue-200"
+                      : "bg-gray-50 text-gray-500 border-gray-200"
+                  }`}>
+                    {user.subscriptionPlan === "PREMIUM"
+                      ? "⚡ Cao Cấp"
+                      : user.subscriptionPlan === "PAID"
+                      ? "✔️ Trả Phí"
+                      : "Miễn Phí"}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="rounded-full bg-gray-100 px-6 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200"

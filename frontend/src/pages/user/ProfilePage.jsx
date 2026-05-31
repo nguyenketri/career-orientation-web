@@ -10,6 +10,8 @@ const ProfilePage = () => {
     phone: "",
     bio: "",
     avatar: "",
+    subscriptionPlan: "FREE",
+    subscriptionExpiry: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,7 +31,12 @@ const ProfilePage = () => {
             phone: u.phone || "",
             bio: u.bio || "",
             avatar: u.avatar || "",
+            subscriptionPlan: u.subscriptionPlan || "FREE",
+            subscriptionExpiry: u.subscriptionExpiry || null,
           });
+          // Sync local storage and dispatch update event
+          localStorage.setItem("user", JSON.stringify(u));
+          window.dispatchEvent(new Event("userUpdate"));
         }
       } catch {
         setMessage({ type: "error", text: "Không thể lấy thông tin cá nhân." });
@@ -49,12 +56,17 @@ const ProfilePage = () => {
     setSaving(true);
     setMessage({ type: "", text: "" });
     try {
-      await updateProfile({
+      const res = await updateProfile({
         name: profile.name,
         dob: profile.dob,
         phone: profile.phone,
         bio: profile.bio,
       });
+      if (res && res.data) {
+        // Sync local storage and dispatch update event
+        localStorage.setItem("user", JSON.stringify(res.data));
+        window.dispatchEvent(new Event("userUpdate"));
+      }
       setMessage({ type: "success", text: "Đã cập nhật hồ sơ thành công!" });
     } catch {
       setMessage({
@@ -79,29 +91,6 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900 flex justify-center">
       <div className="w-full max-w-7xl">
-        <div className="flex items-center justify-between mb-10">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-slate-500 hover:text-blue-600 transition font-bold flex items-center gap-2"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Trở về
-          </button>
-          <h1 className="text-4xl font-black text-slate-900">Hồ Sơ Của Bạn</h1>
-        </div>
-
         <div className="bg-white border border-slate-100 rounded-[40px] p-8 lg:p-12 shadow-2xl shadow-blue-100/50">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Avatar Section */}
@@ -113,9 +102,57 @@ const ProfilePage = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <p className="text-sm text-slate-400 text-center font-medium">
+              <p className="text-sm text-slate-400 text-center font-medium mb-6">
                 Avatar tự động cấp từ hệ thống
               </p>
+
+              {/* Plan Card */}
+              <div
+                className={`w-full p-6 rounded-3xl border text-center ${
+                  profile.subscriptionPlan === "PREMIUM"
+                    ? "bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200"
+                    : profile.subscriptionPlan === "PAID"
+                      ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200"
+                      : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+                  Gói Tài Khoản
+                </p>
+                <h4
+                  className={`text-xl font-black ${
+                    profile.subscriptionPlan === "PREMIUM"
+                      ? "text-purple-600"
+                      : profile.subscriptionPlan === "PAID"
+                        ? "text-blue-600"
+                        : "text-slate-600"
+                  }`}
+                >
+                  {profile.subscriptionPlan === "PREMIUM"
+                    ? "⭐ CAO CẤP"
+                    : profile.subscriptionPlan === "PAID"
+                      ? "✔️ TRẢ PHÍ"
+                      : "MIỄN PHÍ"}
+                </h4>
+                {profile.subscriptionExpiry &&
+                  profile.subscriptionPlan !== "FREE" && (
+                    <p className="text-[11px] text-slate-400 font-bold mt-2">
+                      Hết hạn:{" "}
+                      {new Date(profile.subscriptionExpiry).toLocaleDateString(
+                        "vi-VN",
+                      )}
+                    </p>
+                  )}
+                {profile.subscriptionPlan === "FREE" && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pricing")}
+                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-full transition shadow-md shadow-blue-200"
+                  >
+                    Nâng Cấp Ngay
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Form Section */}
@@ -189,7 +226,7 @@ const ProfilePage = () => {
                   value={profile.bio}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 text-slate-900 font-bold resize-none"
-                  placeholder="Một chút chia sẻ về ước mơ nghề nghiệp của bạn..."
+                  placeholder="Một chút chia sẻ về ước mơ ngành học, trường học của bạn..."
                 ></textarea>
               </div>
 

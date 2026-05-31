@@ -53,7 +53,7 @@ exports.createPayment = async (req, res) => {
 
     // Load bank info from env or fallback to demo account
     const bankId = process.env.BANK_ID || "tpbank";
-    const bankAccount = process.env.BANK_ACCOUNT || "00000807487";
+    const bankAccount = process.env.BANK_ACCOUNT || "00000807478";
     const accountName = process.env.BANK_ACCOUNT_NAME || "NGUYEN KE TRI";
 
     // Generate VietQR Url

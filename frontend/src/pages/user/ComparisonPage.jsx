@@ -8,6 +8,7 @@ const ComparisonPage = () => {
   const [selectedMajors, setSelectedMajors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const navigate = useNavigate();
 
   // Get user subscription plan
@@ -53,10 +54,7 @@ const ComparisonPage = () => {
 
   const handleSelect = (item) => {
     if (selectedMajors.length >= maxComparisons) {
-      alert(
-        `Gói ${userPlan} của bạn cho phép so sánh tối đa ${userPlan === "PREMIUM" ? "không giới hạn" : maxComparisons} ngành cùng lúc.`,
-      );
-      if (userPlan === "FREE") navigate("/pricing");
+      setShowUpgradeModal(true);
       return;
     }
     setSelectedMajors([...selectedMajors, item]);
@@ -148,8 +146,23 @@ const ComparisonPage = () => {
                   <h3 className="text-2xl font-bold mb-2 text-slate-900">
                     {item.major?.name}
                   </h3>
-                  <p className="text-blue-600 font-medium">
-                    {item.university?.name}
+                  <div className="group">
+                    <p className="text-blue-600 font-bold text-lg">
+                      {item.university?.name}
+                    </p>
+                    {item.university?.website && (
+                      <a
+                        href={item.university.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-500 hover:text-blue-700 mt-1 bg-blue-50 px-2 py-1 rounded-md transition-all"
+                      >
+                        Ghé thăm website ↗
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-slate-500 text-sm mt-2">
+                    📍 {item.university?.address}
                   </p>
                 </div>
 
@@ -186,11 +199,22 @@ const ComparisonPage = () => {
                         </p>
                       </div>
 
-                      <div>
+                      <div className="pb-4 border-b border-slate-100">
                         <p className="text-slate-500 text-sm mb-1">Lĩnh Vực</p>
                         <p className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg inline-block text-sm font-medium">
                           {item.major?.hollandTypes?.join(", ") ||
                             "Đang cập nhật"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-slate-500 text-sm mb-1">
+                          Loại Trường
+                        </p>
+                        <p className="text-sm font-medium text-slate-900">
+                          {item.university?.type === "Public"
+                            ? "🏛️ Công lập"
+                            : "🏢 Tư thục"}
                         </p>
                       </div>
                     </>
@@ -248,6 +272,65 @@ const ComparisonPage = () => {
           </div>
         )}
       </div>
+
+      {/* Upgrade Confirmation Modal */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-6"
+            onClick={() => setShowUpgradeModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg
+                  className="w-10 h-10 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 mb-4">
+                Giới hạn so sánh
+              </h3>
+              <p className="text-slate-600 mb-8 leading-relaxed">
+                Gói <strong>Miễn Phí</strong> chỉ hỗ trợ so sánh tối đa 3 ngành.
+                Nâng cấp lên gói <strong>Trả Phí</strong> để mở khóa thêm nhiều
+                lượt so sánh và tính năng chuyên sâu hơn!
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-200"
+                >
+                  Nâng cấp ngay
+                </button>
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold py-4 rounded-2xl transition-all"
+                >
+                  Để sau
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

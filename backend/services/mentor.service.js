@@ -67,10 +67,29 @@ const sendChatMessage = async (userId, sessionId, message) => {
     const quota = await checkDailyQuota(userId);
     console.log(`[Mentor] User ${userId} quota status:`, quota);
 
+    const user = await User.findById(userId);
+    const plan = user.subscriptionPlan || "FREE";
+
+    // Xây dựng System Instruction dựa trên thông tin người dùng (Cá nhân hóa cho Premium)
+    let systemInstruction = `Bạn là caZup AI Mentor - Chuyên gia tư vấn định hướng NGÀNH HỌC và TRƯỜNG ĐẠI HỌC.
+Nhiệm vụ của bạn:
+1. Chỉ tập trung tư vấn về chọn ngành, chọn trường, học phí, điểm chuẩn, môi trường học tập.
+2. TUYỆT ĐỐI KHÔNG tư vấn về các vấn đề nghề nghiệp chuyên sâu sau khi ra trường, tình yêu, cuộc sống hay các chủ đề ngoài giáo dục đại học.
+3. Nếu người dùng hỏi ngoài phạm vi, hãy khéo léo từ chối và nhắc họ quay lại chủ đề chọn ngành/trường.
+4. Phản hồi thân thiện, chuyên nghiệp, sử dụng emoji phù hợp.
+5. Ngôn ngữ: Tiếng Việt.`;
+
+    if (plan === "PREMIUM" && user.careerPath) {
+      const { hollandType, mbtiType } = user.careerPath;
+      systemInstruction += `\n\nThông tin người dùng (Dành riêng cho gói Premium):
+- Loại hình Holland: ${hollandType || "Chưa làm trắc nghiệm"}
+- Nhóm tính cách MBTI: ${mbtiType || "Chưa làm trắc nghiệm"}
+Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nhất cho họ.`;
+    }
+
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash-latest",
-      systemInstruction:
-        "Hãy đóng vai trò là một chuyên gia tư vấn hướng nghiệp tại nền tảng caZup. Bạn thân thiện, hiểu biết, và chuyên trả lời các câu hỏi về định hướng nghề nghiệp, chọn trường, chọn ngành, học phí, điểm chuẩn. Phản hồi của bạn cần ngắn gọn, đi thẳng vào vấn đề. Nếu có thể hãy tạo điểm nhấn bằng emoji.",
+      systemInstruction: systemInstruction,
     });
     const session = await getChatSession(userId, sessionId);
 

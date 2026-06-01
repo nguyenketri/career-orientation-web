@@ -42,10 +42,57 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    careerPath: {
+      hollandType: {
+        type: String,
+        default: null,
+      },
+      hollandScore: {
+        type: Object,
+        default: null,
+      },
+      mbtiType: {
+        type: String,
+        default: null,
+      },
+      mbtiScore: {
+        type: Object,
+        default: null,
+      },
+      recommendedMajors: [
+        {
+          majorId: mongoose.Schema.Types.ObjectId,
+          majorName: String,
+          matchScore: Number,
+          addedAt: { type: Date, default: Date.now },
+        },
+      ],
+      recommendedUniversities: [
+        {
+          universityId: mongoose.Schema.Types.ObjectId,
+          universityName: String,
+          matchScore: Number,
+          addedAt: { type: Date, default: Date.now },
+        },
+      ],
+      lastUpdatedAt: Date,
+    },
+    mentorSessionHistory: [
+      {
+        sessionId: String,
+        topic: String,
+        messageCount: Number,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    dailyQuotaUsed: {
+      mentorQuestions: { type: Number, default: 0 },
+      quotaResetAt: Date,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("User", userSchema);

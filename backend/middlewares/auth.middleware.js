@@ -1,29 +1,48 @@
 const jwt = require("jsonwebtoken");
 
 // middleware: kiểm tra user đã login chưa
-const authMiddleware = (req, res, next) => {
+const User = require("../models/user.model");
+
+const authMiddleware = async (req, res, next) => {
   try {
-    // lấy token từ header
     const authHeader = req.headers.authorization;
-    // kiểm tra có token không
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         status: "error",
-        message: "Unauthorized - No token",
+        message: "Unauthorized - No token provided",
       });
     }
-    // lấy token ( bỏ chữ Bearer)
+
     const token = authHeader.split(" ")[1];
-    // verify token
-    const decode = jwt.verify(token, process.env.JWT_SECRET);
-    // lưu thông tin user vào request
-    req.user = decode;
-    // cho request đi tiếp
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Bảo mật nâng cao: Kiểm tra xem user còn tồn tại trong DB không
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        status: "error",
+        message: "Unauthorized - User no longer exists",
+      });
+    }
+
+    // Lưu thông tin user vào request để các middleware/controller sau sử dụng
+    req.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      subscriptionPlan: user.subscriptionPlan,
+    };
+
     next();
   } catch (error) {
+    const message =
+      error.name === "TokenExpiredError"
+        ? "Session expired. Please login again."
+        : "Unauthorized - Invalid token";
+
     return res.status(401).json({
       status: "error",
-      message: "Unauthorized - Invalid token",
+      message: message,
     });
   }
 };

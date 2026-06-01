@@ -92,8 +92,11 @@ const HollandTestPage = () => {
 
       // Redirect back to HollandPage to show results
       navigate("/holland", { state: { result: testResult } });
-    } catch {
-      setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        "Có lỗi khi phân tích kết quả, vui lòng thử lại.";
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }

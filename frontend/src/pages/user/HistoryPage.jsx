@@ -276,41 +276,41 @@ const HistoryPage = () => {
                   </button>
                 </div>
               ) : (
-                <>
-                  <div className="mb-12 rounded-3xl bg-white p-8 border border-slate-100 shadow-lg shadow-slate-100">
-                    <h3 className="text-2xl font-bold border-b border-slate-100 pb-4 mb-6 text-slate-900">
-                      Lịch Sử Dự Đoán Trường & Ngành (Gần Nhất)
-                    </h3>
-                    <p className="text-slate-500 mb-6">
-                      Hệ thống ghi nhận vào ngày:{" "}
-                      {new Date(scoreResults[0].createdAt).toLocaleString()}
-                    </p>
+                <div className="space-y-8">
+                  {scoreResults.map((result) => (
+                    <div
+                      key={result._id}
+                      className="rounded-3xl bg-white p-8 border border-slate-100 shadow-lg shadow-slate-100"
+                    >
+                      <h3 className="text-2xl font-bold border-b border-slate-100 pb-4 mb-6 text-slate-900">
+                        Kết quả ngày{" "}
+                        {new Date(result.createdAt).toLocaleDateString()}
+                      </h3>
 
-                    <h4 className="text-lg font-bold mb-4 text-blue-600">
-                      Top Tổ Hợp Môn
-                    </h4>
-                    <div className="flex gap-4 mb-8 flex-wrap">
-                      {scoreResults[0].topCombinations?.map((combo) => (
-                        <div
-                          key={combo._id || combo.combination}
-                          className="px-5 py-3 bg-blue-50 border border-blue-100 rounded-xl"
-                        >
-                          <div className="text-blue-600 text-sm font-bold">
-                            {combo.combination}
+                      <h4 className="text-lg font-bold mb-4 text-blue-600">
+                        Top Tổ Hợp Môn
+                      </h4>
+                      <div className="flex gap-4 mb-8 flex-wrap">
+                        {result.topCombinations?.map((combo) => (
+                          <div
+                            key={combo._id || combo.combination}
+                            className="px-5 py-3 bg-blue-50 border border-blue-100 rounded-xl"
+                          >
+                            <div className="text-blue-600 text-sm font-bold">
+                              {combo.combination}
+                            </div>
+                            <div className="text-xl font-black text-slate-900">
+                              {combo.totalScore.toFixed(1)}
+                            </div>
                           </div>
-                          <div className="text-xl font-black text-slate-900">
-                            {combo.totalScore.toFixed(1)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
 
-                    <h4 className="text-lg font-bold mb-4 text-blue-600">
-                      Ngành Học Lưu Trữ
-                    </h4>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {scoreResults[0].recommendedUniversityMajors?.map(
-                        (um) => (
+                      <h4 className="text-lg font-bold mb-4 text-blue-600">
+                        Ngành Học Đề Xuất
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {result.recommendedUniversityMajors?.map((um) => (
                           <div
                             key={um._id}
                             className="bg-slate-50 border border-slate-100 p-4 rounded-xl"
@@ -322,26 +322,11 @@ const HistoryPage = () => {
                               {um.university?.name}
                             </p>
                           </div>
-                        ),
-                      )}
-                      {(!scoreResults[0].recommendedUniversityMajors ||
-                        scoreResults[0].recommendedUniversityMajors.length ===
-                          0) && (
-                        <p className="text-slate-500">
-                          Không có trường lưu trữ phù hợp trong phiên phân tích
-                          này.
-                        </p>
-                      )}
+                        ))}
+                      </div>
                     </div>
-
-                    <button
-                      onClick={() => navigate("/recommend")}
-                      className="mt-8 rounded-xl bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700 transition shadow-md"
-                    >
-                      Phân tích lại kết quả mới
-                    </button>
-                  </div>
-                </>
+                  ))}
+                </div>
               ))}
           </>
         )}

@@ -112,7 +112,7 @@ const Navbar = () => {
 
                 <button
                   onClick={handleLogout}
-                  className="rounded-full bg-gray-50 p-2 md:px-4 md:py-2 text-gray-500 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1"
+                  className="rounded-full bg-red-50 px-3 py-2 md:px-4 md:py-2 text-red-600 hover:bg-red-600 hover:text-white transition-all duration-300 flex items-center gap-1 shadow-sm hover:shadow-md font-medium"
                   title="Đăng xuất"
                 >
                   <svg
@@ -129,7 +129,7 @@ const Navbar = () => {
                       d="17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                     />
                   </svg>
-                  <span className="hidden md:inline text-xs font-medium">
+                  <span className="inline text-xs md:text-sm font-medium">
                     Đăng xuất
                   </span>
                 </button>

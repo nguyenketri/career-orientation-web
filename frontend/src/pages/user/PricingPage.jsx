@@ -14,14 +14,15 @@ const PricingPage = () => {
     {
       name: "Gói Miễn Phí",
       price: 0,
-      duration: "Vĩnh viễn",
+      duration: "Khám phá cơ bản",
       type: "FREE",
       features: [
-        "Nhập điểm thi & gợi ý Tổ hợp môn",
-        "Bộ lọc so sánh (Chỉ xem thông tin lẻ)",
-        "Xem Học phí & Điểm chuẩn (Năm gần nhất)",
-        "Trắc nghiệm MBTI & Holland (Bản rút gọn 15 câu)",
-        "AI Mentor Tư vấn (5 câu hỏi/ngày)",
+        "So sánh tối đa 3 trường cùng lúc",
+        "Xem thông tin cơ bản: Tên trường, Ngành, Học phí, Điểm chuẩn năm gần nhất, Vị trí",
+        "So sánh 1 ngành duy nhất mỗi lần tra cứu",
+        "Không lưu lịch sử so sánh",
+        "Trắc nghiệm Holland/MBTI rút gọn",
+        "AI Mentor tư vấn (5 câu/ngày)",
       ],
       highlighted: false,
       cta: "Sử dụng ngay",
@@ -32,11 +33,11 @@ const PricingPage = () => {
       duration: "30 ngày",
       type: "PAID",
       features: [
-        "Gợi ý Tổ hợp + Ngành học",
-        "So sánh tối đa 3 trường",
-        "Xem lịch sử 3 năm",
-        "Bản đầy đủ + Xem kết quả",
-        "AI Mentor Tư vấn (50 câu hỏi/ngày)",
+        "Gợi ý tổ hợp & ngành học chuyên sâu",
+        "So sánh chi tiết 3 trường đại học",
+        "Xem lịch sử điểm chuẩn 3 năm",
+        "Báo cáo kết quả trắc nghiệm đầy đủ",
+        "AI Mentor tư vấn (50 câu/ngày)",
       ],
       highlighted: true,
       cta: "Mua ngay",
@@ -47,11 +48,11 @@ const PricingPage = () => {
       duration: "90 ngày",
       type: "PREMIUM",
       features: [
-        "Gợi ý Tổ hợp + Ngành + Trường cụ thể",
-        "So sánh không giới hạn",
-        "Xem lịch sử + Dự đoán tỷ lệ đỗ",
-        "Bản đầy đủ + AI phân tích sâu kết quả",
-        "AI Mentor Tư vấn (Không giới hạn + Phản hồi nhanh)",
+        "Lộ trình định hướng cá nhân hóa (AI)",
+        "So sánh không giới hạn trường & ngành",
+        "Dự đoán tỷ lệ đỗ dựa trên điểm thi",
+        "Phân tích tâm lý học đường chuyên sâu",
+        "AI Mentor tư vấn (Không giới hạn + Ưu tiên)",
       ],
       highlighted: false,
       cta: "Nâng cấp ngay",
@@ -128,11 +129,17 @@ const PricingPage = () => {
           try {
             const profileRes = await axiosClient.get("/users/me");
             if (profileRes.data && profileRes.data.data) {
-              localStorage.setItem("user", JSON.stringify(profileRes.data.data));
+              localStorage.setItem(
+                "user",
+                JSON.stringify(profileRes.data.data),
+              );
               window.dispatchEvent(new Event("userUpdate"));
             }
           } catch (e) {
-            console.error("Failed to sync profile after successful payment:", e);
+            console.error(
+              "Failed to sync profile after successful payment:",
+              e,
+            );
           }
 
           setTimeout(() => {
@@ -150,7 +157,7 @@ const PricingPage = () => {
       if (!isAuto) {
         alert(
           "Lỗi khi kiểm tra trạng thái: " +
-          (error.response?.data?.message || error.message),
+            (error.response?.data?.message || error.message),
         );
       }
     } finally {
@@ -189,9 +196,10 @@ const PricingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
             className={`relative rounded-[40px] p-8 transition-all flex flex-col
-              ${plan.highlighted
-                ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
-                : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
+              ${
+                plan.highlighted
+                  ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
+                  : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
               }`}
           >
             {plan.highlighted && (
@@ -260,9 +268,10 @@ const PricingPage = () => {
             <button
               onClick={() => handlePlanClick(plan)}
               className={`w-full py-5 rounded-full font-black text-lg transition-all shadow-xl
-                ${plan.highlighted
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
-                  : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
+                ${
+                  plan.highlighted
+                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
+                    : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
                 }`}
             >
               {plan.cta}

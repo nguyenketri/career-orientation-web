@@ -133,9 +133,39 @@ const HollandPage = () => {
                         Điểm chuẩn: {major.benchmarkScore}
                       </span>
                     </div>
-                    <p className="text-slate-600 leading-relaxed mb-6">
+                    <p className="text-slate-600 leading-relaxed mb-4">
                       {major.description}
                     </p>
+
+                    <div className="mb-4">
+                      <h5 className="text-sm font-bold text-slate-800 mb-2">
+                        Trường đào tạo:
+                      </h5>
+                      {userPlan !== "FREE" ? (
+                        <ul className="text-sm text-slate-600 list-disc list-inside">
+                          {major.universities?.length > 0 ? (
+                            major.universities.map((uni) => (
+                              <li key={uni._id}>{uni.name}</li>
+                            ))
+                          ) : (
+                            <li>Đang cập nhật...</li>
+                          )}
+                        </ul>
+                      ) : (
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                          <p className="text-xs text-slate-500 mb-2">
+                            Nâng cấp để xem danh sách trường
+                          </p>
+                          <button
+                            onClick={() => navigate("/pricing")}
+                            className="text-xs font-bold text-blue-600 hover:underline"
+                          >
+                            Nâng cấp ngay
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                       {major.hollandTypes?.map((t) => (
                         <span
@@ -350,8 +380,6 @@ const HollandPage = () => {
       </div>
     );
   }
-
-  return null;
 };
 
 export default HollandPage;

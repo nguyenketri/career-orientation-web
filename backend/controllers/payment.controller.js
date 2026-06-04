@@ -261,7 +261,7 @@ exports.getPaymentStatus = async (req, res) => {
     }
 
     // Verify user owns this transaction
-    if (payment.user.toString() !== req.user.id) {
+    if (payment.user.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         status: "error",
         message: "Access denied to transaction history",

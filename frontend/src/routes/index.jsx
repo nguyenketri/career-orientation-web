@@ -18,6 +18,13 @@ import PaymentHistoryPage from "../pages/user/PaymentHistoryPage";
 import PricingPage from "../pages/user/PricingPage";
 import ProtectedRoute from "./ProtectedRoute";
 
+// Admin Pages
+import AdminProtectedRoute from "./AdminProtectedRoute";
+import AdminLayout from "../components/admin/AdminLayout";
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminUserManagement from "../pages/admin/AdminUserManagement";
+import AdminPaymentManagement from "../pages/admin/AdminPaymentManagement";
+
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -98,6 +105,38 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <PricingPage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout>
+                <AdminUserManagement />
+              </AdminLayout>
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/payments"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout>
+                <AdminPaymentManagement />
+              </AdminLayout>
+            </AdminProtectedRoute>
           }
         />
       </Routes>

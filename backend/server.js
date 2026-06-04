@@ -12,6 +12,7 @@ const mentorRoutes = require("./routes/mentor.routes");
 const universityRoutes = require("./routes/university.routes");
 const userRoutes = require("./routes/user.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const adminRoutes = require("./routes/admin.routes");
 const app = express();
 
 app.use(cors());
@@ -38,6 +39,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/universities", universityRoutes);
 // ROUTER USERS
 app.use("/api/users", userRoutes);
+// ROUTER ADMIN
+app.use("/api/admin", adminRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

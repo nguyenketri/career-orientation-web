@@ -33,6 +33,7 @@ const Navbar = () => {
     { name: "Trang Chủ", path: "/" },
     { name: "Lịch sử", path: "/history" },
     { name: "Lịch sử thanh toán", path: "/payment-history" },
+    ...(user?.role === "admin" ? [{ name: "Quản trị", path: "/admin" }] : []),
     { name: "Gợi ý ngành học", path: "/recommend" },
     { name: "So sánh ngành học", path: "/compare" },
     { name: "Trắc nghiệm Holland", path: "/holland" },

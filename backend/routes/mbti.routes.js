@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mbtiController = require("../controllers/mbti.controller");
-const authMiddleware = require("../middlewares/auth.middleware");
+const { authMiddleware } = require("../middlewares/auth.middleware");
 const { requirePlan } = require("../middlewares/subscription.middleware");
 
 // PUBLIC: get questions

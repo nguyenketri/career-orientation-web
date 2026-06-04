@@ -8,7 +8,7 @@ const {
   updateMajor,
   deleteMajor,
 } = require("../controllers/major.controller");
-const authMiddleware = require("../middlewares/auth.middleware");
+const { authMiddleware } = require("../middlewares/auth.middleware");
 
 // POST /api/majors
 router.post("/", authMiddleware, createMajor);

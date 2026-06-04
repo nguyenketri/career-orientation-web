@@ -282,3 +282,30 @@ exports.getPaymentStatus = async (req, res) => {
     });
   }
 };
+
+// Get payment history for current user
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const payments = await Payment.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .select("transactionCode amount planType status paymentMethod createdAt");
+
+    return res.status(200).json({
+      status: "success",
+      data: payments.map((payment) => ({
+        _id: payment._id,
+        transactionCode: payment.transactionCode,
+        amount: payment.amount,
+        planType: payment.planType,
+        status: payment.status,
+        paymentMethod: payment.paymentMethod,
+        date: payment.createdAt,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};

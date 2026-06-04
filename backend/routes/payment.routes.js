@@ -16,5 +16,6 @@ router.get(
   authMiddleware,
   paymentController.getPaymentStatus,
 );
+router.get("/history", authMiddleware, paymentController.getPaymentHistory);
 
 module.exports = router;

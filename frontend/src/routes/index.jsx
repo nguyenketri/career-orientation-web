@@ -14,6 +14,7 @@ import MbtiPage from "../pages/user/MbtiPage";
 import MbtiTestPage from "../pages/user/MbtiTestPage";
 import RecommendPage from "../pages/user/RecommendPage";
 import HistoryPage from "../pages/user/HistoryPage";
+import PaymentHistoryPage from "../pages/user/PaymentHistoryPage";
 import PricingPage from "../pages/user/PricingPage";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -30,6 +31,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment-history"
+          element={
+            <ProtectedRoute>
+              <PaymentHistoryPage />
             </ProtectedRoute>
           }
         />

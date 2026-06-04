@@ -26,6 +26,11 @@ const paymentSchema = new mongoose.Schema(
       enum: ["PENDING", "SUCCESS", "FAILED"],
       default: "PENDING",
     },
+    paymentMethod: {
+      type: String,
+      enum: ["QR", "CARD", "WALLET", "BANK_TRANSFER"],
+      default: "QR",
+    },
     expiresAt: {
       type: Date,
       required: true,

@@ -1,5 +1,7 @@
 const User = require("../models/user.model");
 const Payment = require("../models/payment.model");
+const HollandResult = require("../models/hollandResult.model");
+const MbtiResult = require("../models/mbtiResult.model");
 
 // Lấy thống kê tổng quan cho Admin
 exports.getAdminStats = async (req, res) => {
@@ -15,6 +17,20 @@ exports.getAdminStats = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
+    const totalHollandTests = await HollandResult.countDocuments();
+    const totalMbtiTests = await MbtiResult.countDocuments();
+
+    // Note: recentUsers is now handled by paginated getAllUsers,
+    // but we keep a small set here for the initial dashboard load if needed.
+    const recentUsers = await User.find()
+      .select("name email subscriptionPlan createdAt")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const totalSubscriptions = await User.countDocuments({
+      subscriptionPlan: { $ne: "FREE" },
+    });
+
     res.status(200).json({
       status: "success",
       data: {
@@ -22,6 +38,9 @@ exports.getAdminStats = async (req, res) => {
         totalPayments,
         successfulPayments,
         totalRevenue: revenue.length > 0 ? revenue[0].total : 0,
+        totalTests: totalHollandTests + totalMbtiTests,
+        totalSubscriptions,
+        recentUsers,
       },
     });
   } catch (error) {
@@ -32,13 +51,28 @@ exports.getAdminStats = async (req, res) => {
   }
 };
 
-// Lấy danh sách tất cả người dùng
+// Lấy danh sách tất cả người dùng (có phân trang)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await User.countDocuments();
+    const users = await User.find()
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     res.status(200).json({
       status: "success",
-      data: users,
+      data: {
+        users,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -85,11 +119,11 @@ exports.updateUserRole = async (req, res) => {
   }
 };
 
-// Xóa người dùng
-exports.deleteUser = async (req, res) => {
+// Cập nhật trạng thái hoạt động của người dùng (Active <-> Inactive)
+exports.toggleUserStatus = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findByIdAndDelete(userId);
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -98,37 +132,112 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
+    const newStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    user.status = newStatus;
+    await user.save();
+
     res.status(200).json({
       status: "success",
-      message: "User deleted successfully",
+      message: `User status updated to ${newStatus}`,
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Error deleting user: " + error.message,
+      message: "Error toggling user status: " + error.message,
     });
   }
 };
 
-// Lấy tất cả lịch sử thanh toán
+// Lấy tất cả lịch sử thanh toán (có phân trang)
 exports.getAllPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    console.log("[Admin] Payments found (no populate):", payments.length);
-    if (payments.length > 0) {
-      console.log("[Admin] First payment user field:", payments[0].user);
-    }
+    const total = await Payment.countDocuments();
+    const payments = await Payment.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
-      data: payments,
+      data: {
+        payments,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("[Admin] Error fetching payments:", error);
     res.status(500).json({
       status: "error",
       message: "Error fetching payments: " + error.message,
+    });
+  }
+};
+
+// Lấy báo cáo chi tiết cho Admin
+exports.getAdminReport = async (req, res) => {
+  try {
+    // 1. Tổng quan
+    const totalUsers = await User.countDocuments();
+    const totalTests =
+      (await HollandResult.countDocuments()) +
+      (await MbtiResult.countDocuments());
+    const revenueData = await Payment.aggregate([
+      { $match: { status: "SUCCESS" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
+
+    // 2. Phân bổ gói cước
+    const planDistribution = await User.aggregate([
+      { $group: { _id: "$subscriptionPlan", count: { $sum: 1 } } },
+    ]);
+
+    // 3. Xu hướng doanh thu (6 tháng gần nhất)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const revenueTrend = await Payment.aggregate([
+      { $match: { status: "SUCCESS", createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          amount: { $sum: "$amount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // 4. Phân bổ loại test
+    const testDistribution = {
+      holland: await HollandResult.countDocuments(),
+      mbti: await MbtiResult.countDocuments(),
+    };
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        summary: {
+          totalUsers,
+          totalRevenue,
+          totalTests,
+        },
+        planDistribution,
+        revenueTrend,
+        testDistribution,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error generating report: " + error.message,
     });
   }
 };

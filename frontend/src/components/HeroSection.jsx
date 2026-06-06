@@ -14,7 +14,7 @@ const HeroSection = () => {
         {/* Banner Image */}
         <div className="mb-10 overflow-hidden rounded-2xl shadow-2xl shadow-blue-100 border border-blue-50">
           <img
-            src="/banner.jpg"
+            src="/banner.png"
             alt="caZup - Giải pháp hướng ngành học toàn diện"
             className="w-full h-auto object-cover"
           />
@@ -29,7 +29,7 @@ const HeroSection = () => {
         {/* Buttons */}
         <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
           <Link
-            to="/holland"
+            to="/tests"
             className="rounded-full bg-blue-600 px-10 py-4 font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:scale-105"
           >
             Bắt đầu ngay

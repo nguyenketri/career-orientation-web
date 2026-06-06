@@ -13,6 +13,8 @@ const universityRoutes = require("./routes/university.routes");
 const userRoutes = require("./routes/user.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const adminRoutes = require("./routes/admin.routes");
+const adminMajorRoutes = require("./routes/adminMajor.routes");
+const adminQuestionRoutes = require("./routes/adminQuestion.routes");
 const app = express();
 
 app.use(cors());
@@ -41,6 +43,8 @@ app.use("/api/universities", universityRoutes);
 app.use("/api/users", userRoutes);
 // ROUTER ADMIN
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/majors", adminMajorRoutes);
+app.use("/api/admin/questions", adminQuestionRoutes);
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

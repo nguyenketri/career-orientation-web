@@ -8,7 +8,7 @@ const PLAN_DURATIONS = {
 };
 
 const PLAN_PRICES = {
-  PAID: 5000,
+  PAID: 79000,
   PREMIUM: 129000,
 };
 
@@ -23,7 +23,44 @@ exports.createPayment = async (req, res) => {
       });
     }
 
-    const amount = PLAN_PRICES[planType];
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+
+    // Transition Logic
+    if (user.subscriptionPlan === "PREMIUM") {
+      return res.status(400).json({
+        status: "error",
+        message: "You are already on the highest plan (PREMIUM).",
+      });
+    }
+
+    if (user.subscriptionPlan === planType) {
+      return res.status(400).json({
+        status: "error",
+        message: `You are already on the ${planType} plan.`,
+      });
+    }
+
+    let amount = PLAN_PRICES[planType];
+
+    // Cost Offset Logic: PAID -> PREMIUM
+    if (user.subscriptionPlan === "PAID" && planType === "PREMIUM") {
+      const now = new Date();
+      const expiry = new Date(user.subscriptionExpiry);
+      if (expiry > now) {
+        const remainingMs = expiry - now;
+        const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+        const dailyRate = PLAN_PRICES.PAID / 30;
+        const remainingValue = Math.floor(remainingDays * dailyRate);
+
+        // Subtract remaining value from Premium price, minimum 10,000đ
+        amount = Math.max(10000, amount - remainingValue);
+      }
+    }
 
     // Generate a unique 6-digit transaction code: CZP + XXXXXX
     let transactionCode;
@@ -299,7 +336,7 @@ exports.getPaymentHistory = async (req, res) => {
         planType: payment.planType,
         status: payment.status,
         paymentMethod: payment.paymentMethod,
-        date: payment.createdAt,
+        createdAt: payment.createdAt,
       })),
     });
   } catch (error) {

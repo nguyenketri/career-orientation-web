@@ -12,3 +12,9 @@ export const registerUser = async (data) => {
 
   return response.data;
 };
+
+export const googleLoginUser = async (idToken) => {
+  const response = await axiosClient.post("/auth/google", { idToken });
+
+  return response.data;
+};

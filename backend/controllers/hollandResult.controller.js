@@ -35,10 +35,45 @@ const getMyHollandResults = async (req, res) => {
   try {
     const results = await getHollandResultsByUser(req.user.id);
 
+    // Calculate Stability Score and Trait Shifts
+    let stabilityScore = 0;
+    let processedResults = [];
+
+    if (results.length > 0) {
+      const primaryTraits = results.map((r) => r.topTypes[0]);
+      const traitCounts = {};
+      primaryTraits.forEach(
+        (t) => (traitCounts[t] = (traitCounts[t] || 0) + 1),
+      );
+
+      const mostFrequentTrait = Object.entries(traitCounts).sort(
+        (a, b) => b[1] - a[1],
+      )[0][0];
+      const frequentCount = traitCounts[mostFrequentTrait];
+      stabilityScore = Math.round((frequentCount / results.length) * 100);
+
+      processedResults = results.map((r, index) => {
+        let status = "Stable Trait";
+        if (index < results.length - 1) {
+          const prevTrait = results[index + 1].topTypes[0];
+          if (r.topTypes[0] !== prevTrait) {
+            status = "Shift Detected";
+          }
+        }
+        return {
+          ...r.toObject(),
+          status,
+          mostFrequentTrait,
+          frequentCount,
+        };
+      });
+    }
+
     res.status(200).json({
       status: "success",
       results: results.length,
-      data: results,
+      stabilityScore,
+      data: processedResults,
     });
   } catch (error) {
     res.status(500).json({

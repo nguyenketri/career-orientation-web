@@ -6,10 +6,11 @@ const AdminLayout = ({ children }) => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { name: "Tổng quan", path: "/admin", icon: "📊" },
-    { name: "Người dùng", path: "/admin/users", icon: "👥" },
-    { name: "Thanh toán", path: "/admin/payments", icon: "💰" },
-    { name: "Về trang chủ", path: "/", icon: "🏠" },
+    { name: "Dashboard", path: "/admin/dashboard", icon: "📊" },
+    { name: "Quản lý User", path: "/admin/users", icon: "👥" },
+    { name: "Quản lý Ngành/Trường", path: "/admin/majors", icon: "🎓" },
+    { name: "Quản lý Câu hỏi", path: "/admin/questions", icon: "❓" },
+    { name: "Quản lý Thanh toán", path: "/admin/payments", icon: "💳" },
   ];
 
   const handleLogout = () => {
@@ -18,11 +19,12 @@ const AdminLayout = ({ children }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-black text-blue-400">caZup Admin</h1>
+      <aside className="w-64 bg-[#0f172a] text-white flex flex-col">
+        <div className="p-6 border-b border-slate-700">
+          <h1 className="text-lg font-bold">Admin Panel</h1>
+          <p className="text-xs text-slate-400">System Controller</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
@@ -32,8 +34,8 @@ const AdminLayout = ({ children }) => {
               to={item.path}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 location.pathname === item.path
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  ? "bg-[#1e293b] text-white"
+                  : "text-slate-400 hover:bg-[#1e293b] hover:text-white"
               }`}
             >
               <span className="text-xl">{item.icon}</span>
@@ -42,13 +44,15 @@ const AdminLayout = ({ children }) => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-6 border-t border-slate-700">
+          <button className="w-full bg-orange-500 py-2 rounded-lg font-bold text-sm mb-4 hover:bg-orange-600 transition">
+            Generate Report
+          </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-medium"
+            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition"
           >
-            <span>🚪</span>
-            <span>Đăng xuất</span>
+            <span>🚪</span> Sign Out
           </button>
         </div>
       </aside>

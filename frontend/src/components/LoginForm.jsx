@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { loginUser } from "../services/authService";
+import { loginUser, googleLoginUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 
 const LoginForm = () => {
   // form state
@@ -45,8 +46,15 @@ const LoginForm = () => {
       // save user
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      // redirect
-      navigate("/");
+      // Trigger update for Navbar
+      window.dispatchEvent(new Event("userUpdate"));
+
+      // redirect based on role
+      if (response.data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       setError(error.response?.data?.message || "Đăng nhập thất bại");
     } finally {
@@ -129,6 +137,46 @@ const LoginForm = () => {
         >
           {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
+
+        <div className="relative flex items-center justify-center py-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200"></div>
+          </div>
+          <div className="relative bg-white px-4 text-sm text-slate-500">
+            Hoặc
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                setLoading(true);
+                const response = await googleLoginUser(
+                  credentialResponse.credential,
+                );
+                localStorage.setItem("token", response.data.token);
+                localStorage.setItem(
+                  "user",
+                  JSON.stringify(response.data.user),
+                );
+                window.dispatchEvent(new Event("userUpdate"));
+                if (response.data.user.role === "admin") {
+                  navigate("/admin/dashboard");
+                } else {
+                  navigate("/");
+                }
+              } catch {
+                setError("Đăng nhập Google thất bại");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onError={() => {
+              setError("Đăng nhập Google thất bại");
+            }}
+          />
+        </div>
       </form>
 
       {/* Register */}

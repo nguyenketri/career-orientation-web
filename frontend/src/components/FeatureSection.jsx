@@ -2,25 +2,81 @@ import { Link } from "react-router-dom";
 
 const features = [
   {
-    title: "Cố vấn Nghề nghiệp AI",
+    title: "Gợi ý ngành theo điểm",
     description:
-      "Trò chuyện với cố vấn AI thông minh để nhận câu trả lời tức thì về trường đại học, ngành học .",
-    icon: "🤖",
-    link: "/mentor",
-  },
-  {
-    title: "Trắc nghiệm Holland & MBTI",
-    description:
-      "Khám phá sâu hơn về tính cách của bạn với các bài đánh giá Holland và MBTI chuyên nghiệp.",
-    icon: "🧠",
-    links: ["/holland", "/mbti"],
-  },
-  {
-    title: "Gợi ý Trường Đại học",
-    description:
-      "Tính toán điểm tổ hợp môn và tìm kiếm trường đại học phù hợp nhất trong hàng trăm lựa chọn.",
-    icon: "🎓",
+      "Nhập điểm thi hoặc học bạ để AI phân tích và đưa ra danh sách các ngành học có khả năng đỗ cao nhất.",
+    icon: (
+      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      </div>
+    ),
     link: "/recommend",
+    actionText: "Thử ngay →",
+    variant: "light",
+  },
+  {
+    title: "AI Mentor 24/7",
+    description:
+      "Trò chuyện cùng trợ lý ảo thông minh để giải đáp mọi thắc mắc về hướng nghiệp, môi trường học tập và cơ hội việc làm.",
+    icon: (
+      <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white">
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+          />
+        </svg>
+      </div>
+    ),
+    link: "/mentor",
+    actionText: "Đặt câu hỏi ✉",
+    variant: "dark",
+    badge:
+      "Trò chuyện cùng AI để khám phá bản thân, đội ngũ học thuật luôn sẵn sàng hỗ trợ bạn...",
+  },
+  {
+    title: "So sánh trường học",
+    description:
+      "Nâng cao hơn với các chỉ số học phí, điểm chuẩn, cơ sở vật chất và đánh giá thực tế các ngành trên trường đại học.",
+    icon: (
+      <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600">
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          />
+        </svg>
+      </div>
+    ),
+    link: "/comparison",
+    actionText: "Xem so sánh →",
+    variant: "light",
   },
 ];
 
@@ -30,52 +86,67 @@ const FeatureSection = () => {
       <div className="mx-auto max-w-7xl">
         {/* Heading */}
         <div className="mb-16 text-center">
-          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-blue-600 font-bold">
-            Tính năng
-          </p>
-
-          <h2 className="mb-4 text-4xl font-black md:text-5xl text-slate-900">
-            Mọi thứ bạn cần để
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-              {" "}
-              Chọn lựa Tương lai
-            </span>
+          <h2 className="mb-4 text-3xl font-black text-slate-900">
+            Công cụ mạnh mẽ cho tương lai
           </h2>
-
-          <p className="mx-auto max-w-2xl text-slate-600 font-medium">
-            Nền tảng của chúng tôi giúp học sinh khám phá các ngành học, trường
-            đại học phù hợp với sự hướng dẫn từ AI.
+          <p className="mx-auto max-w-2xl text-slate-500 font-medium text-sm">
+            Sử dụng sức mạnh của trí tuệ nhân tạo để cá nhân hóa hành trình chọn
+            trường và chọn ngành của bạn.
           </p>
         </div>
 
         {/* Cards */}
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => {
-            const links = feature.links || [feature.link];
-            return (
-              <Link
-                key={index}
-                to={links[0]}
-                className="group rounded-[40px] border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50 transition hover:-translate-y-2 hover:border-blue-500/30 cursor-pointer"
+        <div className="grid gap-6 md:grid-cols-3">
+          {features.map((feature, index) => (
+            <Link
+              key={index}
+              to={feature.link}
+              className={`group relative flex flex-col rounded-[32px] p-8 transition-all duration-300 hover:-translate-y-2 ${
+                feature.variant === "dark"
+                  ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20"
+                  : "bg-white border border-slate-100 text-slate-900 shadow-xl shadow-slate-200/50"
+              }`}
+            >
+              {/* Icon */}
+              <div className="mb-6">{feature.icon}</div>
+
+              {/* Title */}
+              <h3
+                className={`mb-4 text-xl font-black ${feature.variant === "dark" ? "text-white" : "text-slate-900"}`}
               >
-                {/* Icon */}
-                <div className="mb-6 text-5xl">{feature.icon}</div>
+                {feature.title}
+              </h3>
 
-                {/* Title */}
-                <h3 className="mb-4 text-2xl font-bold text-slate-900">
-                  {feature.title}
-                </h3>
+              {/* Description */}
+              <p
+                className={`mb-8 text-sm leading-relaxed font-medium ${feature.variant === "dark" ? "text-slate-400" : "text-slate-500"}`}
+              >
+                {feature.description}
+              </p>
 
-                {/* Description */}
-                <p className="leading-relaxed text-slate-600 font-medium">
-                  {feature.description}
-                </p>
+              {/* Special Badge for AI Mentor */}
+              {feature.badge && (
+                <div className="mb-8 rounded-xl bg-slate-800 p-4 border border-slate-700">
+                  <p className="text-[10px] leading-relaxed text-slate-300 italic">
+                    "{feature.badge}"
+                  </p>
+                </div>
+              )}
 
-                {/* Hover line */}
-                <div className="mt-6 h-1 w-0 bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-300 group-hover:w-full"></div>
-              </Link>
-            );
-          })}
+              {/* Action Link */}
+              <div className="mt-auto">
+                <span
+                  className={`text-sm font-bold flex items-center gap-1 ${
+                    feature.variant === "dark"
+                      ? "text-white"
+                      : "text-slate-400 group-hover:text-blue-600"
+                  }`}
+                >
+                  {feature.actionText}
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>

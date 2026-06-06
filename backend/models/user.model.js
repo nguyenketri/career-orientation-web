@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: false,
     },
     avatar: {
       type: String,
@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema(
     subscriptionExpiry: {
       type: Date,
       default: null,
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE"],
+      default: "ACTIVE",
     },
     careerPath: {
       hollandType: {
@@ -89,6 +94,9 @@ const userSchema = new mongoose.Schema(
       mentorQuestions: { type: Number, default: 0 },
       quotaResetAt: Date,
     },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    googleId: String,
   },
   {
     timestamps: true,

@@ -7,8 +7,12 @@ export const recommendByScore = async (score) => {
 };
 
 // recommend majors by subject combination scores
-export const recommendBySubjects = async (scores) => {
-  const response = await axiosClient.post("/recommend/subjects", { scores });
+export const recommendBySubjects = async (scores, filters, pagination) => {
+  const response = await axiosClient.post("/recommend/subjects", {
+    scores,
+    filters,
+    pagination,
+  });
   return response.data;
 };
 

@@ -2,19 +2,26 @@
 // Mô hình đại diện cho một trường đại học
 // Lưu thông tin cơ bản: tên, địa chỉ, loại (công lập / tư thục), website
 
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const universitySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true }, // Tên trường
+    image: { type: String, default: "" }, // Ảnh trường
+    location: { type: String, required: true }, // Tỉnh/Thành phố (dùng để filter)
     address: { type: String, required: true }, // Địa chỉ đầy đủ
-    type: { type: String, enum: ['Public', 'Private'], required: true }, // Loại trường
+    type: {
+      type: String,
+      enum: ["Public", "Private", "International"],
+      required: true,
+    }, // Loại trường
+    admissionYear: { type: Number, default: 2024 }, // Năm tuyển sinh
     website: { type: String }, // URL website
     // Soft delete fields
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-module.exports = mongoose.model('University', universitySchema);
+module.exports = mongoose.model("University", universitySchema);

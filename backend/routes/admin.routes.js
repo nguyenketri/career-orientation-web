@@ -12,11 +12,12 @@ router.use(adminMiddleware);
 
 // Thống kê
 router.get("/stats", adminController.getAdminStats);
+router.get("/report", adminController.getAdminReport);
 
 // Quản lý người dùng
 router.get("/users", adminController.getAllUsers);
 router.put("/users/role", adminController.updateUserRole);
-router.delete("/users/:userId", adminController.deleteUser);
+router.patch("/users/:userId/status", adminController.toggleUserStatus);
 
 // Quản lý thanh toán
 router.get("/payments", adminController.getAllPayments);

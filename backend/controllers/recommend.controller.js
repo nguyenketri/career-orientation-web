@@ -7,10 +7,17 @@ const {
 
 exports.recommendSubjects = async (req, res) => {
   try {
-    const data = await recommendBySubjects(req.user.id, req.body.scores);
-    return res.status(200).json({ status: "success", data });
+    const { scores, filters, pagination } = req.body;
+    const userId = req.user.id;
+    const result = await recommendBySubjects(
+      userId,
+      scores,
+      filters,
+      pagination,
+    );
+    return res.status(200).json({ status: "success", data: result });
   } catch (err) {
-    return res.status(400).json({ status: "error", message: err.message });
+    return res.status(500).json({ status: "error", message: err.message });
   }
 };
 

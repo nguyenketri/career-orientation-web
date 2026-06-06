@@ -48,27 +48,48 @@ const calculateCombinations = (scores) => {
   return combinations.filter((c) => c.score > 0);
 };
 
-const recommendBySubjects = async (userId, scores) => {
+const recommendBySubjects = async (
+  userId,
+  scores,
+  filters = {},
+  pagination = {},
+) => {
   const combinations = calculateCombinations(scores);
+  const { location, type, maxTuition } = filters;
+  const { page = 1, limit = 5 } = pagination;
 
   // Sort descending by score
   combinations.sort((a, b) => b.score - a.score);
 
-  const eligibleUniversityMajors = [];
+  let eligibleUniversityMajors = [];
 
   // Lấy danh sách ngành của các trường mà điểm của học sinh (theo từng tổ hợp) có khả năng đỗ
-  // Khả năng đỗ: điểm chuẩn <= điểm của hs + 1 (cho tỷ lệ an toàn/thử thách)
   for (const combo of combinations) {
     const um = await UniversityMajor.find({
       subjectCombination: combo.name,
-      admissionScore: { $lte: combo.score + 1 }, // Điểm có thể với tới
+      admissionScore: { $lte: combo.score + 2 }, // Mở rộng khoảng điểm để tìm được nhiều trường hơn
       isDeleted: false,
     })
-      .populate("university")
+      .populate({
+        path: "university",
+        match: {
+          isDeleted: false,
+          ...(location && { location }),
+          ...(type && { type }),
+        },
+      })
       .populate("major");
 
+    // Filter out if university didn't match filters
+    const filteredUm = um.filter((item) => item.university !== null);
+
+    // Filter by tuition fee
+    const finalUm = maxTuition
+      ? filteredUm.filter((item) => item.tuitionFee <= maxTuition)
+      : filteredUm;
+
     // Thêm thuộc tính để nhận dạng
-    const mapped = um.map((item) => ({
+    const mapped = finalUm.map((item) => ({
       ...item.toObject(),
       matchCombination: combo.name,
       userScoreForCombination: combo.score,
@@ -78,43 +99,50 @@ const recommendBySubjects = async (userId, scores) => {
     eligibleUniversityMajors.push(...mapped);
   }
 
-  // Sắp xếp
+  // Sắp xếp theo điểm user giảm dần
   eligibleUniversityMajors.sort(
     (a, b) => b.userScoreForCombination - a.userScoreForCombination,
   );
+
+  // Loại bỏ trùng lặp (một ngành ở một trường có thể xuất hiện ở nhiều tổ hợp)
+  const uniqueResults = [];
+  const seen = new Set();
+  for (const item of eligibleUniversityMajors) {
+    const key = `${item.university._id}-${item.major._id}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueResults.push(item);
+    }
+  }
 
   // Lưu lịch sử
   const analysisRecord = await ScoreAnalysis.create({
     user: userId,
     subjectScores: scores,
-    topCombinations: combinations
-      .slice(0, 3)
-      .map((c) => ({ combination: c.name, totalScore: c.score })),
-    recommendedUniversityMajors: eligibleUniversityMajors.map((e) => e._id),
+    topCombinations: combinations.map((c) => ({
+      combination: c.name,
+      totalScore: c.score,
+    })),
+    recommendedUniversityMajors: uniqueResults.map((e) => e._id),
   });
 
-  const user = await User.findById(userId);
-  const plan = user ? user.subscriptionPlan : "FREE";
+  const processedResults = uniqueResults;
 
-  let recommendations = [];
-  if (plan === "PAID") {
-    recommendations = eligibleUniversityMajors.map((item) => ({
-      ...item,
-      university: { name: "Nâng cấp gói Cao Cấp để xem trường cụ thể" },
-    }));
-  } else if (plan === "PREMIUM") {
-    recommendations = eligibleUniversityMajors;
-  } else {
-    // FREE: Show top 3 but hide university name
-    recommendations = eligibleUniversityMajors.slice(0, 3).map((item) => ({
-      ...item,
-      university: { name: "Nâng cấp gói để xem trường cụ thể" },
-    }));
-  }
+  // Pagination
+  const total = processedResults.length;
+  const startIndex = (page - 1) * limit;
+  const paginatedResults = processedResults.slice(
+    startIndex,
+    startIndex + limit,
+  );
 
   return {
     combinations,
-    recommendations,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages: Math.ceil(total / limit),
+    recommendations: paginatedResults,
     analysisId: analysisRecord._id,
   };
 };
@@ -130,23 +158,7 @@ const getScoreAnalysisHistory = async (userId) => {
       populate: [{ path: "university" }, { path: "major" }],
     });
 
-  return history.map((record) => {
-    const recObj = record.toObject();
-    if (plan === "FREE") {
-      recObj.recommendedUniversityMajors = [];
-    } else if (plan === "PAID") {
-      recObj.recommendedUniversityMajors =
-        recObj.recommendedUniversityMajors.map((item) => {
-          if (item && item.university) {
-            item.university = {
-              name: "Nâng cấp gói Cao Cấp để xem trường cụ thể",
-            };
-          }
-          return item;
-        });
-    }
-    return recObj;
-  });
+  return history.map((record) => record.toObject());
 };
 
 const recommendByScore = async (input) => {

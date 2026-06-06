@@ -30,7 +30,7 @@ const HollandHistoryPage = () => {
       try {
         await deleteHollandResult(id);
         setResults(results.filter((r) => r._id !== id));
-      } catch (err) {
+      } catch {
         alert("Có lỗi xảy ra khi xóa.");
       }
     }

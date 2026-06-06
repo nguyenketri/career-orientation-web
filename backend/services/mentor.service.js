@@ -1,15 +1,15 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const ChatHistory = require("../models/chatHistory.model");
 const User = require("../models/user.model");
 
-// Hãy chắc chắn bạn đã tạo file .env ở thư mục gốc chứa GEMINI_API_KEY hợp lệ
-const apiKey = process.env.GEMINI_API_KEY;
+// Hãy chắc chắn bạn đã tạo file .env ở thư mục gốc chứa GROQ_API_KEY hợp lệ
+const apiKey = process.env.GROQ_API_KEY;
 
 if (!apiKey) {
-  console.warn("⚠️ CẢNH BÁO: Không tìm thấy GEMINI_API_KEY trong file .env!");
+  console.warn("⚠️ CẢNH BÁO: Không tìm thấy GROQ_API_KEY trong file .env!");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const groq = new Groq({ apiKey });
 
 // Daily question limits by plan
 const DAILY_LIMITS = {
@@ -87,28 +87,30 @@ Nhiệm vụ của bạn:
 Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nhất cho họ.`;
     }
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-      systemInstruction: systemInstruction,
-    });
     const session = await getChatSession(userId, sessionId);
 
-    // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Gemini
-    const formattedHistory = session.messages.map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    }));
-
-    const chat = model.startChat({
-      history: formattedHistory,
-    });
+    // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Groq (OpenAI format)
+    const messages = [
+      { role: "system", content: systemInstruction },
+      ...session.messages.map((msg) => ({
+        role: msg.role === "user" ? "user" : "assistant",
+        content: msg.content,
+      })),
+      { role: "user", content: message },
+    ];
 
     // 1. Lưu tin nhắn thực tế của user vào database trước khi gọi API
     session.messages.push({ role: "user", content: message });
 
-    // 2. Gọi API Google Gemini
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+    // 2. Gọi API Groq
+    const chatCompletion = await groq.chat.completions.create({
+      messages: messages,
+      model: "llama-3.3-70b-versatile",
+    });
+
+    const responseText =
+      chatCompletion.choices[0]?.message?.content ||
+      "Xin lỗi, tôi không thể tạo phản hồi lúc này.";
 
     // 3. Lưu phản hồi của AI vào database
     session.messages.push({ role: "model", content: responseText });

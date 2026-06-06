@@ -1,22 +1,92 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { sendChatMessage } from "../../services/mentorService";
+import {
+  sendChatMessage,
+  getChatSessions,
+  getSessionMessages,
+} from "../../services/mentorService";
 
 const MentorChatPage = () => {
-  const [sessionId] = useState(() => uuidv4());
-
-  const [messages, setMessages] = useState([
-    {
-      role: "model",
-      content:
-        "Chào bạn! Mình là caZup Mentor - Chuyên gia Hướng Nghiệp AI của bạn. Mình sẵn sàng giúp bạn giải đáp mọi thắc mắc về định hướng nghề nghiệp, ngành học và lựa chọn trường. Bạn cần hỗ trợ gì hôm nay nào? 😊",
-    },
-  ]);
+  const [sessionId, setSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversations, setConversations] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // auto scroll to bottom
+  const suggestions = [
+    {
+      icon: "🎓",
+      title: "Ngành CNTT học trường nào tốt nhất?",
+      desc: "Gợi ý top 5 trường đại học dẫn đầu",
+    },
+    {
+      icon: "💵",
+      title: "Học phí ngành Y năm nay thế nào?",
+      desc: "Cập nhật bảng giá mới nhất 2024",
+    },
+    {
+      icon: "💡",
+      title: "Tôi hợp với ngành nào nếu giỏi Toán?",
+      desc: "Phân tích xu hướng nghề nghiệp cá nhân",
+    },
+    {
+      icon: "📄",
+      title: "Cần chuẩn bị gì cho hồ sơ du học?",
+      desc: "Danh sách kiểm tra và thủ tục chi tiết",
+    },
+  ];
+
+  const handleNewChat = useCallback(() => {
+    const newId = uuidv4();
+    setSessionId(newId);
+    setMessages([]);
+  }, []);
+
+  const handleSwitchSession = (id) => {
+    setSessionId(id);
+    setMessages([]); // Clear messages when switching
+  };
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const response = await getChatSessions();
+      const data = response.data || [];
+
+      // Filter out duplicate untitled sessions, keeping only the most recent one
+      const filteredData = data.filter((conv, index) => {
+        if (conv.title) return true;
+        return index === data.findIndex((c) => !c.title);
+      });
+
+      setConversations(filteredData);
+
+      setSessionId((prevSessionId) => {
+        if (prevSessionId) return prevSessionId;
+        return data.length > 0 ? data[0].sessionId : null;
+      });
+
+      if (data.length === 0) {
+        handleNewChat();
+      }
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    }
+  }, [handleNewChat]);
+
+  const loadMessages = useCallback(async (id) => {
+    setLoading(true);
+    try {
+      const response = await getSessionMessages(id);
+      const data = response.data || [];
+      setMessages(data);
+    } catch (error) {
+      console.error("Failed to load messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -25,47 +95,58 @@ const MentorChatPage = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !sessionId) return;
+  useEffect(() => {
+    (async () => {
+      await fetchSessions();
+    })();
+  }, [fetchSessions]);
 
-    const userMessage = input.trim();
+  useEffect(() => {
+    if (sessionId) {
+      (async () => {
+        await loadMessages(sessionId);
+      })();
+    }
+  }, [sessionId, loadMessages]);
+
+  const handleSend = async (text = input) => {
+    const messageText = typeof text === "string" ? text : input;
+    if (!messageText.trim() || !sessionId) return;
+
+    const userMessage = messageText.trim();
     setInput("");
 
-    // Optimistic UI updates
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
 
     try {
       const response = await sendChatMessage(sessionId, userMessage);
-
+      // Fix: response is already the data object from axiosClient,
+      // and the controller returns { status: "success", data: { response, history } }
       if (response && response.data) {
-        // Có thể lấy thẳng message cuối cùng từ history thay vì lặp qua
         const chatHistory = response.data.history;
-        const lastMessage = chatHistory[chatHistory.length - 1];
-        setMessages((prev) => [
-          ...prev,
-          { role: "model", content: lastMessage.content },
-        ]);
+        if (chatHistory && chatHistory.length > 0) {
+          const lastMessage = chatHistory[chatHistory.length - 1];
+          setMessages((prev) => [
+            ...prev,
+            { role: "model", content: lastMessage.content },
+          ]);
+        }
       }
     } catch (error) {
       console.error(error);
-
-      // Check if error is due to quota limit
       const isQuotaExceeded =
         error.response?.data?.message?.includes(
           "Daily question limit reached",
         ) || error.message?.includes("Daily question limit reached");
 
       const errorMessage = isQuotaExceeded
-        ? `Bạn đã hết lượt chat hôm nay. Hãy đăng ký gói nâng cấp để có thêm lượt chat, hoặc hãy quay lại vào ngày mai! 😊`
+        ? `Bạn đã hết lượt chat hôm nay. Hãy đăng ký gói nâng cấp để có thêm lượt chat!`
         : "Lỗi kết nối đến máy chủ AI, vui lòng thử lại sau.";
 
       setMessages((prev) => [
         ...prev,
-        {
-          role: "model",
-          content: errorMessage,
-        },
+        { role: "model", content: errorMessage },
       ]);
     } finally {
       setLoading(false);
@@ -80,100 +161,281 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="h-screen bg-slate-50 text-slate-900 pt-20 md:pt-32 pb-4 md:pb-6 px-2 md:px-6 overflow-hidden">
-      <div className="mx-auto w-full max-w-5xl h-full md:h-[calc(100vh-150px)] flex flex-col bg-white border border-slate-200 rounded-2xl md:rounded-3xl shadow-xl overflow-hidden">
-        {/* Chat Header */}
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 bg-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+    <div className="flex h-screen w-full bg-white overflow-hidden fixed inset-0">
+      {/* Sidebar */}
+      <div className="w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full">
+        <div className="p-4">
+          <button
+            onClick={handleNewChat}
+            className="w-full bg-[#0f172a] text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+          >
+            <span className="text-xl">+</span> Cuộc hội thoại mới
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-3 space-y-1">
+          <p className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Gần đây
+          </p>
+          {conversations
+            .filter((conv) => conv.sessionId)
+            .map((conv) => (
+              <button
+                key={conv.sessionId}
+                onClick={() => handleSwitchSession(conv.sessionId)}
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${
+                  sessionId === conv.sessionId
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-100 ring-1 ring-orange-500/20"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="font-bold text-slate-800">caZup AI Mentor</h2>
-              <p className="text-xs text-green-500 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Đang trực tuyến
-              </p>
+                <span className="text-slate-400">💬</span>
+                <span className="truncate">
+                  {conv.title || "Cuộc hội thoại mới"}
+                </span>
+                {sessionId === conv.sessionId && (
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-auto"></div>
+                )}
+              </button>
+            ))}
+        </div>
+
+        <div className="p-4 mt-auto">
+          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-xl">
+                🎓
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-900">
+                  Premium Plan
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Mở khóa cố vấn AI 24/7
+                </p>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Chat Box */}
-        <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 custom-scrollbar bg-slate-50/30">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[90%] md:max-w-[80%] rounded-2xl p-3 md:p-4 text-sm md:text-base whitespace-pre-wrap leading-relaxed
-                  ${
-                    msg.role === "user"
-                      ? "bg-blue-600 rounded-tr-sm text-white shadow-md"
-                      : "bg-white rounded-tl-sm text-slate-700 border border-slate-200 shadow-sm"
-                  }
-                `}
-              >
-                {msg.content}
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
+        {/* Top Header */}
+        <div className="h-16 shrink-0 border-b border-slate-100 flex items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#0f172a] rounded-lg flex items-center justify-center text-white text-xs">
+              🤖
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">AI Mentor</h2>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Đang sẵn sàng hỗ trợ
+                </span>
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl rounded-tl-sm p-4 bg-white text-slate-400 border border-slate-200 shadow-sm flex items-center space-x-2">
-                <span className="animate-bounce">●</span>
-                <span className="animate-bounce delay-100">●</span>
-                <span className="animate-bounce delay-200">●</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="p-2 md:p-4 bg-white border-t border-slate-100">
-          <div className="flex items-end gap-2 bg-slate-100 rounded-xl md:rounded-2xl p-1.5 md:p-2 focus-within:ring-2 ring-blue-500/20 transition-all">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-grow bg-transparent p-2 md:p-3 outline-none resize-none text-slate-900 text-sm md:text-base max-h-24 md:max-h-32"
-              rows="1"
-              placeholder="Đặt câu hỏi cho AI Mentor..."
-            ></textarea>
-            <button
-              onClick={handleSend}
-              disabled={loading || !input.trim()}
-              className="m-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-xl p-3 text-white shadow-lg shadow-blue-200"
-            >
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="text-slate-400 hover:text-slate-600">
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
+                className="w-5 h-5"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
                 />
               </svg>
             </button>
+            <button className="text-slate-400 hover:text-slate-600">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Chat Content */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
+          {messages.length === 0 ? (
+            <div className="max-w-3xl mx-auto mt-10">
+              <div className="text-center mb-12">
+                <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                  <span className="text-4xl">✨</span>
+                </div>
+                <h1 className="text-2xl font-black text-slate-900 mb-3">
+                  Xin chào! Tôi là AI Mentor
+                </h1>
+                <p className="text-slate-500 leading-relaxed max-w-lg mx-auto">
+                  Tôi có thể giúp bạn định hướng nghề nghiệp, so sánh các trường
+                  đại học và tìm hiểu về các lộ trình học tập tối ưu.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(s.title)}
+                    className="text-left p-5 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition-all group"
+                  >
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:bg-blue-50 transition-colors">
+                      {s.icon}
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">
+                      {s.title}
+                    </h3>
+                    <p className="text-xs text-slate-400">{s.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-3xl mx-auto space-y-8">
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      msg.role === "user"
+                        ? "bg-blue-600 text-white"
+                        : "bg-[#0f172a] text-white"
+                    }`}
+                  >
+                    {msg.role === "user" ? "👤" : "🤖"}
+                  </div>
+                  <div
+                    className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                      msg.role === "user"
+                        ? "bg-blue-600 text-white rounded-tr-none"
+                        : "bg-[#f8fafc] text-slate-700 border border-slate-100 rounded-tl-none"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-lg bg-[#0f172a] flex items-center justify-center text-white flex-shrink-0">
+                    🤖
+                  </div>
+                  <div className="bg-[#f8fafc] p-4 rounded-2xl rounded-tl-none border border-slate-100 flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-150"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-300"></span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="p-6 bg-white shrink-0">
+          <div className="max-w-3xl mx-auto relative">
+            <div className="bg-white border border-slate-200 rounded-[24px] shadow-2xl shadow-slate-200/50 p-2 focus-within:border-blue-400 transition-all">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Hỏi tôi bất cứ điều gì về giáo dục..."
+                className="w-full bg-transparent px-4 py-3 outline-none resize-none text-slate-900 text-sm min-h-[60px] max-h-32"
+                rows="1"
+              />
+              <div className="flex items-center justify-between px-2 pb-2">
+                <div className="flex items-center gap-1">
+                  <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                      />
+                    </svg>
+                  </button>
+                  <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                      />
+                    </svg>
+                    Voice
+                  </button>
+                </div>
+                <button
+                  onClick={() => handleSend()}
+                  disabled={loading || !input.trim()}
+                  className="w-10 h-10 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-full flex items-center justify-center shadow-lg shadow-orange-200 transition-all"
+                >
+                  <svg
+                    className="w-5 h-5 rotate-90"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center mt-3">
+              EduPath AI Mentor có thể đưa ra câu trả lời không chính xác. Hãy
+              kiểm tra lại thông tin quan trọng.
+            </p>
           </div>
         </div>
       </div>

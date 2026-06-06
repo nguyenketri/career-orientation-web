@@ -1,9 +1,9 @@
 // services/university.service.js
 // Service xử lý logic CRUD cho University
 
-const University = require('../models/university.model');
-const UniversityMajor = require('../models/universityMajor.model');
-const mongoose = require('mongoose');
+const University = require("../models/university.model");
+const UniversityMajor = require("../models/universityMajor.model");
+const mongoose = require("mongoose");
 
 const getAllUniversities = async () => {
   // Lấy tất cả các trường đại học chưa bị xóa
@@ -13,11 +13,20 @@ const getAllUniversities = async () => {
 const getUniversityById = async (id) => {
   // Kiểm tra if ID hợp lệ
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid university ID');
+    throw new Error("Invalid university ID");
   }
-  const uni = await University.findOne({ _id: id, isDeleted: false });
-  if (!uni) throw new Error('University not found');
-  return uni;
+  const uni = await University.findOne({ _id: id, isDeleted: false }).lean();
+  if (!uni) throw new Error("University not found");
+
+  // Lấy danh sách các ngành của trường này
+  const majors = await UniversityMajor.find({
+    university: id,
+    isDeleted: false,
+  })
+    .populate("major")
+    .lean();
+
+  return { ...uni, majors };
 };
 
 const createUniversity = async (data) => {
@@ -26,35 +35,35 @@ const createUniversity = async (data) => {
 
 const updateUniversity = async (id, data) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid university ID');
+    throw new Error("Invalid university ID");
   }
   const uni = await University.findOneAndUpdate(
     { _id: id, isDeleted: false },
     data,
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
-  if (!uni) throw new Error('University not found or deleted');
+  if (!uni) throw new Error("University not found or deleted");
   return uni;
 };
 
 const deleteUniversity = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid university ID');
+    throw new Error("Invalid university ID");
   }
   // Soft delete
   const uni = await University.findOneAndUpdate(
     { _id: id, isDeleted: false },
     { isDeleted: true, deletedAt: new Date() },
-    { new: true }
+    { new: true },
   );
-  if (!uni) throw new Error('University not found');
+  if (!uni) throw new Error("University not found");
   return uni;
 };
 
 const getAllUniversityMajors = async () => {
   return await UniversityMajor.find({ isDeleted: false })
-    .populate('university')
-    .populate('major')
+    .populate("university")
+    .populate("major")
     .sort({ admissionScore: -1 });
 };
 
@@ -64,5 +73,5 @@ module.exports = {
   createUniversity,
   updateUniversity,
   deleteUniversity,
-  getAllUniversityMajors
+  getAllUniversityMajors,
 };

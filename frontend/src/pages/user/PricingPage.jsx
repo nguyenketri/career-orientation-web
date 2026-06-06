@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axiosClient from "../../api/axios";
+import { getUser } from "../../utils/auth";
 
 const PricingPage = () => {
+  const [user, setUser] = useState(getUser());
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [qrCode, setQrCode] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -12,430 +14,317 @@ const PricingPage = () => {
 
   const plans = [
     {
-      name: "Gói Miễn Phí",
+      name: "Gói CƠ BẢN",
       price: 0,
-      duration: "Khám phá cơ bản",
       type: "FREE",
       features: [
-        "So sánh tối đa 3 trường cùng lúc",
-        "Xem thông tin cơ bản: Tên trường, Ngành, Học phí, Điểm chuẩn năm gần nhất, Vị trí",
-        "So sánh 1 ngành duy nhất mỗi lần tra cứu",
-        "Không lưu lịch sử so sánh",
-        "Trắc nghiệm Holland/MBTI rút gọn",
-        "AI Mentor tư vấn (5 câu/ngày)",
+        { text: "So sánh tối đa 2 trường cùng lúc", checked: true },
+        { text: "Xem thông tin cơ bản (Tên, Ngành, Học phí)", checked: true },
+        { text: "Trắc nghiệm Holland/MBTI rút gọn", checked: true },
+        { text: "AI Mentor tư vấn (5 câu/ngày)", checked: true },
+        { text: "Không lưu lịch sử so sánh", checked: false },
       ],
-      highlighted: false,
-      cta: "Sử dụng ngay",
+      cta: "Bắt đầu miễn phí",
     },
     {
-      name: "Gói Trả Phí",
+      name: "Gói TIÊU CHUẨN",
       price: 79000,
-      duration: "30 ngày",
       type: "PAID",
       features: [
-        "Gợi ý tổ hợp & ngành học chuyên sâu",
-        "So sánh chi tiết 3 trường đại học",
-        "Xem lịch sử điểm chuẩn 3 năm",
-        "Báo cáo kết quả trắc nghiệm đầy đủ",
-        "AI Mentor tư vấn (50 câu/ngày)",
+        { text: "Gợi ý tổ hợp & ngành học chuyên sâu", checked: true },
+        { text: "So sánh chi tiết 4 trường đại học", checked: true },
+        { text: "Báo cáo kết quả trắc nghiệm đầy đủ", checked: true },
+        { text: "AI Mentor tư vấn (50 câu/ngày)", checked: true },
+        { text: "Lưu lịch sử tìm kiếm & so sánh", checked: true },
       ],
       highlighted: true,
-      cta: "Mua ngay",
+      cta: "Nâng cấp ngay",
     },
     {
-      name: "Gói Cao Cấp",
+      name: "Gói CAO CẤP",
       price: 129000,
-      duration: "90 ngày",
       type: "PREMIUM",
       features: [
-        "Lộ trình định hướng cá nhân hóa (AI)",
-        "So sánh không giới hạn trường & ngành",
-        "Dự đoán tỷ lệ đỗ dựa trên điểm thi",
-        "Phân tích tâm lý học đường chuyên sâu",
-        "AI Mentor tư vấn (Không giới hạn + Ưu tiên)",
+        { text: "So sánh không giới hạn trường & ngành", checked: true },
+        { text: "AI Mentor tư vấn (Không giới hạn + Ưu tiên)", checked: true },
+        { text: "Kết nối Mentor chuyên gia (1-on-1)", checked: true },
+        { text: "Hỗ trợ 24/7 từ đội ngũ kỹ thuật", checked: true },
+        { text: "Độc quyền xem trước tính năng mới", checked: true },
       ],
-      highlighted: false,
-      cta: "Nâng cấp ngay",
+      cta: "Mua Premium",
     },
   ];
 
-  const handlePlanClick = async (plan) => {
-    if (plan.type === "FREE") {
-      alert("Bạn đã có quyền sử dụng Gói Miễn Phí!");
-      return;
-    }
+  const isButtonDisabled = (plan) => {
+    if (user?.subscriptionPlan === plan.type) return true;
+    if (user?.subscriptionPlan === "PREMIUM") return true;
+    if (user?.subscriptionPlan === "PAID" && plan.type === "FREE") return true;
+    return false;
+  };
 
+  const handlePlanClick = async (plan) => {
+    if (isButtonDisabled(plan)) return;
     setSelectedPlan(plan);
     setPaymentStatus(null);
     setQrCode(null);
 
-    // Request payment creation
     try {
       setPaymentLoading(true);
       const response = await axiosClient.post("/payments/create", {
         planType: plan.type,
       });
-
-      if (response.data.status === "success") {
-        const {
-          qrCodeUrl,
-          transactionCode: code,
-          paymentId,
-        } = response.data.data;
-        setQrCode(qrCodeUrl);
-        setTransactionCode(code);
-        setSelectedPlan({ ...plan, paymentId }); // Store paymentId in selectedPlan
-        setPaymentStatus("pending");
-        startPolling(paymentId);
-      }
+      const {
+        qrCodeUrl,
+        transactionCode: code,
+        paymentId,
+      } = response.data.data;
+      setQrCode(qrCodeUrl);
+      setTransactionCode(code);
+      setSelectedPlan({ ...plan, paymentId });
+      setPaymentStatus("pending");
+      const interval = setInterval(
+        () => checkPaymentStatus(paymentId, true),
+        5000,
+      );
+      setPollingInterval(interval);
     } catch (error) {
-      console.error("Payment error:", error);
-      setPaymentStatus("error");
       alert("Lỗi: " + (error.response?.data?.message || error.message));
     } finally {
       setPaymentLoading(false);
     }
   };
 
-  // Auto-polling for payment status
-  const startPolling = (paymentId) => {
-    if (pollingInterval) clearInterval(pollingInterval);
-
-    const interval = setInterval(() => {
-      checkPaymentStatus(paymentId, true);
-    }, 5000); // Check every 5 seconds
-
-    setPollingInterval(interval);
-  };
-
-  const stopPolling = () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
-  };
-
-  const checkPaymentStatus = async (paymentId, isAuto = false) => {
+  const checkPaymentStatus = async (paymentId) => {
     try {
-      if (!isAuto) setPaymentLoading(true);
       const response = await axiosClient.get(`/payments/status/${paymentId}`);
-
-      if (response.data.status === "success") {
-        if (response.data.data.status === "SUCCESS") {
-          setPaymentStatus("success");
-          stopPolling();
-
-          // Sync localStorage with the new subscription plan
-          try {
-            const profileRes = await axiosClient.get("/users/me");
-            if (profileRes.data && profileRes.data.data) {
-              localStorage.setItem(
-                "user",
-                JSON.stringify(profileRes.data.data),
-              );
-              window.dispatchEvent(new Event("userUpdate"));
-            }
-          } catch (e) {
-            console.error(
-              "Failed to sync profile after successful payment:",
-              e,
-            );
-          }
-
-          setTimeout(() => {
-            alert("Nâng cấp thành công! Hãy reload trang để cập nhật.");
-            window.location.reload();
-          }, 2000);
-        } else if (!isAuto) {
-          alert(
-            "Giao dịch đang được xử lý hoặc chưa nhận được tiền. Vui lòng đợi trong giây lát.",
-          );
-        }
+      if (response.data.data.status === "SUCCESS") {
+        if (pollingInterval) clearInterval(pollingInterval);
+        setPaymentStatus("success");
+        const profileRes = await axiosClient.get("/users/me");
+        localStorage.setItem("user", JSON.stringify(profileRes.data.data));
+        window.dispatchEvent(new Event("userUpdate"));
       }
     } catch (error) {
-      console.error("Check status error:", error);
-      if (!isAuto) {
-        alert(
-          "Lỗi khi kiểm tra trạng thái: " +
-            (error.response?.data?.message || error.message),
-        );
-      }
-    } finally {
-      if (!isAuto) setPaymentLoading(false);
+      console.error(error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 pt-32 pb-20 text-slate-900">
-      {/* Header */}
-      <div className="mx-auto max-w-7xl mb-16 text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-5xl font-black text-slate-900 mb-6"
-        >
-          Bảng Giá caZup
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-xl text-slate-600 max-w-2xl mx-auto"
-        >
-          Chọn gói phù hợp với nhu cầu hướng nghiệp của bạn để mở khóa toàn bộ
-          sức mạnh của AI.
-        </motion.p>
+    <div className="min-h-screen bg-slate-50 py-16 px-6">
+      {/* Header Section */}
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <h1 className="text-4xl font-black text-slate-900 mb-4">
+          Chọn gói dịch vụ phù hợp cho tương lai của bạn
+        </h1>
+        <p className="text-slate-500 text-lg">
+          EduPath AI đồng hành cùng học sinh Việt Nam với công cụ AI thông minh
+          nhất để định hướng học tập và sự nghiệp bền vững.
+        </p>
       </div>
 
       {/* Pricing Cards */}
-      <div className="mx-auto max-w-7xl grid md:grid-cols-3 gap-8 mb-16">
-        {plans.map((plan, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className={`relative rounded-[40px] p-8 transition-all flex flex-col
-              ${
-                plan.highlighted
-                  ? "bg-white border-2 border-blue-500 shadow-2xl shadow-blue-200 scale-105 z-10"
-                  : "bg-white border border-slate-100 shadow-xl shadow-slate-100 hover:border-blue-200"
-              }`}
+      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 mb-24">
+        {plans.map((plan) => (
+          <div
+            key={plan.type}
+            className={`relative bg-white p-8 rounded-3xl border-2 transition-all hover:shadow-xl ${plan.highlighted ? "border-orange-500 shadow-lg scale-105 z-10" : "border-slate-100 shadow-sm"}`}
           >
             {plan.highlighted && (
-              <div className="absolute -top-5 left-1/2 transform -translate-x-1/2">
-                <span className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest shadow-lg">
-                  ⭐ Phổ biến nhất
-                </span>
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                Phổ biến nhất
               </div>
             )}
-
-            <div className="flex-grow">
-              {/* Plan Name */}
-              <h3 className="text-2xl font-black text-slate-900 mb-2">
-                {plan.name}
-              </h3>
-              <p className="text-slate-500 font-bold mb-8 uppercase tracking-wider text-sm">
-                {plan.duration}
-              </p>
-
-              {/* Price */}
-              <div className="mb-10">
-                <div className="text-5xl font-black text-slate-900">
-                  {plan.price.toLocaleString("vi-VN")}
-                  <span className="text-2xl text-slate-400 ml-1">đ</span>
-                </div>
-                {plan.price > 0 && (
-                  <p className="text-sm text-slate-400 mt-3 font-bold">
-                    {(
-                      plan.price / (plan.duration === "30 ngày" ? 30 : 90)
-                    ).toLocaleString("vi-VN", {
-                      maximumFractionDigits: 0,
-                    })}
-                    đ / ngày
-                  </p>
-                )}
-              </div>
-
-              {/* Features */}
-              <div className="space-y-5 mb-10">
-                {plan.features.map((feature, fidx) => (
-                  <div key={fidx} className="flex items-start gap-4">
-                    <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg
-                        className="w-4 h-4 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-slate-600 font-medium leading-tight">
-                      {feature}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              {plan.name}
+            </h3>
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-4xl font-black text-slate-900">
+                {plan.price === 0 ? "0đ" : `${(plan.price / 1000).toFixed(0)}k`}
+              </span>
+              <span className="text-slate-400 text-sm">/tháng</span>
             </div>
 
-            {/* CTA Button */}
+            <ul className="space-y-4 mb-8">
+              {plan.features.map((f, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-3 text-sm text-slate-600"
+                >
+                  <span
+                    className={`mt-1 ${f.checked ? "text-orange-500" : "text-slate-300"}`}
+                  >
+                    {f.checked ? "✓" : "✕"}
+                  </span>
+                  {f.text}
+                </li>
+              ))}
+            </ul>
+
             <button
               onClick={() => handlePlanClick(plan)}
-              className={`w-full py-5 rounded-full font-black text-lg transition-all shadow-xl
-                ${
-                  plan.highlighted
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 hover:scale-105"
-                    : "bg-slate-50 text-slate-900 hover:bg-slate-100 shadow-slate-100"
-                }`}
+              disabled={isButtonDisabled(plan)}
+              className={`w-full py-4 rounded-full font-bold transition-all ${
+                isButtonDisabled(plan)
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : plan.highlighted
+                    ? "bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-200"
+                    : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
+              }`}
             >
-              {plan.cta}
+              {user?.subscriptionPlan === plan.type ? "Đang sử dụng" : plan.cta}
             </button>
-          </motion.div>
+          </div>
         ))}
       </div>
 
+      {/* Comparison Table */}
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-3xl font-black text-center text-slate-900 mb-12">
+          So sánh chi tiết các tính năng
+        </h2>
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white">
+                <th className="p-5 font-bold">Tính năng</th>
+                <th className="p-5 font-bold">Cơ Bản</th>
+                <th className="p-5 font-bold">Tiêu Chuẩn</th>
+                <th className="p-5 font-bold">Cao Cấp</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-600">
+              <tr className="border-b border-slate-100">
+                <td className="p-5 font-medium">Số lượng so sánh</td>
+                <td className="p-5">2 trường</td>
+                <td className="p-5">4 trường</td>
+                <td className="p-5">Không giới hạn</td>
+              </tr>
+              <tr className="border-b border-slate-100">
+                <td className="p-5 font-medium">AI Mentor (Chat)</td>
+                <td className="p-5">5 câu/ngày</td>
+                <td className="p-5">50 câu/ngày</td>
+                <td className="p-5">Không giới hạn</td>
+              </tr>
+              <tr className="border-b border-slate-100">
+                <td className="p-5 font-medium">Trắc nghiệm định hướng</td>
+                <td className="p-5">Bản rút gọn</td>
+                <td className="p-5">Bản đầy đủ</td>
+                <td className="p-5">Bản chuyên sâu</td>
+              </tr>
+              <tr>
+                <td className="p-5 font-medium">Hỗ trợ khách hàng</td>
+                <td className="p-5">Email</td>
+                <td className="p-5">Email & Hotline</td>
+                <td className="p-5">24/7 Ưu tiên</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Payment Modal */}
-      {selectedPlan && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-6"
-          onClick={() => selectedPlan && setSelectedPlan(null)}
-        >
+      <AnimatePresence>
+        {selectedPlan && (
           <motion.div
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            className="bg-white rounded-[40px] p-8 lg:p-12 max-w-xl w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedPlan(null)}
           >
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h2 className="text-3xl font-black text-slate-900 mb-2">
-                  Thanh toán
-                </h2>
-                <p className="text-slate-500 font-bold">
-                  {selectedPlan.name} •{" "}
-                  {selectedPlan.price.toLocaleString("vi-VN")}đ
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedPlan(null)}
-                className="p-2 hover:bg-slate-100 rounded-full transition"
-              >
-                <svg
-                  className="w-6 h-6 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {paymentStatus === "success" ? (
-              <div className="text-center py-12">
-                <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-12 h-12 text-green-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <p className="text-2xl font-black text-slate-900 mb-2">
-                  Thanh toán thành công!
-                </p>
-                <p className="text-slate-500 font-medium">
-                  Gói của bạn sẽ được kích hoạt ngay lập tức.
-                </p>
-              </div>
-            ) : paymentStatus === "error" ? (
-              <div className="text-center py-12">
-                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-12 h-12 text-red-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </div>
-                <p className="text-2xl font-black text-slate-900 mb-2">
-                  Lỗi thanh toán
-                </p>
-                <p className="text-slate-500 font-medium">
-                  Vui lòng thử lại hoặc liên hệ hỗ trợ.
-                </p>
-              </div>
-            ) : qrCode ? (
-              <div className="space-y-8">
-                <div className="text-center">
-                  <p className="text-slate-600 font-medium mb-6">
-                    Quét mã QR bên dưới bằng ứng dụng Ngân hàng hoặc Ví điện tử
-                    để chuyển khoản
-                  </p>
-                  <div className="relative inline-block p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
-                    <img
-                      src={qrCode}
-                      alt="Payment QR Code"
-                      className="w-64 h-64 rounded-xl"
-                    />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {paymentStatus === "success" ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="text-4xl">✅</span>
                   </div>
-                </div>
-
-                <div className="bg-blue-50 rounded-3xl p-6 border border-blue-100">
-                  <p className="text-xs text-blue-600 font-black uppercase tracking-widest mb-2">
-                    Nội dung chuyển khoản:
+                  <h2 className="text-2xl font-black text-slate-900 mb-2">
+                    Thanh toán thành công!
+                  </h2>
+                  <p className="text-slate-500 mb-8">
+                    Gói của bạn đã được kích hoạt.
                   </p>
-                  <div className="flex items-center justify-between">
-                    <p className="text-2xl font-black text-blue-900 font-mono">
-                      {transactionCode}
-                    </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="bg-slate-900 text-white px-8 py-3 rounded-full font-bold hover:bg-slate-800 transition-all"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900">
+                        Thanh toán
+                      </h2>
+                      <p className="text-slate-500 font-bold">
+                        {selectedPlan.name} •{" "}
+                        {selectedPlan.price.toLocaleString()}đ
+                      </p>
+                    </div>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(transactionCode);
-                        alert("Đã sao chép mã giao dịch!");
-                      }}
-                      className="text-blue-600 font-bold text-sm hover:underline"
+                      onClick={() => setSelectedPlan(null)}
+                      className="text-slate-400 hover:text-slate-600"
                     >
-                      Sao chép
+                      ✕
                     </button>
                   </div>
-                </div>
 
-                <button
-                  onClick={() => checkPaymentStatus(selectedPlan.paymentId)}
-                  disabled={paymentLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-5 rounded-full transition-all shadow-xl shadow-blue-200 text-lg"
-                >
-                  {paymentLoading
-                    ? "Đang xác thực giao dịch..."
-                    : "Tôi đã chuyển khoản xong"}
-                </button>
+                  <div className="text-center mb-8">
+                    <p className="text-slate-600 text-sm mb-4">
+                      Quét mã QR bên dưới bằng ứng dụng Ngân hàng để thanh toán
+                    </p>
+                    <div className="relative inline-block p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
+                      <img
+                        src={qrCode}
+                        alt="QR"
+                        className="w-64 h-64 rounded-xl"
+                      />
+                    </div>
+                  </div>
 
-                <div className="flex items-center justify-center gap-3 text-sm text-blue-600 font-bold animate-pulse">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Đang tự động kiểm tra giao dịch mỗi 5 giây...</span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-20">
-                <div className="inline-block animate-spin mb-6">
-                  <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full"></div>
-                </div>
-                <p className="text-slate-500 font-bold">
-                  Đang tạo mã QR thanh toán...
-                </p>
-              </div>
-            )}
+                  <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100 mb-6">
+                    <p className="text-xs text-orange-600 font-black uppercase tracking-widest mb-1">
+                      Nội dung chuyển khoản:
+                    </p>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-xl font-black text-orange-900 font-mono">
+                        {transactionCode}
+                      </p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(transactionCode);
+                          alert("Đã sao chép mã!");
+                        }}
+                        className="text-orange-600 text-sm font-bold hover:underline"
+                      >
+                        Sao chép
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => checkPaymentStatus(selectedPlan.paymentId)}
+                    disabled={paymentLoading}
+                    className="w-full bg-orange-500 text-white py-4 rounded-full font-black hover:bg-orange-600 transition-all shadow-lg shadow-orange-200 disabled:opacity-50"
+                  >
+                    {paymentLoading
+                      ? "Đang xác thực..."
+                      : "Tôi đã chuyển khoản xong"}
+                  </button>
+                </>
+              )}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

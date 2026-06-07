@@ -21,3 +21,9 @@ export const getScoreAnalysisHistory = async () => {
   const response = await axiosClient.get("/recommend/history");
   return response.data;
 };
+
+// get current recommendation quota
+export const getRecommendQuota = async () => {
+  const response = await axiosClient.get("/recommend/quota");
+  return response.data;
+};

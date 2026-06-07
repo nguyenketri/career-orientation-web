@@ -1,6 +1,12 @@
 import { useNavigate } from "react-router-dom";
 
-const UpgradePrompt = ({ feature, requiredPlan, currentPlan }) => {
+const UpgradePrompt = ({
+  feature,
+  requiredPlan,
+  currentPlan,
+  backPath,
+  onBack,
+}) => {
   const navigate = useNavigate();
 
   const planLabels = {
@@ -39,7 +45,15 @@ const UpgradePrompt = ({ feature, requiredPlan, currentPlan }) => {
               Nâng cấp ngay
             </button>
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (onBack) {
+                  onBack();
+                } else if (backPath) {
+                  navigate(backPath);
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="px-8 py-3 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 transition"
             >
               Quay lại

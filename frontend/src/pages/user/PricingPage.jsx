@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axiosClient from "../../api/axios";
 import { getUser } from "../../utils/auth";
+import { createPayment, getPaymentStatus } from "../../services/paymentService";
+import axiosClient from "../../api/axios";
 
 const PricingPage = () => {
-  const [user, setUser] = useState(getUser());
+  const [user] = useState(getUser());
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [qrCode, setQrCode] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -19,9 +20,9 @@ const PricingPage = () => {
       type: "FREE",
       features: [
         { text: "So sánh tối đa 2 trường cùng lúc", checked: true },
-        { text: "Xem thông tin cơ bản (Tên, Ngành, Học phí)", checked: true },
-        { text: "Trắc nghiệm Holland/MBTI rút gọn", checked: true },
+        { text: "Gợi ý ngành/trường (3 lượt/ngày)", checked: true },
         { text: "AI Mentor tư vấn (5 câu/ngày)", checked: true },
+        { text: "Trắc nghiệm Holland/MBTI rút gọn", checked: true },
         { text: "Không lưu lịch sử so sánh", checked: false },
       ],
       cta: "Bắt đầu miễn phí",
@@ -31,10 +32,10 @@ const PricingPage = () => {
       price: 79000,
       type: "PAID",
       features: [
-        { text: "Gợi ý tổ hợp & ngành học chuyên sâu", checked: true },
-        { text: "So sánh chi tiết 4 trường đại học", checked: true },
-        { text: "Báo cáo kết quả trắc nghiệm đầy đủ", checked: true },
+        { text: "So sánh chi tiết 5 trường đại học", checked: true },
+        { text: "Gợi ý ngành/trường (20 lượt/ngày)", checked: true },
         { text: "AI Mentor tư vấn (50 câu/ngày)", checked: true },
+        { text: "Báo cáo kết quả trắc nghiệm đầy đủ", checked: true },
         { text: "Lưu lịch sử tìm kiếm & so sánh", checked: true },
       ],
       highlighted: true,
@@ -46,10 +47,10 @@ const PricingPage = () => {
       type: "PREMIUM",
       features: [
         { text: "So sánh không giới hạn trường & ngành", checked: true },
+        { text: "Gợi ý ngành/trường (Không giới hạn)", checked: true },
         { text: "AI Mentor tư vấn (Không giới hạn + Ưu tiên)", checked: true },
         { text: "Kết nối Mentor chuyên gia (1-on-1)", checked: true },
         { text: "Hỗ trợ 24/7 từ đội ngũ kỹ thuật", checked: true },
-        { text: "Độc quyền xem trước tính năng mới", checked: true },
       ],
       cta: "Mua Premium",
     },
@@ -70,14 +71,8 @@ const PricingPage = () => {
 
     try {
       setPaymentLoading(true);
-      const response = await axiosClient.post("/payments/create", {
-        planType: plan.type,
-      });
-      const {
-        qrCodeUrl,
-        transactionCode: code,
-        paymentId,
-      } = response.data.data;
+      const data = await createPayment(plan.type);
+      const { qrCodeUrl, transactionCode: code, paymentId } = data.data;
       setQrCode(qrCodeUrl);
       setTransactionCode(code);
       setSelectedPlan({ ...plan, paymentId });
@@ -96,8 +91,8 @@ const PricingPage = () => {
 
   const checkPaymentStatus = async (paymentId) => {
     try {
-      const response = await axiosClient.get(`/payments/status/${paymentId}`);
-      if (response.data.data.status === "SUCCESS") {
+      const data = await getPaymentStatus(paymentId);
+      if (data.data.status === "SUCCESS") {
         if (pollingInterval) clearInterval(pollingInterval);
         setPaymentStatus("success");
         const profileRes = await axiosClient.get("/users/me");
@@ -196,7 +191,13 @@ const PricingPage = () => {
               <tr className="border-b border-slate-100">
                 <td className="p-5 font-medium">Số lượng so sánh</td>
                 <td className="p-5">2 trường</td>
-                <td className="p-5">4 trường</td>
+                <td className="p-5">5 trường</td>
+                <td className="p-5">Không giới hạn</td>
+              </tr>
+              <tr className="border-b border-slate-100">
+                <td className="p-5 font-medium">Gợi ý ngành/trường</td>
+                <td className="p-5">3 lượt/ngày</td>
+                <td className="p-5">20 lượt/ngày</td>
                 <td className="p-5">Không giới hạn</td>
               </tr>
               <tr className="border-b border-slate-100">

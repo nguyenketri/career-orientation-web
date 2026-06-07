@@ -1,198 +1,85 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { getAllUniversityMajors } from "../../services/universityService";
-import { getUser } from "../../utils/auth";
-import UpgradePrompt from "../../components/UpgradePrompt";
+import { Link, useSearchParams } from "react-router-dom";
 import axiosClient from "../../api/axios";
-import html2pdf from "html2pdf.js";
+import UpgradePrompt from "../../components/UpgradePrompt";
 
-const ComparisonPage = () => {
-  const navigate = useNavigate();
-  const user = getUser();
-  const userId = user?._id || user?.id;
-  const storageKey = userId
-    ? `comparison_selected_majors_${userId}`
-    : "comparison_selected_majors";
-
-  const [allMajors, setAllMajors] = useState([]);
-  const [selectedMajors, setSelectedMajors] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [searchTerm, setSearchTerm] = useState("");
+const PublicComparisonPage = () => {
+  const [searchParams] = useSearchParams();
+  const [selectedMajors, setSelectedMajors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [promptFeature, setPromptFeature] = useState("");
   const tableRef = useRef(null);
 
-  const plan = user?.subscriptionPlan || "FREE";
-
-  const maxComparisons = plan === "PREMIUM" ? 999 : plan === "PAID" ? 5 : 2;
-
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPublicData = async () => {
       try {
-        const res = await getAllUniversityMajors();
-        setAllMajors(res.data || []);
+        const ids = searchParams.get("ids");
+        if (!ids) {
+          setError("Không tìm thấy dữ liệu so sánh trong liên kết.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await axiosClient.get(`/comparison/public?ids=${ids}`);
+        setSelectedMajors(res.data || []);
       } catch (err) {
-        console.error(err);
+        console.error("Fetch public comparison error:", err);
+        setError("Có lỗi xảy ra khi tải dữ liệu so sánh.");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(selectedMajors));
-  }, [selectedMajors, storageKey]);
+    fetchPublicData();
+  }, [searchParams]);
 
-  const filteredMajors = allMajors.filter(
-    (item) =>
-      (item.major?.name + item.university?.name)
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) &&
-      !selectedMajors.find((selected) => selected._id === item._id),
-  );
-
-  const handleSelect = (item) => {
-    if (selectedMajors.length >= maxComparisons) {
-      setShowUpgradePrompt(true);
-      return;
-    }
-    setSelectedMajors([...selectedMajors, item]);
-    setSearchTerm("");
+  const handlePremiumAction = (feature) => {
+    setPromptFeature(feature);
+    setShowUpgradePrompt(true);
   };
 
-  const handleRemove = (id) => {
-    setSelectedMajors(selectedMajors.filter((item) => item._id !== id));
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">
+            Đang tải dữ liệu so sánh...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleShare = async () => {
-    if (selectedMajors.length === 0) {
-      alert("Vui lòng chọn ít nhất một trường để chia sẻ.");
-      return;
-    }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA] px-6">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            Lỗi tải dữ liệu
+          </h2>
+          <p className="text-slate-500 mb-6">{error}</p>
+          <Link
+            to="/comparison"
+            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition"
+          >
+            Quay lại trang so sánh
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-    try {
-      const ids = selectedMajors.map((item) => item._id).join(",");
-      const shareUrl = `${window.location.origin}/share-comparison?ids=${ids}`;
-      await navigator.clipboard.writeText(shareUrl);
-      alert("Đã sao chép liên kết chia sẻ công khai!");
-    } catch {
-      alert("Không thể sao chép liên kết.");
-    }
-  };
-
-  const handleExportPdf = async () => {
-    if (selectedMajors.length === 0) {
-      alert("Vui lòng chọn ít nhất một trường để xuất PDF.");
-      return;
-    }
-
-    if (plan === "FREE") {
-      setShowUpgradePrompt(true);
-      return;
-    }
-
-    try {
-      if (plan === "PAID") {
-        // Standard PDF Export
-        const element = tableRef.current;
-        const opt = {
-          margin: 10,
-          filename: "so-sanh-truong-hoc.pdf",
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-        await html2pdf().set(opt).from(element).save();
-      } else if (plan === "PREMIUM") {
-        // Premium AI-Enhanced PDF Export
-        setIsExporting(true);
-        try {
-          const res = await axiosClient.post("/comparison/analyze", {
-            selectedMajors,
-          });
-          const analysisText = res.data.analysis;
-
-          // Create a temporary container for the PDF
-          const element = document.createElement("div");
-          element.style.padding = "20px";
-          element.style.fontFamily = "Arial, sans-serif";
-
-          // Clone the table
-          const tableClone = tableRef.current.cloneNode(true);
-          element.appendChild(tableClone);
-
-          // Add AI Analysis Section
-          const aiSection = document.createElement("div");
-          aiSection.style.marginTop = "30px";
-          aiSection.style.padding = "20px";
-          aiSection.style.borderRadius = "12px";
-          aiSection.style.background =
-            "linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)";
-          aiSection.style.border = "2px solid #e2e8f0";
-          aiSection.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
-
-          const title = document.createElement("h2");
-          title.innerText = "✨ Phân tích chuyên sâu từ Trợ lý AI";
-          title.style.color = "#1e293b";
-          title.style.fontSize = "20px";
-          title.style.marginBottom = "15px";
-          title.style.borderBottom = "2px solid #3b82f6";
-          title.style.display = "inline-block";
-          aiSection.appendChild(title);
-
-          const content = document.createElement("div");
-          content.style.color = "#475569";
-          content.style.lineHeight = "1.6";
-          content.style.fontSize = "14px";
-          content.style.whiteSpace = "pre-wrap";
-          content.innerText = analysisText;
-          aiSection.appendChild(content);
-
-          element.appendChild(aiSection);
-
-          const opt = {
-            margin: 10,
-            filename: "so-sanh-truong-hoc-premium.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          };
-          await html2pdf().set(opt).from(element).save();
-        } catch (aiErr) {
-          console.error("AI Analysis failed:", aiErr);
-          alert("Không thể lấy phân tích AI, đang xuất PDF tiêu chuẩn...");
-          // Fallback to standard export
-          const opt = {
-            margin: 10,
-            filename: "so-sanh-truong-hoc.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          };
-          await html2pdf().set(opt).from(tableRef.current).save();
-        } finally {
-          setIsExporting(false);
-        }
-      }
-    } catch (err) {
-      console.error("Export PDF Error:", err);
-      alert("Có lỗi xảy ra khi xuất PDF.");
-      setIsExporting(false);
-    }
-  };
   if (showUpgradePrompt) {
-    const featureName =
-      selectedMajors.length >= maxComparisons
-        ? "So sánh nhiều trường"
-        : "Xuất PDF";
-
     return (
       <UpgradePrompt
-        feature={featureName}
-        requiredPlan={plan === "FREE" ? ["PAID", "PREMIUM"] : ["PREMIUM"]}
-        currentPlan={plan}
-        onBack={() => navigate("/recommend")}
+        feature={promptFeature}
+        requiredPlan={["PAID", "PREMIUM"]}
+        currentPlan="FREE"
+        onBack={() => setShowUpgradePrompt(false)}
       />
     );
   }
@@ -215,48 +102,23 @@ const ComparisonPage = () => {
               d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"
             />
           </svg>
-          <span className="text-sm font-medium">So sánh Trường học</span>
+          <span className="text-sm font-medium">Xem so sánh công khai</span>
         </div>
 
         {/* Title and Actions */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 mb-2">
-              caZup AI
+              caZup AI - Kết quả so sánh
             </h1>
             <p className="text-xs text-slate-500 font-medium mb-2">
-              So sánh trường học hôm nay
-            </p>
-            <p className="text-xs text-slate-400 font-medium">
-              Tìm kiếm và so sánh chi tiết các tiêu chí của các trường đại học.
+              Xem chi tiết so sánh các trường đại học được chia sẻ.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={handleShare}
+              onClick={() => handlePremiumAction("Xuất PDF")}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition text-sm"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                />
-              </svg>
-              Chia sẻ
-            </button>
-            <button
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition text-sm ${
-                isExporting ? "opacity-50 cursor-not-allowed" : ""
-              }`}
             >
               <svg
                 className="w-4 h-4"
@@ -271,98 +133,9 @@ const ComparisonPage = () => {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
-              {isExporting ? "Đang xử lý..." : "Xuất PDF"}
+              Xuất PDF
             </button>
           </div>
-        </div>
-
-        {/* School Selection */}
-        <div className="mb-12">
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            {selectedMajors.map((item, index) => (
-              <div key={item._id} className="w-full md:w-64">
-                <div
-                  className={`bg-white border-2 rounded-lg p-4 relative ${index === 0 ? "border-blue-400" : index === 1 ? "border-green-400" : "border-slate-300"}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? "bg-blue-600" : index === 1 ? "bg-green-600" : "bg-slate-600"}`}
-                      >
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">
-                          Lựa chọn {index + 1}
-                        </p>
-                        <p className="text-sm font-bold text-slate-900 line-clamp-1">
-                          {item.university?.name}
-                        </p>
-                        <p className="text-[11px] text-slate-500 line-clamp-1">
-                          {item.major?.name}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleRemove(item._id)}
-                      className="text-slate-400 hover:text-red-500 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {selectedMajors.length < maxComparisons && (
-              <div className="w-full md:w-64">
-                <div className="bg-slate-100 rounded-lg p-4 border-2 border-dashed border-slate-300 flex items-center justify-center h-20">
-                  <span className="text-slate-500 font-medium text-sm">
-                    Thêm trường {selectedMajors.length + 1}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {selectedMajors.length > 0 && (
-              <div className="flex items-center justify-center">
-                <div className="w-16 h-16 bg-white rounded-full border-4 border-slate-200 flex items-center justify-center shadow-lg">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-xs text-center px-2">
-                    So sánh
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Search Input */}
-        <div className="relative mb-12">
-          <input
-            type="text"
-            placeholder="Tìm kiếm ngành hoặc trường để thêm vào so sánh..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 outline-none focus:border-blue-500 shadow-sm transition text-sm"
-          />
-          {searchTerm && filteredMajors.length > 0 && (
-            <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-300 rounded-lg overflow-hidden z-50 shadow-lg">
-              {filteredMajors.slice(0, 5).map((item) => (
-                <div
-                  key={item._id}
-                  onClick={() => handleSelect(item)}
-                  className="p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
-                >
-                  <div className="font-bold text-slate-900 text-sm">
-                    {item.major?.name}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {item.university?.name}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Comparison Table */}
@@ -613,8 +386,33 @@ const ComparisonPage = () => {
           </div>
         )}
 
-        {/* AI Mentor Section */}
-        <div className="mt-12 bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg p-8 text-white">
+        {/* Growth Hacking Banner */}
+        <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left">
+              <h3 className="text-2xl font-black mb-2">
+                Bạn muốn so sánh thêm nhiều trường khác?
+              </h3>
+              <p className="text-blue-100 mb-6 max-w-xl">
+                Đăng ký tài khoản Miễn Phí ngay hôm nay để tự tạo bảng so sánh,
+                sử dụng AI phân tích chuyên sâu và xuất PDF cho riêng bạn!
+              </p>
+              <Link
+                to="/register"
+                className="px-8 py-3 bg-white text-blue-600 font-black rounded-full hover:bg-blue-50 transition shadow-lg inline-block"
+              >
+                Đăng ký Miễn Phí ngay
+              </Link>
+            </div>
+            <div className="hidden lg:block">
+              <div className="w-32 h-32 bg-white/20 rounded-full blur-3xl absolute -right-10 -top-10"></div>
+              <div className="w-32 h-32 bg-blue-400/30 rounded-full blur-3xl absolute -right-20 -bottom-10"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Mentor CTA */}
+        <div className="mt-8 bg-slate-900 rounded-lg p-8 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center">
@@ -644,7 +442,7 @@ const ComparisonPage = () => {
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <Link
-                to="/mentor"
+                to="/login"
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-sm transition"
               >
                 Tham tư vấn ngay
@@ -657,4 +455,4 @@ const ComparisonPage = () => {
   );
 };
 
-export default ComparisonPage;
+export default PublicComparisonPage;

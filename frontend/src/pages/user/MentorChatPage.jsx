@@ -53,10 +53,12 @@ const MentorChatPage = () => {
       const response = await getChatSessions();
       const data = response.data || [];
 
-      // Filter out duplicate untitled sessions, keeping only the most recent one
+      // Filter out duplicate "New Chat" sessions, keeping only the most recent one
       const filteredData = data.filter((conv, index) => {
-        if (conv.title) return true;
-        return index === data.findIndex((c) => !c.title);
+        if (conv.title && conv.title !== "New Chat") return true;
+        return (
+          index === data.findIndex((c) => !c.title || c.title === "New Chat")
+        );
       });
 
       setConversations(filteredData);
@@ -92,10 +94,6 @@ const MentorChatPage = () => {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
     (async () => {
       await fetchSessions();
     })();
@@ -116,8 +114,11 @@ const MentorChatPage = () => {
     const userMessage = messageText.trim();
     setInput("");
 
+    const isFirstMessage = messages.length === 0;
+
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
+    setTimeout(scrollToBottom, 100);
 
     try {
       const response = await sendChatMessage(sessionId, userMessage);
@@ -131,6 +132,12 @@ const MentorChatPage = () => {
             ...prev,
             { role: "model", content: lastMessage.content },
           ]);
+          setTimeout(scrollToBottom, 100);
+        }
+
+        // Refresh sessions if it was the first message to get the new title
+        if (isFirstMessage) {
+          fetchSessions();
         }
       }
     } catch (error) {
@@ -161,40 +168,65 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden fixed inset-0">
+    <div className="flex h-[calc(100vh-64px)] w-full bg-white overflow-hidden mt-16">
       {/* Sidebar */}
       <div className="w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full">
         <div className="p-4">
           <button
             onClick={handleNewChat}
-            className="w-full bg-[#0f172a] text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            className="w-full bg-white text-[#0f172a] border-2 border-[#0f172a] rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 hover:bg-[#0f172a] hover:text-white transition-all shadow-sm"
           >
-            <span className="text-xl">+</span> Cuộc hội thoại mới
+            <span className="text-xl">+</span> New Chat
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 space-y-1">
-          <p className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Gần đây
+        <div className="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+          <p className="px-3 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+            GẦN ĐÂY
           </p>
+          {/* Show current session if it's a new one not yet in the list */}
+          {sessionId &&
+            !conversations.some((c) => c.sessionId === sessionId) && (
+              <button
+                onClick={() => handleSwitchSession(sessionId)}
+                className="w-full text-left px-4 py-3.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-3 bg-white text-[#0f172a] shadow-md shadow-slate-200/50 border border-slate-100"
+              >
+                <span className="text-lg">💬</span>
+                <span className="truncate flex-1">Cuộc hội thoại mới</span>
+                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+              </button>
+            )}
+
           {conversations
             .filter((conv) => conv.sessionId)
             .map((conv) => (
               <button
                 key={conv.sessionId}
                 onClick={() => handleSwitchSession(conv.sessionId)}
-                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${
+                className={`w-full text-left px-4 py-3.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-3 group ${
                   sessionId === conv.sessionId
-                    ? "bg-white text-slate-900 shadow-sm border border-slate-100 ring-1 ring-orange-500/20"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? "bg-white text-[#0f172a] shadow-md shadow-slate-200/50 border border-slate-100"
+                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
                 }`}
               >
-                <span className="text-slate-400">💬</span>
-                <span className="truncate">
+                <span
+                  className={`text-lg ${sessionId === conv.sessionId ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`}
+                >
+                  {conv.title?.includes("FPT")
+                    ? "🎓"
+                    : conv.title?.includes("AI")
+                      ? "🤖"
+                      : conv.title?.includes("Tư vấn")
+                        ? "📚"
+                        : conv.title?.includes("việc")
+                          ? "💼"
+                          : "💬"}
+                </span>
+                <span className="truncate flex-1">
                   {conv.title || "Cuộc hội thoại mới"}
                 </span>
                 {sessionId === conv.sessionId && (
-                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-auto"></div>
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
                 )}
               </button>
             ))}

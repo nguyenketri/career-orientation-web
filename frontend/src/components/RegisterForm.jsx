@@ -66,9 +66,7 @@ const RegisterForm = () => {
       };
 
       // call register API
-      const response = await registerUser(payload);
-
-      console.log(response);
+      await registerUser(payload);
 
       // redirect login
       navigate("/login");

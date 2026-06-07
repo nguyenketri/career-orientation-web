@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Radar,
   RadarChart,
@@ -10,8 +10,7 @@ import {
 import { motion } from "framer-motion";
 import { hollandMaps } from "../../utils/hollandMap";
 import { mbtiMaps } from "../../utils/mbtiMap";
-import { getMyHollandResults } from "../../services/hollandResult.service";
-import { getMyMbtiResults } from "../../services/mbtiService";
+import { getUser } from "../../utils/auth";
 
 const RecommendationCard = ({ major, matchPercent, navigate }) => (
   <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
@@ -39,7 +38,7 @@ const RecommendationCard = ({ major, matchPercent, navigate }) => (
           />
         </svg>
         <span className="font-bold text-slate-700">
-          {major.university?.name || "Đại học gợi ý"}
+          {major.universities?.[0]?.name || "Đại học gợi ý"}
         </span>
       </div>
 
@@ -66,15 +65,16 @@ const RecommendationCard = ({ major, matchPercent, navigate }) => (
 
       <button
         onClick={() => {
-          if (major.university?.website) {
-            window.open(major.university.website, "_blank");
-          } else {
-            navigate(`/university/${major.universityId}`);
+          const university = major.universities?.[0];
+          if (university?.website) {
+            window.open(university.website, "_blank");
+          } else if (university?._id) {
+            navigate(`/university/${university._id}`);
           }
         }}
         className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors"
       >
-        {major.university?.website ? "Truy cập website" : "Xem chi tiết"}
+        Xem chi tiết
       </button>
     </div>
   </div>
@@ -83,22 +83,37 @@ const RecommendationCard = ({ major, matchPercent, navigate }) => (
 const ResultDetailPage = () => {
   const { type, id } = useParams();
   const navigate = useNavigate();
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const [result, setResult] = useState(location.state?.result || null);
+  const [loading, setLoading] = useState(!location.state?.result);
 
   useEffect(() => {
+    if (location.state?.result) {
+      return;
+    }
+
     const fetchResult = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        let data;
-        if (type === "holland") {
-          const res = await getMyHollandResults();
-          data = (res.data?.data || res.data || []).find((r) => r._id === id);
-        } else if (type === "mbti") {
-          const res = await getMyMbtiResults();
-          data = (res.data?.data || res.data || []).find((r) => r._id === id);
+        const endpoint = type === "holland" ? "holland-results" : type;
+        const url = `/api/${endpoint}/${id}`;
+        console.log("Fetching result from:", url);
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Server responded with status ${res.status}`);
         }
-        setResult(data);
+
+        const json = await res.json();
+        setResult(json.data);
       } catch (err) {
         console.error("Error fetching result detail:", err);
       } finally {
@@ -107,7 +122,7 @@ const ResultDetailPage = () => {
     };
 
     fetchResult();
-  }, [type, id]);
+  }, [type, id, location.state]);
 
   if (loading) {
     return (
@@ -126,7 +141,7 @@ const ResultDetailPage = () => {
           </p>
           <button
             onClick={() => navigate("/history")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold"
+            className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
           >
             Quay lại lịch sử
           </button>
@@ -212,9 +227,9 @@ const ResultDetailPage = () => {
                   Top 3 Nhóm Mã
                 </h3>
                 <div className="space-y-4">
-                  {getTop3Holland().map((item) => (
+                  {getTop3Holland().map((item, idx) => (
                     <div
-                      key={item.type}
+                      key={`${item.type}-${idx}`}
                       className="p-4 rounded-2xl border border-slate-100 bg-white hover:border-blue-300 shadow-sm transition-all"
                     >
                       <div className="flex justify-between items-center mb-2">
@@ -324,21 +339,23 @@ const ResultDetailPage = () => {
           )}
         </motion.div>
 
-        <div className="mt-16">
-          <h2 className="text-2xl font-black text-slate-900 mb-8 text-center md:text-left">
-            Gợi Ý Ngành & Trường Phù Hợp
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {result?.recommendedMajors?.map((major, idx) => (
-              <RecommendationCard
-                key={major._id}
-                major={major}
-                matchPercent={90 + idx}
-                navigate={navigate}
-              />
-            ))}
+        {getUser()?.subscriptionPlan !== "FREE" && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-black text-slate-900 mb-8 text-center md:text-left">
+              Gợi Ý Ngành & Trường Phù Hợp
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {result?.recommendedMajors?.map((major, idx) => (
+                <RecommendationCard
+                  key={`${major._id}-${idx}`}
+                  major={major}
+                  matchPercent={90 + idx}
+                  navigate={navigate}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

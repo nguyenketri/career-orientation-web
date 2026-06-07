@@ -61,11 +61,12 @@ const Navbar = () => {
         {/* Center Navigation - Role based visibility */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks
-            .filter((link) =>
-              isAdminUser
-                ? link.path.startsWith("/admin")
-                : !link.path.startsWith("/admin"),
-            )
+            .filter((link) => {
+              if (isAdminPage) {
+                return link.path.startsWith("/admin");
+              }
+              return isAdminUser || !link.path.startsWith("/admin");
+            })
             .map((link) => (
               <Link
                 key={link.path}

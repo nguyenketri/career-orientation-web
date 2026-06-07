@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { loginUser, googleLoginUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { submitMbtiTest } from "../services/mbtiService";
+import { saveHollandResult } from "../services/hollandService";
 
 const LoginForm = () => {
   // form state
@@ -18,6 +20,25 @@ const LoginForm = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+
+  // handle guest result carry-over
+  const handleGuestResultCarryOver = async () => {
+    const guestResult = localStorage.getItem("guestResult");
+    if (!guestResult) return;
+
+    try {
+      const parsedResult = JSON.parse(guestResult);
+      if (parsedResult.type === "mbti") {
+        await submitMbtiTest(parsedResult.answers);
+      } else if (parsedResult.type === "holland") {
+        await saveHollandResult(parsedResult.data);
+      }
+      localStorage.removeItem("guestResult");
+      console.log("Guest result carried over successfully");
+    } catch (error) {
+      console.error("Error carrying over guest result:", error);
+    }
+  };
 
   // handle input change
   const handleChange = (e) => {
@@ -45,6 +66,9 @@ const LoginForm = () => {
 
       // save user
       localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      // carry over guest results if any
+      await handleGuestResultCarryOver();
 
       // Trigger update for Navbar
       window.dispatchEvent(new Event("userUpdate"));
@@ -160,6 +184,10 @@ const LoginForm = () => {
                   "user",
                   JSON.stringify(response.data.user),
                 );
+
+                // carry over guest results if any
+                await handleGuestResultCarryOver();
+
                 window.dispatchEvent(new Event("userUpdate"));
                 if (response.data.user.role === "admin") {
                   navigate("/admin/dashboard");

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   getHollandQuestions,
   submitHollandTest,
-  saveHollandResult,
 } from "../../services/hollandService";
 
 const LIKERT_OPTIONS = [
@@ -22,15 +21,6 @@ const HollandTestPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  const userPlan = (() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      return user.subscriptionPlan || "FREE";
-    } catch {
-      return "FREE";
-    }
-  })();
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -68,10 +58,10 @@ const HollandTestPage = () => {
 
   const handleSubmit = async () => {
     const answeredCount = Object.keys(answers).length;
-    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
+    const minRequired = totalQuestions;
 
     if (answeredCount < minRequired) {
-      setError(`Vui lòng trả lời ít nhất ${minRequired} câu hỏi.`);
+      setError(`Vui lòng trả lời tất cả ${minRequired} câu hỏi.`);
       return;
     }
 
@@ -82,16 +72,17 @@ const HollandTestPage = () => {
       const res = await submitHollandTest(formattedAnswers);
       const testResult = res.data;
 
-      await saveHollandResult({
-        hollandType: testResult.topType,
-        topTypes: testResult.topTypes,
-        hollandScores: testResult.hollandScores,
-        recommendedMajors:
-          testResult.recommendedMajors?.map((m) => m._id) || [],
+      // Redirect to analysis result page with the result data in state
+      localStorage.setItem(
+        "guestResult",
+        JSON.stringify({ type: "holland", result: testResult }),
+      );
+      navigate("/test-result", {
+        state: {
+          type: "holland",
+          result: testResult,
+        },
       });
-
-      // Redirect back to HollandPage to show results
-      navigate("/holland", { state: { result: testResult } });
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -117,9 +108,7 @@ const HollandTestPage = () => {
 
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
-  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
-  const isAllAnswered =
-    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
+  const isAllAnswered = Object.keys(answers).length === totalQuestions;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
@@ -151,83 +140,48 @@ const HollandTestPage = () => {
             </div>
 
             <div className="flex-grow flex flex-col justify-center mb-12">
-              {isFreeLimitReached ? (
-                <div className="text-center p-12 rounded-[40px] bg-white border border-blue-100 shadow-2xl shadow-blue-100/50">
-                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-blue-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <h2 className="text-3xl font-black mb-4 text-slate-900">
-                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
+              <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+                <div className="text-center mb-16">
+                  <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
+                    Câu hỏi hiện tại
+                  </span>
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                    {currentQuestion?.content}
                   </h2>
-                  <p className="text-slate-600 mb-10 text-lg leading-relaxed max-w-xl mx-auto">
-                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
-                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
-                  </p>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="px-12 py-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black text-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 disabled:opacity-50"
-                  >
-                    {submitting ? "Đang phân tích..." : "Xem Kết Quả Ngay"}
-                  </button>
                 </div>
-              ) : (
-                <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
-                  <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
-                      Câu hỏi hiện tại
-                    </span>
-                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                      {currentQuestion?.content}
-                    </h2>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-                    {LIKERT_OPTIONS.map((option) => {
-                      const isSelected =
-                        answers[currentQuestion._id]?.score === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          onClick={() => handleSelect(option.value)}
-                          className={`group relative rounded-3xl py-6 px-2 transition-all duration-300 border-2 
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                  {LIKERT_OPTIONS.map((option) => {
+                    const isSelected =
+                      answers[currentQuestion._id]?.score === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => handleSelect(option.value)}
+                        className={`group relative rounded-3xl py-6 px-2 transition-all duration-300 border-2 
                         ${
                           isSelected
                             ? "bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-200 scale-105"
                             : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200 hover:shadow-lg hover:shadow-slate-100"
                         }
                       `}
+                      >
+                        <div
+                          className={`text-2xl font-black mb-2 ${isSelected ? "text-white" : "text-slate-900 group-hover:text-blue-600"}`}
                         >
-                          <div
-                            className={`text-2xl font-black mb-2 ${isSelected ? "text-white" : "text-slate-900 group-hover:text-blue-600"}`}
-                          >
-                            {option.value}
-                          </div>
-                          <div
-                            className={`text-[10px] font-bold uppercase tracking-tighter ${isSelected ? "text-blue-100" : "text-slate-400"}`}
-                          >
-                            {option.label}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {option.value}
+                        </div>
+                        <div
+                          className={`text-[10px] font-bold uppercase tracking-tighter ${isSelected ? "text-blue-100" : "text-slate-400"}`}
+                        >
+                          {option.label}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
             </div>
 
             {error && (
@@ -259,7 +213,7 @@ const HollandTestPage = () => {
                 Câu trước
               </button>
 
-              {isAllAnswered || isFreeLimitReached ? (
+              {isAllAnswered ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}

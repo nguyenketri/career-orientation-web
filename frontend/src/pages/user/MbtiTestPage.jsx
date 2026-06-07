@@ -11,15 +11,6 @@ const MbtiTestPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const userPlan = (() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      return user.subscriptionPlan || "FREE";
-    } catch {
-      return "FREE";
-    }
-  })();
-
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -56,11 +47,11 @@ const MbtiTestPage = () => {
 
   const handleSubmit = async () => {
     const answeredCount = Object.keys(answers).length;
-    const minRequired = userPlan === "FREE" ? 15 : totalQuestions;
+    const minRequired = totalQuestions;
 
     if (answeredCount < minRequired) {
       setError(
-        `Vui lòng trả lời ít nhất ${minRequired} câu hỏi để xem kết quả.`,
+        `Vui lòng trả lời tất cả ${minRequired} câu hỏi để xem kết quả.`,
       );
       return;
     }
@@ -70,9 +61,19 @@ const MbtiTestPage = () => {
       setError("");
       const formattedAnswers = Object.values(answers);
       const res = await submitMbtiTest(formattedAnswers);
+      const testResult = res.data;
 
-      // Redirect back to MbtiPage to show results
-      navigate("/mbti", { state: { result: res.data } });
+      // Redirect to analysis result page with the result data in state
+      localStorage.setItem(
+        "guestResult",
+        JSON.stringify({ type: "mbti", result: testResult }),
+      );
+      navigate("/test-result", {
+        state: {
+          type: "mbti",
+          result: testResult,
+        },
+      });
     } catch {
       setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
     } finally {
@@ -95,9 +96,8 @@ const MbtiTestPage = () => {
 
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
-  const isFreeLimitReached = userPlan === "FREE" && currentIndex >= 15;
-  const isAllAnswered =
-    Object.keys(answers).length === (userPlan === "FREE" ? 15 : totalQuestions);
+  const isFreeLimitReached = false;
+  const isAllAnswered = Object.keys(answers).length === totalQuestions;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
@@ -129,57 +129,23 @@ const MbtiTestPage = () => {
             </div>
 
             <div className="flex-grow flex flex-col justify-center mb-12 relative">
-              {isFreeLimitReached ? (
-                <div className="text-center p-12 rounded-[40px] bg-white border border-blue-100 shadow-2xl shadow-blue-100/50">
-                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-blue-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <h2 className="text-3xl font-black mb-4 text-slate-900">
-                    Bạn đã hoàn thành 15 câu hỏi thử nghiệm!
+              <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
+                <div className="text-center mb-12">
+                  <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest mb-6">
+                    Câu hỏi MBTI
+                  </span>
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+                    {currentQuestion?.question}
                   </h2>
-                  <p className="text-slate-600 mb-10 text-lg leading-relaxed max-w-xl mx-auto">
-                    Gói Miễn Phí cho phép bạn xem kết quả sơ bộ sau 15 câu hỏi.
-                    Để có kết quả chính xác nhất, hãy nâng cấp lên gói Trả Phí.
-                  </p>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="px-12 py-5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 disabled:opacity-50"
-                  >
-                    {submitting ? "Đang xử lý..." : "Xem Kết Quả Ngay"}
-                  </button>
                 </div>
-              ) : (
-                <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
-                  <div className="text-center mb-12">
-                    <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest mb-6">
-                      Câu hỏi MBTI
-                    </span>
-                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                      {currentQuestion?.question}
-                    </h2>
-                  </div>
 
-                  <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
-                    <button
-                      onClick={() =>
-                        handleSelect(currentQuestion.optionA.typeValue)
-                      }
-                      className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
+                <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+                  <button
+                    onClick={() =>
+                      handleSelect(currentQuestion.optionA.typeValue)
+                    }
+                    className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
                         ${
                           answers[currentQuestion._id]?.typeValue ===
                           currentQuestion.optionA.typeValue
@@ -187,33 +153,33 @@ const MbtiTestPage = () => {
                             : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
                         }
                       `}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
                           ${
                             answers[currentQuestion._id]?.typeValue ===
                             currentQuestion.optionA.typeValue
                               ? "border-indigo-500 bg-indigo-600 scale-110"
                               : "border-slate-300 group-hover:border-indigo-400"
                           }`}
-                        >
-                          {answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionA.typeValue && (
-                            <div className="w-3 h-3 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                        <span className="text-xl font-bold">
-                          {currentQuestion.optionA.text}
-                        </span>
+                      >
+                        {answers[currentQuestion._id]?.typeValue ===
+                          currentQuestion.optionA.typeValue && (
+                          <div className="w-3 h-3 rounded-full bg-white"></div>
+                        )}
                       </div>
-                    </button>
+                      <span className="text-xl font-bold">
+                        {currentQuestion.optionA.text}
+                      </span>
+                    </div>
+                  </button>
 
-                    <button
-                      onClick={() =>
-                        handleSelect(currentQuestion.optionB.typeValue)
-                      }
-                      className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
+                  <button
+                    onClick={() =>
+                      handleSelect(currentQuestion.optionB.typeValue)
+                    }
+                    className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
                         ${
                           answers[currentQuestion._id]?.typeValue ===
                           currentQuestion.optionB.typeValue
@@ -221,30 +187,29 @@ const MbtiTestPage = () => {
                             : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
                         }
                       `}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
                           ${
                             answers[currentQuestion._id]?.typeValue ===
                             currentQuestion.optionB.typeValue
                               ? "border-indigo-500 bg-indigo-600 scale-110"
                               : "border-slate-300 group-hover:border-indigo-400"
                           }`}
-                        >
-                          {answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionB.typeValue && (
-                            <div className="w-3 h-3 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                        <span className="text-xl font-bold">
-                          {currentQuestion.optionB.text}
-                        </span>
+                      >
+                        {answers[currentQuestion._id]?.typeValue ===
+                          currentQuestion.optionB.typeValue && (
+                          <div className="w-3 h-3 rounded-full bg-white"></div>
+                        )}
                       </div>
-                    </button>
-                  </div>
+                      <span className="text-xl font-bold">
+                        {currentQuestion.optionB.text}
+                      </span>
+                    </div>
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
 
             {error && (

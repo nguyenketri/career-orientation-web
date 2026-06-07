@@ -7,6 +7,7 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ComparisonPage from "../pages/user/ComparisonPage";
+import PublicComparisonPage from "../pages/user/PublicComparisonPage";
 import MentorChatPage from "../pages/user/MentorChatPage";
 import TestResultPage from "../pages/user/TestResultPage";
 import TestsPage from "../pages/user/TestsPage";
@@ -18,6 +19,7 @@ import ResultDetailPage from "../pages/user/ResultDetailPage";
 import RecommendationDetailPage from "../pages/user/RecommendationDetailPage";
 import PaymentHistoryPage from "../pages/user/PaymentHistoryPage";
 import PricingPage from "../pages/user/PricingPage";
+import UpgradePromptPage from "../pages/user/UpgradePromptPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 // Admin Pages
@@ -70,8 +72,14 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/holland" element={<TestResultPage />} />
-          <Route path="/mbti" element={<TestResultPage />} />
+          <Route
+            path="/test-result"
+            element={
+              <ProtectedRoute>
+                <TestResultPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/result-detail/:type/:id"
             element={
@@ -104,6 +112,7 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/share-comparison" element={<PublicComparisonPage />} />
           <Route
             path="/mentor"
             element={
@@ -125,6 +134,14 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <PricingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upgrade-prompt"
+            element={
+              <ProtectedRoute>
+                <UpgradePromptPage />
               </ProtectedRoute>
             }
           />

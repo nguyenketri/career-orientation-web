@@ -90,9 +90,19 @@ const userSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    dailyQuotaUsed: {
-      mentorQuestions: { type: Number, default: 0 },
-      quotaResetAt: Date,
+    dailyUsage: {
+      mentorQuestions: {
+        count: { type: Number, default: 0 },
+        lastUsed: { type: Date, default: Date.now },
+      },
+      comparisonCount: {
+        count: { type: Number, default: 0 },
+        lastUsed: { type: Date, default: Date.now },
+      },
+      recommendations: {
+        count: { type: Number, default: 0 },
+        lastUsed: { type: Date, default: Date.now },
+      },
     },
     resetPasswordToken: String,
     resetPasswordExpires: Date,

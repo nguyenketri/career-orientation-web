@@ -9,7 +9,7 @@ const {
   generateAiAnalysis,
 } = require("../controllers/holland.controller");
 
-router.get("/questions", getQuestions);
+router.get("/questions", authMiddleware, getQuestions);
 router.post("/submit", submitTest);
 router.post(
   "/ai-analysis/:resultId",

@@ -5,7 +5,7 @@ const {
 
 exports.getQuestions = async (req, res) => {
   try {
-    const plan = await getPlanFromRequest(req);
+    const plan = req.user?.subscriptionPlan || "FREE";
     const questions = await mbtiService.getQuestions(plan);
     return res.status(200).json({ status: "success", data: questions });
   } catch (err) {
@@ -17,7 +17,7 @@ exports.submitTest = async (req, res) => {
   try {
     // answers is array of { typeValue: 'E' }
     const result = await mbtiService.submitMbtiTest(
-      req.user.id,
+      req.user?.id,
       req.body.answers,
     );
     return res.status(200).json({ status: "success", data: result });
@@ -34,34 +34,45 @@ exports.getHistory = async (req, res) => {
     let stabilityScore = 0;
     let processedResults = [];
 
-    if (results.length > 0) {
-      const primaryTraits = results.map((r) => r.mbtiType);
-      const traitCounts = {};
-      primaryTraits.forEach(
-        (t) => (traitCounts[t] = (traitCounts[t] || 0) + 1),
-      );
+    if (Array.isArray(results) && results.length > 0) {
+      try {
+        const primaryTraits = results.map((r) => r?.mbtiType).filter(Boolean);
+        const traitCounts = {};
+        primaryTraits.forEach(
+          (t) => (traitCounts[t] = (traitCounts[t] || 0) + 1),
+        );
 
-      const mostFrequentTrait = Object.entries(traitCounts).sort(
-        (a, b) => b[1] - a[1],
-      )[0][0];
-      const frequentCount = traitCounts[mostFrequentTrait];
-      stabilityScore = Math.round((frequentCount / results.length) * 100);
+        const sortedTraits = Object.entries(traitCounts).sort(
+          (a, b) => b[1] - a[1],
+        );
+        const mostFrequentTrait =
+          sortedTraits.length > 0 ? sortedTraits[0][0] : null;
+        const frequentCount = mostFrequentTrait
+          ? traitCounts[mostFrequentTrait]
+          : 0;
+        stabilityScore = mostFrequentTrait
+          ? Math.round((frequentCount / results.length) * 100)
+          : 0;
 
-      processedResults = results.map((r, index) => {
-        let status = "Stable Trait";
-        if (index < results.length - 1) {
-          const prevTrait = results[index + 1].mbtiType;
-          if (r.mbtiType !== prevTrait) {
-            status = "Shift Detected";
+        processedResults = results.map((r, index) => {
+          let status = "Stable Trait";
+          if (index < results.length - 1) {
+            const prevTrait = results[index + 1]?.mbtiType;
+            if (r?.mbtiType !== prevTrait) {
+              status = "Shift Detected";
+            }
           }
-        }
-        return {
-          ...r.toObject(),
-          status,
-          mostFrequentTrait,
-          frequentCount,
-        };
-      });
+          return {
+            ...(r && typeof r.toObject === "function" ? r.toObject() : r),
+            status,
+            mostFrequentTrait,
+            frequentCount,
+          };
+        });
+      } catch (calcError) {
+        console.error("Stability calculation error:", calcError);
+        processedResults = results.map((r) => (r.toObject ? r.toObject() : r));
+      }
     }
 
     return res.status(200).json({

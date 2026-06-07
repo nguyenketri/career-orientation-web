@@ -17,6 +17,9 @@ const universitySchema = new mongoose.Schema(
     }, // Loại trường
     admissionYear: { type: Number, default: 2024 }, // Năm tuyển sinh
     website: { type: String }, // URL website
+    facilities: { type: [String], default: [] }, // Cơ sở vật chất
+    rating: { type: Number, default: 0 }, // Đánh giá trung bình
+    reviewCount: { type: Number, default: 0 }, // Số lượng đánh giá
     // Soft delete fields
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },

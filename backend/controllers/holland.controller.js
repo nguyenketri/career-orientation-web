@@ -3,11 +3,9 @@ const {
   submitHollandTest,
   generateAiAnalysis: generateHollandAnalysis,
 } = require("../services/holland.service");
-const { getPlanFromRequest } = require("../middlewares/subscription.middleware");
-
 exports.getQuestions = async (req, res) => {
   try {
-    const plan = await getPlanFromRequest(req);
+    const plan = req.user?.subscriptionPlan || "FREE";
     const questions = await getQuestions(plan);
 
     return res.status(200).json({
@@ -23,7 +21,7 @@ exports.getQuestions = async (req, res) => {
 };
 exports.submitTest = async (req, res) => {
   try {
-    const result = await submitHollandTest(req.body.answers);
+    const result = await submitHollandTest(req.user.id, req.body.answers);
 
     return res.status(200).json({
       status: "success",

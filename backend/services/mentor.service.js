@@ -115,7 +115,35 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
     // 3. Lưu phản hồi của AI vào database
     session.messages.push({ role: "model", content: responseText });
 
-    // 4. Đồng bộ xuống Database
+    // 4. Tự động tạo tiêu đề nếu là tin nhắn đầu tiên
+    if (session.messages.length <= 2 && session.title === "New Chat") {
+      try {
+        const titleCompletion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                "Bạn là một trợ lý giúp tạo tiêu đề ngắn gọn (tối đa 6 từ) cho cuộc hội thoại dựa trên tin nhắn của người dùng. Trả về trực tiếp tiêu đề, không thêm dấu ngoặc kép hay bất kỳ giải thích nào. Ví dụ: 'Tư vấn ngành CNTT', 'So sánh Đại học FPT và HUST'.",
+            },
+            { role: "user", content: message },
+          ],
+          model: "llama-3.3-70b-versatile",
+        });
+        const generatedTitle = titleCompletion.choices[0]?.message?.content
+          ?.replace(/["']/g, "")
+          .trim();
+        if (generatedTitle) {
+          session.title = generatedTitle;
+        }
+      } catch (titleError) {
+        console.error("Error generating title:", titleError);
+        // Fallback to first few words of message
+        session.title =
+          message.split(" ").slice(0, 5).join(" ").substring(0, 40) + "...";
+      }
+    }
+
+    // 5. Đồng bộ xuống Database
     await session.save();
 
     return {

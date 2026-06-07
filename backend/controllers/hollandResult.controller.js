@@ -3,6 +3,7 @@ const {
   getHollandResultsByUser,
 } = require("../services/hollandResult.service");
 const HollandResult = require("../models/hollandResult.model");
+const User = require("../models/user.model");
 // SAVE
 const saveHollandResult = async (req, res) => {
   try {
@@ -10,12 +11,22 @@ const saveHollandResult = async (req, res) => {
       req.body;
     const userId = req.user.id;
 
+    // Check user plan
+    const user = await User.findById(userId);
+    const plan = user?.subscriptionPlan || "FREE";
+
+    // Only save recommendedMajors for PAID and PREMIUM plans
+    let finalRecommendedMajors = [];
+    if (plan === "PAID" || plan === "PREMIUM") {
+      finalRecommendedMajors = recommendedMajors;
+    }
+
     const result = await createHollandResult({
       userId,
       hollandType,
       topTypes,
       hollandScores,
-      recommendedMajors,
+      recommendedMajors: finalRecommendedMajors,
     });
 
     res.status(201).json({
@@ -39,39 +50,52 @@ const getMyHollandResults = async (req, res) => {
     let stabilityScore = 0;
     let processedResults = [];
 
-    if (results.length > 0) {
-      const primaryTraits = results.map((r) => r.topTypes[0]);
-      const traitCounts = {};
-      primaryTraits.forEach(
-        (t) => (traitCounts[t] = (traitCounts[t] || 0) + 1),
-      );
+    if (Array.isArray(results) && results.length > 0) {
+      try {
+        const primaryTraits = results
+          .map((r) => r?.topTypes?.[0])
+          .filter(Boolean);
+        const traitCounts = {};
+        primaryTraits.forEach(
+          (t) => (traitCounts[t] = (traitCounts[t] || 0) + 1),
+        );
 
-      const mostFrequentTrait = Object.entries(traitCounts).sort(
-        (a, b) => b[1] - a[1],
-      )[0][0];
-      const frequentCount = traitCounts[mostFrequentTrait];
-      stabilityScore = Math.round((frequentCount / results.length) * 100);
+        const sortedTraits = Object.entries(traitCounts).sort(
+          (a, b) => b[1] - a[1],
+        );
+        const mostFrequentTrait =
+          sortedTraits.length > 0 ? sortedTraits[0][0] : null;
+        const frequentCount = mostFrequentTrait
+          ? traitCounts[mostFrequentTrait]
+          : 0;
+        stabilityScore = mostFrequentTrait
+          ? Math.round((frequentCount / results.length) * 100)
+          : 0;
 
-      processedResults = results.map((r, index) => {
-        let status = "Stable Trait";
-        if (index < results.length - 1) {
-          const prevTrait = results[index + 1].topTypes[0];
-          if (r.topTypes[0] !== prevTrait) {
-            status = "Shift Detected";
+        processedResults = results.map((r, index) => {
+          let status = "Stable Trait";
+          if (index < results.length - 1) {
+            const prevTrait = results[index + 1]?.topTypes?.[0];
+            if (r?.topTypes?.[0] !== prevTrait) {
+              status = "Shift Detected";
+            }
           }
-        }
-        return {
-          ...r.toObject(),
-          status,
-          mostFrequentTrait,
-          frequentCount,
-        };
-      });
+          return {
+            ...(r && typeof r.toObject === "function" ? r.toObject() : r),
+            status,
+            mostFrequentTrait,
+            frequentCount,
+          };
+        });
+      } catch (calcError) {
+        console.error("Holland stability calculation error:", calcError);
+        processedResults = results.map((r) => (r.toObject ? r.toObject() : r));
+      }
     }
 
     res.status(200).json({
       status: "success",
-      results: results.length,
+      results: Array.isArray(results) ? results.length : 0,
       stabilityScore,
       data: processedResults,
     });

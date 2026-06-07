@@ -1,7 +1,15 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Major = require("../models/major.model");
 const UniversityMajor = require("../models/universityMajor.model");
 const ScoreAnalysis = require("../models/scoreAnalysis.model");
 const User = require("../models/user.model");
+const HollandResult = require("../models/hollandResult.model");
+const MbtiResult = require("../models/mbtiResult.model");
+
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(
+  apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
+);
 
 // Hàm Helper để tính điểm theo tổ hợp
 const calculateCombinations = (scores) => {
@@ -186,9 +194,69 @@ const recommendByHolland = async (input) => {
   return await Major.find({ hollandTypes: { $in: [type] }, isDeleted: false });
 };
 
+const generateCombinedAiAnalysis = async (userId) => {
+  try {
+    const hollandResult = await HollandResult.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate("recommendedMajors");
+    const mbtiResult = await MbtiResult.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate("recommendedMajors");
+
+    if (!hollandResult || !mbtiResult) {
+      throw new Error(
+        "Both Holland and MBTI tests must be completed to generate a combined analysis.",
+      );
+    }
+
+    const hollandMajors = hollandResult.recommendedMajors
+      .slice(0, 5)
+      .map((m) => m.name)
+      .join(", ");
+    const mbtiMajors = mbtiResult.recommendedMajors
+      .slice(0, 5)
+      .map((m) => m.name)
+      .join(", ");
+
+    const prompt = `Tôi là một chuyên gia hướng nghiệp. Tôi có kết quả của một học sinh từ hai bài kiểm tra:
+1. Holland Code:
+- Loại chính: ${hollandResult.hollandType}
+- Top 3 loại: ${hollandResult.topTypes.join(", ")}
+- Điểm số: ${JSON.stringify(hollandResult.hollandScores)}
+- Ngành gợi ý: ${hollandMajors}
+
+2. MBTI:
+- Loại tính cách: ${mbtiResult.mbtiType}
+- Điểm số: ${JSON.stringify(mbtiResult.scores)}
+- Ngành gợi ý: ${mbtiMajors}
+
+Hãy phân tích sự giao thoa giữa hai kết quả này để đưa ra kết luận tốt nhất cho học sinh:
+1. Sự tương đồng và bổ trợ giữa loại Holland và loại MBTI của học sinh này.
+2. Phân tích sâu về thế mạnh cốt lõi khi kết hợp cả hai kết quả.
+3. Đề xuất 3-5 ngành học/nghề nghiệp phù hợp nhất (là những ngành xuất hiện ở cả hai hoặc phù hợp nhất với cả hai đặc điểm tính cách).
+4. Lộ trình phát triển bản thân và lời khuyên cụ thể để đạt được thành công trong các ngành đề xuất.
+
+Hãy viết một cách chuyên nghiệp, truyền cảm hứng, chi tiết và mang tính định hướng cao.`;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const response = await model.generateContent(prompt);
+    const analysisText = response.response.text();
+
+    return {
+      analysis: analysisText,
+      hollandType: hollandResult.hollandType,
+      mbtiType: mbtiResult.mbtiType,
+    };
+  } catch (error) {
+    console.error("Combined AI Analysis Error:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   recommendBySubjects,
   getScoreAnalysisHistory,
   recommendByScore,
   recommendByHolland,
+  generateCombinedAiAnalysis,
 };

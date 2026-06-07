@@ -24,7 +24,13 @@ const getHollandResultsByUser = async (userId) => {
   const results = await HollandResult.find({
     user: userId,
   })
-    .populate("recommendedMajors")
+    .populate({
+      path: "recommendedMajors",
+      populate: {
+        path: "universities",
+        model: "University",
+      },
+    })
     .sort({ createdAt: -1 });
 
   return results;

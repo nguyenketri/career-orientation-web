@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const HollandQuestion = require("../models/hollandQuestion.model");
 const Major = require("../models/major.model");
 const HollandResult = require("../models/hollandResult.model");
+const User = require("../models/user.model");
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(
@@ -10,17 +11,24 @@ const genAI = new GoogleGenerativeAI(
 
 const getQuestions = async (plan) => {
   const allQuestions = await HollandQuestion.find();
+
+  // Shuffle questions
+  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+
   if (plan === "FREE") {
-    return allQuestions.slice(0, 15);
+    return shuffled.slice(0, 42);
   }
   if (plan === "PAID") {
-    return allQuestions.slice(0, 40);
+    return shuffled.slice(0, 60);
   }
-  // PREMIUM: full set
-  return allQuestions;
+  if (plan === "PREMIUM") {
+    return shuffled.slice(0, 90);
+  }
+  // Default to all if plan not recognized or other
+  return shuffled;
 };
 
-const submitHollandTest = async (answers) => {
+const submitHollandTest = async (userId, answers) => {
   if (!answers || answers.length === 0) {
     throw new Error("Answers are required");
   }
@@ -48,24 +56,46 @@ const submitHollandTest = async (answers) => {
   const topTypes = sortedTypes.slice(0, 3);
   const topType = topTypes[0];
 
-  //  tìm ngành phù hợp với top 1, hoặc chứa bất kỳ type nào trong top 3 (tùy vào logic ưu tiên, ở đây dùng topType cho ngành rất phù hợp)
-  const majors = await Major.find({
-    hollandTypes: { $in: topTypes },
-    isDeleted: false,
+  // Check user plan
+  const user = await User.findById(userId);
+  const plan = user?.subscriptionPlan || "FREE";
+
+  //  tìm ngành phù hợp - Only for PAID and PREMIUM
+  let recommendedMajors = [];
+  if (plan === "PAID" || plan === "PREMIUM") {
+    const majors = await Major.find({
+      hollandTypes: { $in: topTypes },
+      isDeleted: false,
+    });
+    recommendedMajors = majors.map((m) => m._id);
+  }
+
+  // Lưu kết quả vào database
+  const newResult = await HollandResult.create({
+    user: userId,
+    hollandType: topType,
+    topTypes,
+    hollandScores: scores,
+    recommendedMajors,
   });
 
-  return {
-    hollandScores: scores,
-    topType,
-    topTypes,
-    recommendedMajors: majors,
-  };
+  // Fetch populated data
+  const populatedResult = await HollandResult.findById(newResult._id).populate(
+    "recommendedMajors",
+  );
+
+  return populatedResult;
 };
 
 const generateAiAnalysis = async (resultId) => {
   try {
-    const result =
-      await HollandResult.findById(resultId).populate("recommendedMajors");
+    const result = await HollandResult.findById(resultId).populate({
+      path: "recommendedMajors",
+      populate: {
+        path: "university",
+        model: "University",
+      },
+    });
     if (!result) {
       throw new Error("Holland result not found");
     }

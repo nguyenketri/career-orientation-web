@@ -67,6 +67,16 @@ const getAllUniversityMajors = async () => {
     .sort({ admissionScore: -1 });
 };
 
+const getUniversityMajorsByIds = async (ids) => {
+  return await UniversityMajor.find({
+    _id: { $in: ids },
+    isDeleted: false,
+  })
+    .populate("university")
+    .populate("major")
+    .lean();
+};
+
 module.exports = {
   getAllUniversities,
   getUniversityById,
@@ -74,4 +84,5 @@ module.exports = {
   updateUniversity,
   deleteUniversity,
   getAllUniversityMajors,
+  getUniversityMajorsByIds,
 };

@@ -16,3 +16,12 @@ export const getPaymentStatus = async (paymentId) => {
   });
   return response.data;
 };
+
+export const createPayment = async (planType) => {
+  const response = await axios.post(
+    `${API_URL}/payments/create`,
+    { planType },
+    { headers: getAuthHeader() },
+  );
+  return response.data;
+};

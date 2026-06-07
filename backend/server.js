@@ -9,6 +9,8 @@ const hollandRoutes = require("./routes/holland.routes");
 const hollandResultRoutes = require("./routes/hollandResult.route");
 const mbtiRoutes = require("./routes/mbti.routes");
 const mentorRoutes = require("./routes/mentor.routes");
+const comparisonRoutes = require("./routes/comparison.routes");
+const pdfRoutes = require("./routes/pdf.routes");
 const universityRoutes = require("./routes/university.routes");
 const userRoutes = require("./routes/user.routes");
 const paymentRoutes = require("./routes/payment.routes");
@@ -35,6 +37,10 @@ app.use("/api/holland-results", hollandResultRoutes);
 app.use("/api/mbti", mbtiRoutes);
 // ROUTER MENTOR AI
 app.use("/api/mentor", mentorRoutes);
+// ROUTER COMPARISON
+app.use("/api/comparison", comparisonRoutes);
+// ROUTER PDF
+app.use("/api/pdf", pdfRoutes);
 // ROUTER PAYMENT
 app.use("/api/payments", paymentRoutes);
 // ROUTER UNIVERSITIES
@@ -45,6 +51,14 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/majors", adminMajorRoutes);
 app.use("/api/admin/questions", adminQuestionRoutes);
+
+// 404 Handler for API
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    status: "error",
+    message: `API endpoint ${req.originalUrl} not found`,
+  });
+});
 // PORT SERVER
 const PORT = process.env.PORT || 3000;
 

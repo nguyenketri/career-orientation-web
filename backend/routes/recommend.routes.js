@@ -7,6 +7,7 @@ const {
   getAnalysisHistory,
   recommendScore,
   recommendHolland,
+  getRecommendQuota,
 } = require("../controllers/recommend.controller");
 
 // NEW:
@@ -14,8 +15,9 @@ router.post("/subjects", authMiddleware, recommendSubjects);
 router.get("/history", authMiddleware, getAnalysisHistory);
 
 // POST /api/recommend/score (old)
-router.post("/score", recommendScore);
+router.post("/score", authMiddleware, recommendScore);
 // POST /api/recommend/holland (old)
-router.post("/holland", recommendHolland);
+router.post("/holland", authMiddleware, recommendHolland);
+router.get("/quota", authMiddleware, getRecommendQuota);
 
 module.exports = router;

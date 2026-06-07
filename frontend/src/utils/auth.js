@@ -9,6 +9,11 @@ export const getUser = () => {
 };
 
 export const logoutUser = () => {
+  const user = getUser();
+  const userId = user?._id || user?.id;
+  if (userId) {
+    localStorage.removeItem(`comparison_selected_majors_${userId}`);
+  }
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 };

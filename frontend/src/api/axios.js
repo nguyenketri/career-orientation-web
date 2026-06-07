@@ -31,6 +31,14 @@ axiosClient.interceptors.response.use(
       window.location.href = "/login";
     }
 
+    if (
+      error.response?.status === 403 &&
+      error.response.data?.code === "QUOTA_EXCEEDED"
+    ) {
+      window.location.href =
+        "/upgrade-prompt?feature=Tính năng này&requiredPlan=PAID,PREMIUM";
+    }
+
     return Promise.reject(error);
   },
 );

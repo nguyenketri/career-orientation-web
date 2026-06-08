@@ -15,7 +15,7 @@ const CTASection = () => {
               <p className="mb-10 text-lg text-slate-400 font-medium max-w-xl mx-auto lg:mx-0">
                 Đừng để những quyết định quan trọng trở nên khó khăn. Hãy để AI
                 đồng hành cùng bạn trong hành trình khám phá bản thân và chọn
-                lựa nghề nghiệp.
+                lựa ngành nghề.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link

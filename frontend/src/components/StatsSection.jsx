@@ -72,7 +72,7 @@ const StatsSection = () => {
             <p className="mx-auto mb-10 max-w-3xl text-base md:text-lg text-blue-100 font-medium leading-relaxed">
               Thực hiện bài trắc nghiệm Holland và MBTI để hiểu rõ hơn về bản
               thân. Nhận gợi ý từ AI về các ngành học, trường đại học, và con
-              đường sự nghiệp tương lai phù hợp nhất với bạn.
+              đường học tập tương lai phù hợp nhất với bạn.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -29,7 +29,7 @@ const features = [
   {
     title: "AI Mentor 24/7",
     description:
-      "Trò chuyện cùng trợ lý ảo thông minh để giải đáp mọi thắc mắc về hướng nghiệp, môi trường học tập và cơ hội việc làm.",
+      "Trò chuyện cùng trợ lý ảo thông minh để giải đáp mọi thắc mắc về hướng ngành học và trường học phù hợp.",
     icon: (
       <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white">
         <svg

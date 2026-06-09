@@ -8,7 +8,7 @@ const { requirePlan } = require("../middlewares/subscription.middleware");
 router.get("/questions", authMiddleware, mbtiController.getQuestions);
 
 // PROTECTED: submit and get history
-router.post("/submit", mbtiController.submitTest);
+router.post("/submit", authMiddleware, mbtiController.submitTest);
 router.get("/history", authMiddleware, mbtiController.getHistory);
 // get by id
 router.get("/:id", authMiddleware, async (req, res) => {

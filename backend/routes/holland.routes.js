@@ -10,7 +10,7 @@ const {
 } = require("../controllers/holland.controller");
 
 router.get("/questions", authMiddleware, getQuestions);
-router.post("/submit", submitTest);
+router.post("/submit", authMiddleware, submitTest);
 router.post(
   "/ai-analysis/:resultId",
   authMiddleware,

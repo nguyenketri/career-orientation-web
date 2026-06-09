@@ -8,7 +8,7 @@ import {
 const LIKERT_OPTIONS = [
   { value: 1, label: "Rất không đúng" },
   { value: 2, label: "Không đúng" },
-  { value: 3, label: "Phân vân" },
+  { value: 3, label: "Trung tính" },
   { value: 4, label: "Khá đúng" },
   { value: 5, label: "Rất đúng" },
 ];

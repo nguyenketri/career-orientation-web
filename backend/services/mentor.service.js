@@ -6,7 +6,9 @@ const User = require("../models/user.model");
 const apiKey = process.env.GROQ_API_KEY;
 
 if (!apiKey) {
-  console.warn("⚠️ CẢNH BÁO: Không tìm thấy GROQ_API_KEY trong file .env!");
+  console.error(
+    "❌ LỖI NGHIÊM TRỌNG: Không tìm thấy GROQ_API_KEY trong biến môi trường!",
+  );
 }
 
 const groq = new Groq({ apiKey });
@@ -160,9 +162,7 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
       );
     }
 
-    throw new Error(
-      "Xin lỗi, Mentor đang gặp chút trục trặc kỹ thuật. Bạn thử lại sau nhé!",
-    );
+    throw new Error(`Lỗi AI: ${error.message}`);
   }
 };
 

@@ -1,4 +1,6 @@
 const puppeteer = require("puppeteer");
+const os = require("os");
+const path = require("path");
 const User = require("../models/user.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
@@ -46,11 +48,13 @@ const generateHtmlTemplate = (user, holland, mbti) => {
       const majorName = rec.name || rec.majorName || "N/A";
       const analysis =
         rec.aiAnalysis ||
+        rec.description ||
         holland.aiAnalysis ||
         "Phù hợp với thiên hướng tính cách và năng lực cốt lõi của bạn.";
-      const universities = rec.universities
-        ? rec.universities.map((u) => u.name || u).join(", ")
-        : "Đang cập nhật";
+      const universities =
+        rec.universities && rec.universities.length > 0
+          ? rec.universities.map((u) => u.name || u).join(", ")
+          : "Đang cập nhật";
 
       return `
         <tr>
@@ -240,76 +244,127 @@ const generateHtmlTemplate = (user, holland, mbti) => {
 };
 
 const generateTestResultPdf = async (userId, res) => {
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new Error("User not found.");
-  }
-
-  const holland = (await HollandResult.findOne({ user: userId })
-    .sort({ createdAt: -1 })
-    .populate("recommendedMajors")) || {
-    hollandScores: {},
-    hollandType: "Chưa xác định",
-    recommendedMajors: [],
-    aiAnalysis:
-      "Vui lòng hoàn thành bài test Holland để nhận phân tích chi tiết.",
-  };
-
-  const mbti = (await MbtiResult.findOne({ user: userId }).sort({
-    createdAt: -1,
-  })) || {
-    mbtiType: "Chưa xác định",
-    scores: {},
-    aiAnalysis: "Vui lòng hoàn thành bài test MBTI để nhận phân tích chi tiết.",
-  };
-
-  let htmlContent;
+  console.log(`[PDF Service] Starting PDF generation for user: ${userId}`);
   try {
-    htmlContent = generateHtmlTemplate(user, holland, mbti);
-  } catch (templateError) {
-    console.error("HTML Template Error:", templateError);
-    throw new Error("Failed to generate report template.");
-  }
+    const user = await User.findById(userId);
+    console.log(`[PDF Service] User found: ${user ? user.name : "Not Found"}`);
+    if (!user) {
+      throw new Error("User not found.");
+    }
 
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: "shell",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
-
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, {
-      waitUntil: "networkidle0",
-      timeout: 30000,
-    });
-
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "0px", right: "0px", bottom: "0px", left: "0px" },
-    });
-
-    res.setHeader("Content-Type", "application/pdf");
-    const safeName = (user.name || "user").replace(/\s+/g, "_");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=career-report-${safeName}.pdf`,
+    const holland = (await HollandResult.findOne({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "recommendedMajors",
+        populate: { path: "universities" },
+      })) || {
+      hollandScores: {},
+      hollandType: "Chưa xác định",
+      recommendedMajors: [],
+      aiAnalysis:
+        "Vui lòng hoàn thành bài test Holland để nhận phân tích chi tiết.",
+    };
+    console.log(
+      `[PDF Service] Holland result fetched: ${!!holland.hollandScores}`,
     );
 
-    return res.send(pdfBuffer);
-  } catch (error) {
-    console.error("Puppeteer PDF Generation Error:", error);
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
+    const mbti = (await MbtiResult.findOne({ user: userId }).sort({
+      createdAt: -1,
+    })) || {
+      mbtiType: "Chưa xác định",
+      scores: {},
+      aiAnalysis:
+        "Vui lòng hoàn thành bài test MBTI để nhận phân tích chi tiết.",
+    };
+    console.log(`[PDF Service] MBTI result fetched: ${!!mbti.mbtiType}`);
+
+    let htmlContent;
+    try {
+      htmlContent = generateHtmlTemplate(user, holland, mbti);
+      console.log(`[PDF Service] HTML template generated successfully`);
+    } catch (templateError) {
+      console.error("[PDF Service] HTML Template Error:", templateError);
+      throw new Error("Failed to generate report template.");
     }
+
+    let browser;
+    try {
+      const isProduction = process.env.NODE_ENV === "production";
+      console.log(
+        `[PDF Service] Launching Puppeteer (isProduction: ${isProduction})`,
+      );
+
+      let executablePath = isProduction ? process.env.CHROME_BIN || null : null;
+
+      // Local Windows Fix: Explicitly point to the installed Chrome
+      if (!isProduction && !executablePath) {
+        const homeDir = os.homedir();
+        // Based on your previous install: C:\Users\Admin\.cache\puppeteer\chrome\win64-148.0.7778.97\chrome-win64\chrome.exe
+        // We use a glob-like approach or just hardcode the path if we know the version
+        executablePath = path.join(
+          homeDir,
+          ".cache",
+          "puppeteer",
+          "chrome",
+          "win64-148.0.7778.97",
+          "chrome-win64",
+          "chrome.exe",
+        );
+        console.log(
+          `[PDF Service] Manually setting executablePath to: ${executablePath}`,
+        );
+      }
+
+      browser = await puppeteer.launch({
+        headless: isProduction ? "shell" : true,
+        executablePath: executablePath,
+        args: isProduction
+          ? [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+              "--disable-dev-shm-usage",
+              "--disable-gpu",
+            ]
+          : [],
+      });
+      console.log(`[PDF Service] Browser launched successfully`);
+
+      const page = await browser.newPage();
+      console.log(`[PDF Service] New page created`);
+      await page.setContent(htmlContent, {
+        waitUntil: "load",
+        timeout: 30000,
+      });
+      console.log(`[PDF Service] Content set successfully`);
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "0px", right: "0px", bottom: "0px", left: "0px" },
+      });
+      console.log(`[PDF Service] PDF buffer generated`);
+
+      res.setHeader("Content-Type", "application/pdf");
+      const safeName = (user.name || "user").replace(/\s+/g, "_");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=career-report-${safeName}.pdf`,
+      );
+
+      console.log(`[PDF Service] Sending PDF response`);
+      return res.send(pdfBuffer);
+    } catch (error) {
+      console.error("[PDF Service] Puppeteer Error:", error);
+      throw error;
+    } finally {
+      if (browser) {
+        await browser.close();
+        console.log(`[PDF Service] Browser closed`);
+      }
+    }
+  } catch (globalError) {
+    console.error("[PDF Service] Global Error:", globalError);
+    throw globalError;
   }
 };
 

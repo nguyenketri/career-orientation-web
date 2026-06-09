@@ -103,7 +103,9 @@ const ComparisonPage = () => {
           html2canvas: { scale: 2, useCORS: true },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         };
+        element.classList.add("pdf-export");
         await html2pdf().set(opt).from(element).save();
+        element.classList.remove("pdf-export");
       } else if (plan === "PREMIUM") {
         // Premium AI-Enhanced PDF Export
         setIsExporting(true);
@@ -118,9 +120,31 @@ const ComparisonPage = () => {
           element.style.padding = "20px";
           element.style.fontFamily = "Arial, sans-serif";
 
-          // Clone the table
-          const tableClone = tableRef.current.cloneNode(true);
-          element.appendChild(tableClone);
+          // Use innerHTML to create a fresh copy of the table content
+          element.innerHTML = tableRef.current.innerHTML;
+
+          // The content is now inside 'element', so we find the views within 'element'
+          const desktopView = element.querySelector(".hidden.md\\:block");
+          if (desktopView) {
+            desktopView.classList.remove("hidden");
+            desktopView.style.display = "block";
+            desktopView.style.overflow = "visible";
+            desktopView.style.width = "1000px";
+          }
+
+          const mobileView = element.querySelector(".md\\:hidden");
+          if (mobileView) {
+            mobileView.style.display = "none";
+          }
+
+          const innerDiv = element.querySelector(".overflow-x-auto");
+          if (innerDiv) {
+            innerDiv.style.overflow = "visible";
+          }
+
+          // Ensure the wrapper has a white background and fixed width
+          element.style.backgroundColor = "white";
+          element.style.width = "1000px";
 
           // Add AI Analysis Section
           const aiSection = document.createElement("div");
@@ -155,10 +179,32 @@ const ComparisonPage = () => {
             margin: 10,
             filename: "so-sanh-truong-hoc-premium.pdf",
             image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              windowWidth: 1200, // Force desktop viewport for html2canvas
+            },
+            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }, // Landscape for wide tables
           };
+          element.classList.add("pdf-export");
+          // Append to body hidden to ensure CSS is applied
+          element.style.position = "absolute";
+          element.style.left = "-9999px";
+          element.style.top = "0";
+          element.style.width = "1000px";
+          element.style.backgroundColor = "white";
+          element.style.visibility = "visible";
+          element.style.display = "block";
+          element.style.opacity = "1";
+          element.style.pointerEvents = "none";
+          document.body.appendChild(element);
+
+          // Give the browser a moment to render the element and apply styles
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
           await html2pdf().set(opt).from(element).save();
+
+          document.body.removeChild(element);
         } catch (aiErr) {
           console.error("AI Analysis failed:", aiErr);
           alert("Không thể lấy phân tích AI, đang xuất PDF tiêu chuẩn...");
@@ -167,10 +213,16 @@ const ComparisonPage = () => {
             margin: 10,
             filename: "so-sanh-truong-hoc.pdf",
             image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              windowWidth: 1200,
+            },
+            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
           };
+          tableRef.current.classList.add("pdf-export");
           await html2pdf().set(opt).from(tableRef.current).save();
+          tableRef.current.classList.remove("pdf-export");
         } finally {
           setIsExporting(false);
         }
@@ -371,7 +423,55 @@ const ComparisonPage = () => {
             ref={tableRef}
             className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden"
           >
-            <div className="overflow-x-auto">
+            {/* Mobile View: Cards */}
+            <div className="md:hidden p-4 space-y-6">
+              {selectedMajors.map((item) => (
+                <div
+                  key={item._id}
+                  className="border border-slate-200 rounded-lg p-4 bg-slate-50"
+                >
+                  <div className="font-black text-slate-900 mb-4 border-b pb-2">
+                    {item.university?.name} - {item.major?.name}
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Website:</span>
+                      <a
+                        href={item.university?.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        Link
+                      </a>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Địa chỉ:</span>
+                      <span className="text-right">
+                        {item.university?.address || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Học phí:</span>
+                      <span>
+                        {item.tuitionFee
+                          ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu/năm`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">
+                        Điểm chuẩn:
+                      </span>
+                      <span>{item.admissionScore?.toFixed(1) || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full table-fixed min-w-[800px]">
                 <tbody>
                   {/* Title Row */}

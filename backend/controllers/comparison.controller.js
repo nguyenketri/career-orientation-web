@@ -1,7 +1,9 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const universityService = require("../services/university.service");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 const analyzeComparison = async (req, res) => {
   try {
@@ -53,15 +55,23 @@ const analyzeComparison = async (req, res) => {
       - Lời khuyên từ chuyên gia AI
     `;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+    });
+    const text = chatCompletion.choices[0]?.message?.content || "";
 
     res.status(200).json({ analysis: text });
   } catch (error) {
-    console.error("AI Analysis Error:", error);
-    res.status(500).json({ message: "Failed to generate AI analysis." });
+    console.error("AI Analysis Error Details:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    res.status(500).json({
+      message: "Failed to generate AI analysis.",
+      error: error.message,
+    });
   }
 };
 
@@ -86,11 +96,9 @@ const getPublicComparison = async (req, res) => {
     res.status(200).json(data);
   } catch (error) {
     console.error("Public Comparison Error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Internal server error while fetching public comparison.",
-      });
+    res.status(500).json({
+      message: "Internal server error while fetching public comparison.",
+    });
   }
 };
 

@@ -294,7 +294,9 @@ const generateTestResultPdf = async (userId, res) => {
         `[PDF Service] Launching Puppeteer (isProduction: ${isProduction})`,
       );
 
-      let executablePath = isProduction ? process.env.CHROME_BIN || null : null;
+      let executablePath = isProduction
+        ? process.env.CHROME_BIN || "/usr/bin/google-chrome"
+        : null;
 
       // Local Windows Fix: Explicitly point to the installed Chrome
       if (!isProduction && !executablePath) {

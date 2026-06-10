@@ -4,7 +4,6 @@ import { getAllUniversityMajors } from "../../services/universityService";
 import { getUser } from "../../utils/auth";
 import UpgradePrompt from "../../components/UpgradePrompt";
 import axiosClient from "../../api/axios";
-import html2pdf from "html2pdf.js";
 
 const ComparisonPage = () => {
   const navigate = useNavigate();
@@ -81,6 +80,8 @@ const ComparisonPage = () => {
     }
   };
 
+  // Removed prepareElementForPdf as we now use the onclone callback for better reliability
+
   const handleExportPdf = async () => {
     if (selectedMajors.length === 0) {
       alert("Vui lòng chọn ít nhất một trường để xuất PDF.");
@@ -93,61 +94,109 @@ const ComparisonPage = () => {
     }
 
     try {
-      if (plan === "PAID") {
-        // Standard PDF Export
-        const element = tableRef.current;
-        const opt = {
-          margin: 10,
-          filename: "so-sanh-truong-hoc.pdf",
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-        element.classList.add("pdf-export");
-        await html2pdf().set(opt).from(element).save();
-        element.classList.remove("pdf-export");
-      } else if (plan === "PREMIUM") {
-        // Premium AI-Enhanced PDF Export
-        setIsExporting(true);
+      setIsExporting(true);
+
+      // 1. EXTRACT AND SANITIZE CSS
+      let sanitizedCss = "";
+      Array.from(document.styleSheets).forEach((sheet) => {
         try {
+          const rules = sheet.cssRules || sheet.rules;
+          if (rules) {
+            Array.from(rules).forEach((rule) => {
+              if (rule.cssText) {
+                sanitizedCss +=
+                  rule.cssText.replace(/oklch\([^)]*\)/g, "rgb(128,128,128)") +
+                  "\n";
+              }
+            });
+          }
+        } catch {
+          // Ignore CORS errors
+        }
+      });
+
+      // 2. CREATE ISOLATED ENVIRONMENT (Hidden IFrame)
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "absolute";
+      iframe.style.width = "1200px";
+      iframe.style.height = "2000px";
+      iframe.style.left = "-9999px";
+      iframe.style.top = "0";
+      document.body.appendChild(iframe);
+
+      const iframeWin = iframe.contentWindow;
+      const iframeDoc = iframeWin.document;
+      iframeDoc.head.innerHTML = `<style>${sanitizedCss}</style>`;
+
+      // 3. INJECT html2pdf LIBRARY INTO IFRAME
+      const script = iframeDoc.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+      iframeDoc.head.appendChild(script);
+
+      // Wait for library to load
+      await new Promise((resolve) => {
+        script.onload = resolve;
+      });
+
+      const commonOpt = {
+        margin: 10,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          windowWidth: 1200,
+          onclone: (doc) => {
+            const desktopView = doc.querySelector('[class*="md:block"]');
+            if (desktopView) {
+              desktopView.style.setProperty("display", "block", "important");
+              desktopView.classList.remove("hidden");
+              desktopView.style.width = "1200px";
+              desktopView.style.setProperty("overflow", "visible", "important");
+            }
+            const mobileView = doc.querySelector('[class*="md:hidden"]');
+            if (mobileView) {
+              mobileView.style.setProperty("display", "none", "important");
+            }
+            doc.querySelectorAll("*").forEach((el) => {
+              el.style.setProperty("overflow", "visible", "important");
+            });
+            const table = doc.querySelector("table");
+            if (table) {
+              table.style.width = "1200px";
+              table.style.setProperty("table-layout", "fixed", "important");
+            }
+          },
+        },
+      };
+
+      try {
+        if (plan === "PAID") {
+          const targetElement = iframeDoc.createElement("div");
+          targetElement.appendChild(tableRef.current.cloneNode(true));
+          iframeDoc.body.appendChild(targetElement);
+
+          const opt = {
+            ...commonOpt,
+            filename: "so-sanh-truong-hoc.pdf",
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          };
+          // EXECUTE INSIDE IFRAME
+          await iframeWin.html2pdf().set(opt).from(targetElement).save();
+        } else if (plan === "PREMIUM") {
           const res = await axiosClient.post("/comparison/analyze", {
             selectedMajors,
           });
           const analysisText = res.data.analysis;
 
-          // Create a temporary container for the PDF
-          const element = document.createElement("div");
-          element.style.padding = "20px";
-          element.style.fontFamily = "Arial, sans-serif";
+          const container = iframeDoc.createElement("div");
+          container.style.width = "1200px";
+          container.style.backgroundColor = "white";
 
-          // Use innerHTML to create a fresh copy of the table content
-          element.innerHTML = tableRef.current.innerHTML;
+          const tableClone = tableRef.current.cloneNode(true);
+          container.appendChild(tableClone);
 
-          // The content is now inside 'element', so we find the views within 'element'
-          const desktopView = element.querySelector(".hidden.md\\:block");
-          if (desktopView) {
-            desktopView.classList.remove("hidden");
-            desktopView.style.display = "block";
-            desktopView.style.overflow = "visible";
-            desktopView.style.width = "1000px";
-          }
-
-          const mobileView = element.querySelector(".md\\:hidden");
-          if (mobileView) {
-            mobileView.style.display = "none";
-          }
-
-          const innerDiv = element.querySelector(".overflow-x-auto");
-          if (innerDiv) {
-            innerDiv.style.overflow = "visible";
-          }
-
-          // Ensure the wrapper has a white background and fixed width
-          element.style.backgroundColor = "white";
-          element.style.width = "1000px";
-
-          // Add AI Analysis Section
-          const aiSection = document.createElement("div");
+          const aiSection = iframeDoc.createElement("div");
           aiSection.style.marginTop = "30px";
           aiSection.style.padding = "20px";
           aiSection.style.borderRadius = "12px";
@@ -156,7 +205,7 @@ const ComparisonPage = () => {
           aiSection.style.border = "2px solid #e2e8f0";
           aiSection.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
 
-          const title = document.createElement("h2");
+          const title = iframeDoc.createElement("h2");
           title.innerText = "✨ Phân tích chuyên sâu từ Trợ lý AI";
           title.style.color = "#1e293b";
           title.style.fontSize = "20px";
@@ -165,7 +214,7 @@ const ComparisonPage = () => {
           title.style.display = "inline-block";
           aiSection.appendChild(title);
 
-          const content = document.createElement("div");
+          const content = iframeDoc.createElement("div");
           content.style.color = "#475569";
           content.style.lineHeight = "1.6";
           content.style.fontSize = "14px";
@@ -173,63 +222,44 @@ const ComparisonPage = () => {
           content.innerText = analysisText;
           aiSection.appendChild(content);
 
-          element.appendChild(aiSection);
+          container.appendChild(aiSection);
+          iframeDoc.body.appendChild(container);
 
           const opt = {
-            margin: 10,
+            ...commonOpt,
             filename: "so-sanh-truong-hoc-premium.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              windowWidth: 1200, // Force desktop viewport for html2canvas
-            },
-            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }, // Landscape for wide tables
-          };
-          element.classList.add("pdf-export");
-          // Append to body hidden to ensure CSS is applied
-          element.style.position = "absolute";
-          element.style.left = "-9999px";
-          element.style.top = "0";
-          element.style.width = "1000px";
-          element.style.backgroundColor = "white";
-          element.style.visibility = "visible";
-          element.style.display = "block";
-          element.style.opacity = "1";
-          element.style.pointerEvents = "none";
-          document.body.appendChild(element);
-
-          // Give the browser a moment to render the element and apply styles
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          await html2pdf().set(opt).from(element).save();
-
-          document.body.removeChild(element);
-        } catch (aiErr) {
-          console.error("AI Analysis failed:", aiErr);
-          alert("Không thể lấy phân tích AI, đang xuất PDF tiêu chuẩn...");
-          // Fallback to standard export
-          const opt = {
-            margin: 10,
-            filename: "so-sanh-truong-hoc.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              windowWidth: 1200,
-            },
             jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
           };
-          tableRef.current.classList.add("pdf-export");
-          await html2pdf().set(opt).from(tableRef.current).save();
-          tableRef.current.classList.remove("pdf-export");
-        } finally {
-          setIsExporting(false);
+          // EXECUTE INSIDE IFRAME
+          await iframeWin.html2pdf().set(opt).from(container).save();
         }
+      } catch (innerErr) {
+        if (plan === "PREMIUM") {
+          console.error(
+            "AI Analysis failed, falling back to standard PDF:",
+            innerErr,
+          );
+          const targetElement = iframeDoc.createElement("div");
+          targetElement.appendChild(tableRef.current.cloneNode(true));
+          iframeDoc.body.appendChild(targetElement);
+
+          const opt = {
+            ...commonOpt,
+            filename: "so-sanh-truong-hoc.pdf",
+            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+          };
+          // EXECUTE INSIDE IFRAME
+          await iframeWin.html2pdf().set(opt).from(targetElement).save();
+        } else {
+          throw innerErr;
+        }
+      } finally {
+        document.body.removeChild(iframe);
       }
     } catch (err) {
       console.error("Export PDF Error:", err);
       alert("Có lỗi xảy ra khi xuất PDF.");
+    } finally {
       setIsExporting(false);
     }
   };

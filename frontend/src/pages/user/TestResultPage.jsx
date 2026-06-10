@@ -395,17 +395,17 @@ const TestResultPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mb-10">
-          <div className="flex p-1 bg-slate-200/50 rounded-2xl w-fit">
+        <div className="flex flex-wrap items-center gap-4 mb-10">
+          <div className="flex p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto">
             <button
               onClick={() => setActiveTab("holland")}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === "holland" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-4 md:px-6 py-2 rounded-xl text-xs md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "holland" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
             >
               Holland (RIASEC)
             </button>
             <button
               onClick={() => setActiveTab("mbti")}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === "mbti" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-4 md:px-6 py-2 rounded-xl text-xs md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "mbti" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
             >
               MBTI Personality
             </button>
@@ -523,25 +523,25 @@ const TestResultPage = () => {
                 className="space-y-10"
               >
                 <div className="grid md:grid-cols-2 gap-8">
-                  <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden">
+                  <div className="bg-slate-900 text-white p-6 md:p-8 rounded-3xl shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
                     <div className="relative z-10">
-                      <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-orange-500/30">
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-orange-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-orange-500/30">
                         <svg
-                          className="w-8 h-8 text-white"
+                          className="w-6 h-6 md:w-8 md:h-8 text-white"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
                           <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                         </svg>
                       </div>
-                      <h3 className="text-5xl font-black mb-2">
+                      <h3 className="text-4xl md:text-5xl font-black mb-2">
                         {mbtiResult?.mbtiType}
                       </h3>
-                      <h4 className="text-xl font-bold text-blue-400 mb-4">
+                      <h4 className="text-lg md:text-xl font-bold text-blue-400 mb-4">
                         {mbtiMaps[mbtiResult?.mbtiType]?.name}
                       </h4>
-                      <p className="text-slate-300 leading-relaxed opacity-90">
+                      <p className="text-sm md:text-base text-slate-300 leading-relaxed opacity-90">
                         {mbtiMaps[mbtiResult?.mbtiType]?.desc}
                       </p>
                     </div>
@@ -555,12 +555,14 @@ const TestResultPage = () => {
                     <div className="space-y-6">
                       {getMbtiComponents().map((comp, idx) => (
                         <div key={idx}>
-                          <div className="flex justify-between text-xs font-bold mb-2">
-                            <span className="text-slate-700">
+                          <div className="flex justify-between items-center text-[10px] md:text-xs font-bold mb-2 gap-1">
+                            <span className="text-slate-700 whitespace-nowrap">
                               {comp.left} ({comp.leftPercent}%)
                             </span>
-                            <span className="text-slate-400">{comp.label}</span>
-                            <span className="text-slate-700">
+                            <span className="text-slate-400 text-center flex-grow truncate px-1">
+                              {comp.label}
+                            </span>
+                            <span className="text-slate-700 whitespace-nowrap">
                               ({comp.rightPercent}%) {comp.right}
                             </span>
                           </div>

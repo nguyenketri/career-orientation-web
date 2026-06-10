@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
-    <section className="relative flex min-h-[80vh] items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 pt-20 pb-20 text-slate-900">
+    <section className="relative flex min-h-[80vh] items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 pt-10 pb-10 md:pt-20 md:pb-20 text-slate-900">
       {/* Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-3xl"></div>
@@ -30,14 +30,14 @@ const HeroSection = () => {
         <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
           <Link
             to="/tests"
-            className="rounded-full bg-blue-600 px-10 py-4 font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:scale-105"
+            className="w-full sm:w-auto rounded-full bg-blue-600 px-6 py-3 md:px-10 md:py-4 font-bold text-white text-center shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:scale-105"
           >
             Bắt đầu ngay
           </Link>
 
           <Link
             to="/recommend"
-            className="rounded-full bg-white border-2 border-blue-100 px-10 py-4 font-bold text-blue-600 transition hover:bg-blue-50 hover:border-blue-200"
+            className="w-full sm:w-auto rounded-full bg-white border-2 border-blue-100 px-6 py-3 md:px-10 md:py-4 font-bold text-blue-600 text-center transition hover:bg-blue-50 hover:border-blue-200"
           >
             Khám phá ngành học
           </Link>

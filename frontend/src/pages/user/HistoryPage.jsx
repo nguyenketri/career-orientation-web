@@ -5,7 +5,7 @@ import { getScoreAnalysisHistory } from "../../services/recommendService";
 import { getPaymentHistory } from "../../services/paymentService";
 import { hollandMaps } from "../../utils/hollandMap";
 import { mbtiMaps } from "../../utils/mbtiMap";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 const HistoryPage = () => {
@@ -17,7 +17,7 @@ const HistoryPage = () => {
   const [academicResults, setAcademicResults] = useState([]);
   const [payments, setPayments] = useState([]);
   const [activeTab, setActiveTab] = useState("holland");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -54,18 +54,14 @@ const HistoryPage = () => {
     try {
       alert("Đã nhấn nút Xuất PDF. Đang tải thư viện...");
 
-      // Dynamic imports to avoid initialization crashes and handle errors better
       const { jsPDF } = await import("jspdf");
       const autoTableModule = await import("jspdf-autotable");
       const autoTable = autoTableModule.default;
 
       const doc = new jsPDF();
-
-      // Add Title
       doc.setFontSize(18);
       doc.text("LICH SU THANH TOAN", 14, 20);
 
-      // Prepare Table Data
       const tableColumn = [
         "Ma giao dich",
         "Goi dich vu",
@@ -109,7 +105,7 @@ const HistoryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 px-6 pt-10 pb-20">
+    <div className="min-h-screen bg-slate-50 text-slate-900 px-4 md:px-6 pt-10 pb-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -117,7 +113,7 @@ const HistoryPage = () => {
       >
         {/* Results Section */}
         <div className="mb-16">
-          <div className="flex justify-between items-end mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
             <div>
               <h2 className="text-xl font-black mb-2">
                 {activeTab === "academic"
@@ -134,14 +130,14 @@ const HistoryPage = () => {
             {activeTab === "academic" && (
               <button
                 onClick={() => navigate("/recommend")}
-                className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
+                className="w-full sm:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
               >
                 <span className="text-xl">+</span> Nhập điểm mới
               </button>
             )}
           </div>
 
-          <div className="flex space-x-6 border-b border-slate-200 mb-8">
+          <div className="flex overflow-x-auto space-x-6 border-b border-slate-200 mb-8 no-scrollbar whitespace-nowrap">
             {["holland", "mbti", "academic"].map((tab) => (
               <button
                 key={tab}
@@ -316,7 +312,8 @@ const HistoryPage = () => {
 
             {activeTab === "academic" && (
               <div className="col-span-full bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
@@ -458,141 +455,102 @@ const HistoryPage = () => {
                     </tbody>
                   </table>
                 </div>
-                {academicResults.length === 0 && (
-                  <div className="p-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg
-                        className="w-10 h-10 text-slate-300"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden p-4 space-y-4">
+                  {academicResults
+                    .slice(
+                      (currentPage - 1) * itemsPerPage,
+                      currentPage * itemsPerPage,
+                    )
+                    .map((r) => (
+                      <div
+                        key={r._id}
+                        className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-slate-400 font-medium">
-                      Chưa có lịch sử nhập điểm.
-                    </p>
-                  </div>
-                )}
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="w-5 h-5 text-teal-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="font-black text-slate-900">
+                                {r.topCombinations?.[0]?.combination}:{" "}
+                                {r.topCombinations?.[0]?.totalScore}
+                              </div>
+                              <div className="text-[10px] font-black text-slate-400 uppercase">
+                                {r.topCombinations?.[0]?.totalScore >= 27
+                                  ? "XUẤT SẮC"
+                                  : r.topCombinations?.[0]?.totalScore >= 24
+                                    ? "GIỎI"
+                                    : "KHÁ"}
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold ${r.isNew ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
+                          >
+                            {r.isNew ? "Mới" : "Đã xem"}
+                          </span>
+                        </div>
 
-                {/* Pagination */}
-                {academicResults.length > itemsPerPage && (
-                  <div className="px-8 py-10 border-t border-slate-100 flex justify-center">
-                    <div className="bg-white px-8 py-4 rounded-full shadow-md border border-slate-100 flex items-center gap-6">
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) => Math.max(prev - 1, 1))
-                        }
-                        disabled={currentPage === 1}
-                        className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 19l-7-7 7-7"
-                          />
-                        </svg>
-                        Back
-                      </button>
+                        <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
+                          <svg
+                            className="w-4 h-4 text-slate-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {new Date(r.createdAt).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
 
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const totalPages = Math.ceil(
-                            academicResults.length / itemsPerPage,
-                          );
-                          const pages = [];
-
-                          if (totalPages <= 7) {
-                            for (let i = 1; i <= totalPages; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (currentPage > 3) pages.push("...");
-
-                            const start = Math.max(2, currentPage - 1);
-                            const end = Math.min(
-                              totalPages - 1,
-                              currentPage + 1,
-                            );
-
-                            for (let i = start; i <= end; i++) {
-                              if (!pages.includes(i)) pages.push(i);
-                            }
-
-                            if (currentPage < totalPages - 2) pages.push("...");
-                            pages.push(totalPages);
+                        <button
+                          onClick={() =>
+                            navigate(`/recommendation-detail/${r._id}`)
                           }
-
-                          return pages.map((page, idx) =>
-                            page === "..." ? (
-                              <span
-                                key={`ellipsis-${idx}`}
-                                className="text-slate-400 font-medium px-1"
-                              >
-                                ...
-                              </span>
-                            ) : (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
-                                  currentPage === page
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/40 scale-110"
-                                    : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            ),
-                          );
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(
-                              prev + 1,
-                              Math.ceil(academicResults.length / itemsPerPage),
-                            ),
-                          )
-                        }
-                        disabled={
-                          currentPage ===
-                          Math.ceil(academicResults.length / itemsPerPage)
-                        }
-                        className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        Next
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          className="w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-md shadow-blue-600/20"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                          Xem đề xuất
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 5l7 7-7 7"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -673,7 +631,9 @@ const HistoryPage = () => {
               Xuất PDF
             </button>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Desktop Payment Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="text-slate-400 border-b">
@@ -716,9 +676,7 @@ const HistoryPage = () => {
                             ? "Thành công"
                             : p.status === "PENDING"
                               ? "Đang chờ"
-                              : p.status === "FAILED"
-                                ? "Thất bại"
-                                : p.status}
+                              : "Thất bại"}
                         </span>
                       </td>
                     </tr>
@@ -735,6 +693,60 @@ const HistoryPage = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Payment Cards */}
+          <div className="block md:hidden space-y-4">
+            {payments.length > 0 ? (
+              payments.map((p, i) => (
+                <div
+                  key={p._id || i}
+                  className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-bold text-slate-400">
+                      {p.transactionCode ||
+                        p.transactionId ||
+                        `#${p._id?.slice(-5)}`}
+                    </span>
+                    <span
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                        p.status === "SUCCESS" || p.status === "completed"
+                          ? "bg-green-50 text-green-600"
+                          : p.status === "PENDING"
+                            ? "bg-yellow-50 text-yellow-600"
+                            : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      {p.status === "SUCCESS" || p.status === "completed"
+                        ? "Thành công"
+                        : p.status === "PENDING"
+                          ? "Đang chờ"
+                          : "Thất bại"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {p.planType || p.planName || p.plan || "N/A"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {p.createdAt && !isNaN(new Date(p.createdAt).getTime())
+                          ? new Date(p.createdAt).toLocaleDateString("vi-VN")
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="text-sm font-black text-slate-900">
+                      {p.amount?.toLocaleString()}đ
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-slate-400 italic text-sm">
+                Không có lịch sử giao dịch.
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

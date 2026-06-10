@@ -38,11 +38,13 @@ const StatsSection = () => {
               key={index}
               className="group text-center p-4 rounded-2xl transition hover:bg-blue-50"
             >
-              <div className="mb-4 text-5xl md:text-6xl">{stat.icon}</div>
-              <h3 className="mb-3 text-4xl md:text-5xl font-black text-blue-600 group-hover:scale-110 transition duration-300">
+              <div className="mb-4 text-4xl md:text-6xl">{stat.icon}</div>
+              <h3 className="mb-3 text-3xl md:text-5xl font-black text-blue-600 group-hover:scale-110 transition duration-300">
                 {stat.number}
               </h3>
-              <p className="text-slate-600 font-bold text-lg">{stat.label}</p>
+              <p className="text-slate-600 font-bold text-base md:text-lg">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
@@ -78,13 +80,13 @@ const StatsSection = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/tests"
-                className="inline-block rounded-full bg-white px-8 md:px-10 py-4 font-bold text-blue-900 transition hover:scale-105 hover:shadow-2xl shadow-lg"
+                className="inline-block w-full sm:w-auto text-center rounded-full bg-white px-8 md:px-10 py-4 font-bold text-blue-900 transition hover:scale-105 hover:shadow-2xl shadow-lg"
               >
                 Bắt đầu trắc nghiệm
               </Link>
               <Link
                 to="/mentor"
-                className="inline-block rounded-full bg-blue-500/20 border-2 border-blue-300 px-8 md:px-10 py-4 font-bold text-white transition hover:bg-blue-500/40 hover:border-blue-200"
+                className="inline-block w-full sm:w-auto text-center rounded-full bg-blue-500/20 border-2 border-blue-300 px-8 md:px-10 py-4 font-bold text-white transition hover:bg-blue-500/40 hover:border-blue-200"
               >
                 Tư vấn với AI
               </Link>

@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 
 const CTASection = () => {
   return (
-    <section className="px-6 py-20">
+    <section className="px-6 py-12 md:py-20">
       <div className="mx-auto max-w-7xl">
-        <div className="relative overflow-hidden rounded-[40px] bg-slate-900 px-8 py-16 text-white shadow-2xl lg:px-16 lg:py-20">
+        <div className="relative overflow-hidden rounded-[40px] bg-slate-900 px-8 py-12 md:py-16 text-white shadow-2xl lg:px-16 lg:py-20">
           <div className="relative z-10 flex flex-col items-center gap-12 lg:flex-row">
             {/* Text Content */}
             <div className="flex-1 text-center lg:text-left">

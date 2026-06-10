@@ -66,7 +66,11 @@ const MbtiTestPage = () => {
       // Redirect to analysis result page with the result data in state
       localStorage.setItem(
         "guestResult",
-        JSON.stringify({ type: "mbti", result: testResult }),
+        JSON.stringify({
+          type: "mbti",
+          result: testResult,
+          answers: formattedAnswers,
+        }),
       );
       navigate("/test-result", {
         state: {
@@ -103,8 +107,8 @@ const MbtiTestPage = () => {
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
       <div className="mx-auto w-full max-w-4xl flex-grow flex flex-col">
         {!isStarted ? (
-          <div className="text-center bg-white p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
-            <h1 className="text-4xl font-black text-slate-900">
+          <div className="text-center bg-white p-6 md:p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <h1 className="text-2xl md:text-4xl font-black text-slate-900">
               Chưa có câu hỏi MBTI trong hệ thống
             </h1>
             <p className="text-slate-500 mt-4">
@@ -129,9 +133,9 @@ const MbtiTestPage = () => {
             </div>
 
             <div className="flex-grow flex flex-col justify-center mb-12 relative">
-              <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+              <div className="bg-white p-6 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
-                <div className="text-center mb-12">
+                <div className="text-center mb-8 md:mb-12">
                   <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest mb-6">
                     Câu hỏi MBTI
                   </span>
@@ -145,31 +149,31 @@ const MbtiTestPage = () => {
                     onClick={() =>
                       handleSelect(currentQuestion.optionA.typeValue)
                     }
-                    className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
-                        ${
-                          answers[currentQuestion._id]?.typeValue ===
-                          currentQuestion.optionA.typeValue
-                            ? "bg-indigo-50 border-indigo-500 text-indigo-900 shadow-lg shadow-indigo-100"
-                            : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
-                        }
-                      `}
+                    className={`relative overflow-hidden group rounded-[24px] p-6 md:p-8 text-left border-2 transition-all duration-300
+                         ${
+                           answers[currentQuestion._id]?.typeValue ===
+                           currentQuestion.optionA.typeValue
+                             ? "bg-indigo-50 border-indigo-500 text-indigo-900 shadow-lg shadow-indigo-100"
+                             : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
+                         }
+                       `}
                   >
                     <div className="flex items-center">
                       <div
-                        className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
-                          ${
-                            answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionA.typeValue
-                              ? "border-indigo-500 bg-indigo-600 scale-110"
-                              : "border-slate-300 group-hover:border-indigo-400"
-                          }`}
+                        className={`w-8 h-8 rounded-full border-2 mr-4 md:mr-6 flex-shrink-0 flex items-center justify-center transition-all
+                           ${
+                             answers[currentQuestion._id]?.typeValue ===
+                             currentQuestion.optionA.typeValue
+                               ? "border-indigo-500 bg-indigo-600 scale-110"
+                               : "border-slate-300 group-hover:border-indigo-400"
+                           }`}
                       >
                         {answers[currentQuestion._id]?.typeValue ===
                           currentQuestion.optionA.typeValue && (
                           <div className="w-3 h-3 rounded-full bg-white"></div>
                         )}
                       </div>
-                      <span className="text-xl font-bold">
+                      <span className="text-lg md:text-xl font-bold">
                         {currentQuestion.optionA.text}
                       </span>
                     </div>
@@ -179,31 +183,31 @@ const MbtiTestPage = () => {
                     onClick={() =>
                       handleSelect(currentQuestion.optionB.typeValue)
                     }
-                    className={`relative overflow-hidden group rounded-[24px] p-8 text-left border-2 transition-all duration-300
-                        ${
-                          answers[currentQuestion._id]?.typeValue ===
-                          currentQuestion.optionB.typeValue
-                            ? "bg-indigo-50 border-indigo-500 text-indigo-900 shadow-lg shadow-indigo-100"
-                            : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
-                        }
-                      `}
+                    className={`relative overflow-hidden group rounded-[24px] p-6 md:p-8 text-left border-2 transition-all duration-300
+                         ${
+                           answers[currentQuestion._id]?.typeValue ===
+                           currentQuestion.optionB.typeValue
+                             ? "bg-indigo-50 border-indigo-500 text-indigo-900 shadow-lg shadow-indigo-100"
+                             : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-indigo-200 hover:shadow-xl hover:shadow-slate-100"
+                         }
+                       `}
                   >
                     <div className="flex items-center">
                       <div
-                        className={`w-8 h-8 rounded-full border-2 mr-6 flex-shrink-0 flex items-center justify-center transition-all
-                          ${
-                            answers[currentQuestion._id]?.typeValue ===
-                            currentQuestion.optionB.typeValue
-                              ? "border-indigo-500 bg-indigo-600 scale-110"
-                              : "border-slate-300 group-hover:border-indigo-400"
-                          }`}
+                        className={`w-8 h-8 rounded-full border-2 mr-4 md:mr-6 flex-shrink-0 flex items-center justify-center transition-all
+                           ${
+                             answers[currentQuestion._id]?.typeValue ===
+                             currentQuestion.optionB.typeValue
+                               ? "border-indigo-500 bg-indigo-600 scale-110"
+                               : "border-slate-300 group-hover:border-indigo-400"
+                           }`}
                       >
                         {answers[currentQuestion._id]?.typeValue ===
                           currentQuestion.optionB.typeValue && (
                           <div className="w-3 h-3 rounded-full bg-white"></div>
                         )}
                       </div>
-                      <span className="text-xl font-bold">
+                      <span className="text-lg md:text-xl font-bold">
                         {currentQuestion.optionB.text}
                       </span>
                     </div>
@@ -245,7 +249,7 @@ const MbtiTestPage = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="px-8 md:px-10 py-4 rounded-full bg-indigo-600 text-white font-black text-base md:text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50"
+                  className="w-full sm:w-auto px-8 md:px-10 py-4 rounded-full bg-indigo-600 text-white font-black text-base md:text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50 text-center"
                 >
                   {submitting ? "Đang xử lý..." : "Xem Kết Quả"}
                 </button>
@@ -256,7 +260,7 @@ const MbtiTestPage = () => {
                     currentIndex === totalQuestions - 1 ||
                     !answers[currentQuestion._id]
                   }
-                  className="px-6 md:px-8 py-4 rounded-full bg-white text-indigo-600 font-bold border border-indigo-100 hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
+                  className="w-full sm:w-auto px-6 md:px-8 py-4 rounded-full bg-white text-indigo-600 font-bold border border-indigo-100 hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-sm md:text-base"
                 >
                   Tiếp theo
                   <svg

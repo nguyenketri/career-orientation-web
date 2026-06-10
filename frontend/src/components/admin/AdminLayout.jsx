@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../utils/auth";
 
 const AdminLayout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,11 +22,68 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#0f172a] text-white flex flex-col">
-        <div className="p-6 border-b border-slate-700">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0f172a] text-white flex items-center justify-between px-4 z-50">
+        <div className="flex items-center gap-2">
           <h1 className="text-lg font-bold">Admin Panel</h1>
-          <p className="text-xs text-slate-400">System Controller</p>
+        </div>
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 hover:bg-slate-800 rounded-lg transition"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#0f172a] text-white flex flex-col transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold">Admin Panel</h1>
+            <p className="text-xs text-slate-400">System Controller</p>
+          </div>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-slate-800 rounded-lg transition"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
@@ -32,6 +91,7 @@ const AdminLayout = ({ children }) => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setIsSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 location.pathname === item.path
                   ? "bg-[#1e293b] text-white"
@@ -58,7 +118,9 @@ const AdminLayout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 mt-16 lg:mt-0">
+        {children}
+      </main>
     </div>
   );
 };

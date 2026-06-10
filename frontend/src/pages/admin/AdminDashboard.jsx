@@ -201,7 +201,7 @@ const AdminDashboard = () => {
           {recentUsers.map((user, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-lg transition"
+              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 rounded-lg transition gap-4 sm:gap-0"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -212,7 +212,7 @@ const AdminDashboard = () => {
                   <p className="text-xs text-slate-500">{user.email}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="flex sm:flex-col sm:text-right items-center justify-between sm:justify-start gap-2 sm:gap-1">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded-full ${
                     user.subscriptionPlan === "PREMIUM"
@@ -222,7 +222,7 @@ const AdminDashboard = () => {
                 >
                   {user.subscriptionPlan}
                 </span>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 sm:mt-1">
                   {user.createdAt
                     ? new Date(user.createdAt).toLocaleDateString("vi-VN")
                     : ""}

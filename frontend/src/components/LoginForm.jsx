@@ -31,7 +31,7 @@ const LoginForm = () => {
       if (parsedResult.type === "mbti") {
         await submitMbtiTest(parsedResult.answers);
       } else if (parsedResult.type === "holland") {
-        await saveHollandResult(parsedResult.data);
+        await saveHollandResult(parsedResult.result);
       }
       localStorage.removeItem("guestResult");
       console.log("Guest result carried over successfully");

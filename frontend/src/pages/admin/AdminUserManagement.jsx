@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { getAuthHeader } from "../../utils/auth";
 import { motion } from "framer-motion";
@@ -13,7 +13,7 @@ const AdminUserManagement = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = useCallback(async (page = 1) => {
     try {
       const res = await axios.get(
         `${API_URL}/admin/users?page=${page}&limit=10`,
@@ -29,11 +29,14 @@ const AdminUserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUsers(currentPage);
-  }, [currentPage]);
+    const loadUsers = async () => {
+      await fetchUsers(currentPage);
+    };
+    loadUsers();
+  }, [currentPage, fetchUsers]);
 
   const handleUpdateRole = async (userId, currentRole) => {
     const newRole = currentRole === "admin" ? "user" : "admin";
@@ -107,10 +110,89 @@ const AdminUserManagement = () => {
         />
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Users List - Mobile (Cards) */}
+      <div className="grid grid-cols-1 gap-4 lg:hidden">
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
+            <div
+              key={user._id}
+              className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                    {user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900">{user.name}</p>
+                    <p className="text-sm text-slate-500">{user.email}</p>
+                  </div>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    user.status === "ACTIVE"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {user.status === "ACTIVE" ? "Active" : "Inactive"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    user.role === "admin"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {user.role?.toUpperCase() || "USER"}
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    user.subscriptionPlan === "PREMIUM"
+                      ? "bg-amber-100 text-amber-700"
+                      : user.subscriptionPlan === "PAID"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {user.subscriptionPlan || "FREE"}
+                </span>
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t border-slate-50">
+                <button
+                  onClick={() => handleUpdateRole(user._id, user.role)}
+                  className="flex-1 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                >
+                  ✏️ Đổi vai trò
+                </button>
+                <button
+                  onClick={() => handleToggleStatus(user._id)}
+                  className={`flex-1 px-3 py-2 text-xs font-bold rounded-xl transition ${
+                    user.status === "ACTIVE"
+                      ? "bg-red-100 text-red-600 hover:bg-red-200"
+                      : "bg-green-100 text-green-600 hover:bg-green-200"
+                  }`}
+                >
+                  {user.status === "ACTIVE" ? "❌ Vô hiệu hóa" : "✅ Kích hoạt"}
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-10 text-slate-500">
+            Không tìm thấy người dùng nào
+          </div>
+        )}
+      </div>
+
+      {/* Users Table - Desktop */}
+      <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[800px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-6 py-4 text-sm font-bold text-slate-600">
@@ -186,13 +268,13 @@ const AdminUserManagement = () => {
                           onClick={() => handleToggleStatus(user._id)}
                           className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
                             user.status === "ACTIVE"
-                              ? "bg-green-100 text-green-600 hover:bg-green-200"
-                              : "bg-red-100 text-red-600 hover:bg-red-200"
+                              ? "bg-red-100 text-red-600 hover:bg-red-200"
+                              : "bg-green-100 text-green-600 hover:bg-green-200"
                           }`}
                         >
                           {user.status === "ACTIVE"
-                            ? "✅ Active"
-                            : "❌ Inactive"}
+                            ? "❌ Vô hiệu hóa"
+                            : "✅ Kích hoạt"}
                         </button>
                       </div>
                     </td>
@@ -213,7 +295,7 @@ const AdminUserManagement = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-center gap-2 py-6 border-t border-slate-100">
+        <div className="flex flex-wrap items-center justify-center gap-2 py-6 border-t border-slate-100">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}

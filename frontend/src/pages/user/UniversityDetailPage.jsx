@@ -9,8 +9,6 @@ const UniversityDetailPage = () => {
   const [university, setUniversity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedMajor, setSelectedMajor] = useState(null);
-  const [selectedAdmissionYear, setSelectedAdmissionYear] = useState("");
 
   useEffect(() => {
     const fetchUniversity = async () => {
@@ -18,20 +16,6 @@ const UniversityDetailPage = () => {
         setLoading(true);
         const response = await getUniversityById(id);
         setUniversity(response.data);
-        if (response.data.majors && response.data.majors.length > 0) {
-          setSelectedMajor(response.data.majors[0]);
-          const years = [
-            ...new Set(
-              response.data.majors.flatMap(
-                (major) =>
-                  major.admissionHistory?.map((history) => history.year) || [],
-              ),
-            ),
-          ].sort((a, b) => b - a);
-          if (years.length > 0) {
-            setSelectedAdmissionYear(years[0]);
-          }
-        }
       } catch (err) {
         setError("Không thể tải thông tin trường đại học.");
         console.error(err);
@@ -78,18 +62,6 @@ const UniversityDetailPage = () => {
       </div>
     );
   }
-
-  const admissionYears = [
-    ...new Set(
-      university.majors.flatMap(
-        (major) => major.admissionHistory?.map((history) => history.year) || [],
-      ),
-    ),
-  ].sort((a, b) => b - a);
-
-  const currentMajorAdmissionHistory = selectedMajor?.admissionHistory?.find(
-    (history) => history.year === Number(selectedAdmissionYear),
-  );
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-8 pt-24 pb-20 text-slate-900">
@@ -163,136 +135,6 @@ const UniversityDetailPage = () => {
             </a>
           </div>
         </motion.div>
-
-        {/* Majors and Admission Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Major List */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-1 bg-white rounded-3xl border border-slate-100 p-6 shadow-sm"
-          >
-            <h3 className="text-xl font-black text-slate-900 mb-6">
-              Các ngành đào tạo
-            </h3>
-            <div className="space-y-3">
-              {university.majors.map((major) => (
-                <button
-                  key={major._id}
-                  onClick={() => setSelectedMajor(major)}
-                  className={`w-full text-left px-4 py-3 rounded-xl transition ${
-                    selectedMajor?._id === major._id
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  <p className="font-bold text-md">{major.name}</p>
-                  <p
-                    className={`text-xs ${
-                      selectedMajor?._id === major._id
-                        ? "text-blue-200"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    Mã ngành: {major.majorCode}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Major Detail */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 p-6 shadow-sm"
-          >
-            {selectedMajor ? (
-              <>
-                <h3 className="text-xl font-black text-slate-900 mb-4">
-                  {selectedMajor.name}
-                </h3>
-                <p className="text-sm text-slate-600 mb-6">
-                  Mã ngành: {selectedMajor.majorCode}
-                </p>
-
-                {/* Admission Year Selector */}
-                <div className="mb-6">
-                  <label
-                    htmlFor="admissionYear"
-                    className="block text-sm font-bold text-slate-400 uppercase tracking-wider mb-2"
-                  >
-                    Chọn năm tuyển sinh
-                  </label>
-                  <select
-                    id="admissionYear"
-                    value={selectedAdmissionYear}
-                    onChange={(e) => setSelectedAdmissionYear(e.target.value)}
-                    className="w-full md:w-1/2 lg:w-1/3 px-4 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-700 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {admissionYears.map((year) => (
-                      <option key={year} value={year}>
-                        Năm {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {currentMajorAdmissionHistory ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                      <p className="text-sm font-bold text-slate-400 mb-2">
-                        Điểm chuẩn ({selectedAdmissionYear})
-                      </p>
-                      <p className="text-3xl font-black text-blue-600">
-                        {currentMajorAdmissionHistory.admissionScore}
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                      <p className="text-sm font-bold text-slate-400 mb-2">
-                        Học phí ({selectedAdmissionYear})
-                      </p>
-                      <p className="text-3xl font-black text-green-600">
-                        {selectedMajor.tuitionFee
-                          ? `${(selectedMajor.tuitionFee / 1000000).toFixed(0)} Triệu / năm`
-                          : "Đang cập nhật"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 text-center text-slate-500">
-                    Không có dữ liệu tuyển sinh cho năm đã chọn.
-                  </div>
-                )}
-
-                <h4 className="text-lg font-black text-slate-900 mb-3">
-                  Các tổ hợp xét tuyển
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    selectedMajor.major?.subjectCombinations ||
-                    (selectedMajor.subjectCombination
-                      ? [selectedMajor.subjectCombination]
-                      : [])
-                  ).map((combo, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
-                    >
-                      {combo}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-20 text-slate-500">
-                Chọn một ngành để xem chi tiết.
-              </div>
-            )}
-          </motion.div>
-        </div>
       </div>
     </div>
   );

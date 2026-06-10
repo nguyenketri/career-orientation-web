@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { getAuthHeader } from "../../utils/auth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,7 +45,7 @@ const AdminMajorUniversityManagement = () => {
     }
   };
 
-  const fetchPaginatedData = async () => {
+  const fetchPaginatedData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === "universities") {
@@ -76,7 +76,7 @@ const AdminMajorUniversityManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, uniPage, majorPage, mapPage]);
 
   useEffect(() => {
     const init = async () => {
@@ -87,8 +87,11 @@ const AdminMajorUniversityManagement = () => {
   }, []);
 
   useEffect(() => {
-    fetchPaginatedData();
-  }, [activeTab, uniPage, majorPage, mapPage]);
+    const loadData = async () => {
+      await fetchPaginatedData();
+    };
+    loadData();
+  }, [activeTab, uniPage, majorPage, mapPage, fetchPaginatedData]);
 
   const handleOpenModal = (item = null) => {
     setEditingItem(item);
@@ -184,7 +187,7 @@ const AdminMajorUniversityManagement = () => {
     }
 
     return (
-      <div className="flex items-center justify-center gap-2 py-6 border-t border-slate-100">
+      <div className="flex flex-wrap items-center justify-center gap-2 py-6 border-t border-slate-100">
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
@@ -220,153 +223,285 @@ const AdminMajorUniversityManagement = () => {
     );
   };
 
-  const renderTable = () => {
+  const renderContent = () => {
     if (activeTab === "universities") {
       return (
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                Tên trường
-              </th>
-              <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                Địa điểm
-              </th>
-              <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                Website
-              </th>
-              <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
+        <>
+          {/* Mobile View */}
+          <div className="grid grid-cols-1 gap-4 lg:hidden p-4">
             {universities.map((u) => (
-              <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-slate-900">
-                  {u.name}
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {u.location}
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {u.website}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
+              <div
+                key={u._id}
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate">
+                      {u.name}
+                    </p>
+                    <p className="text-sm text-slate-500 truncate">
+                      {u.location}
+                    </p>
+                    <p className="text-xs text-blue-600 truncate">
+                      {u.website}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => handleOpenModal(u)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      className="p-2 bg-blue-50 text-blue-600 rounded-lg transition"
                     >
                       ✏️
                     </button>
                     <button
                       onClick={() => handleDelete(u._id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 bg-red-50 text-red-600 rounded-lg transition"
                     >
                       🗑️
                     </button>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full min-w-[800px] text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                    Tên trường
+                  </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                    Địa điểm
+                  </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                    Website
+                  </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {universities.map((u) => (
+                  <tr
+                    key={u._id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      {u.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {u.location}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {u.website}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenModal(u)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(u._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       );
     }
 
     if (activeTab === "majors") {
       return (
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                Tên ngành
-              </th>
-              <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                Mô tả
-              </th>
-              <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
+        <>
+          {/* Mobile View */}
+          <div className="grid grid-cols-1 gap-4 lg:hidden p-4">
             {majors.map((m) => (
-              <tr key={m._id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-slate-900">
-                  {m.name}
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {m.description}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
+              <div
+                key={m._id}
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate">
+                      {m.name}
+                    </p>
+                    <p className="text-sm text-slate-500 line-clamp-2">
+                      {m.description}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => handleOpenModal(m)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      className="p-2 bg-blue-50 text-blue-600 rounded-lg transition"
                     >
                       ✏️
                     </button>
                     <button
                       onClick={() => handleDelete(m._id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 bg-red-50 text-red-600 rounded-lg transition"
                     >
                       🗑️
                     </button>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full min-w-[800px] text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                    Tên ngành
+                  </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                    Mô tả
+                  </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {majors.map((m) => (
+                  <tr
+                    key={m._id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      {m.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {m.description}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenModal(m)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(m._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       );
     }
 
     return (
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-slate-50 border-b border-slate-100">
-            <th className="px-6 py-4 text-sm font-bold text-slate-600">
-              Trường
-            </th>
-            <th className="px-6 py-4 text-sm font-bold text-slate-600">
-              Ngành
-            </th>
-            <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
-              Hành động
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50">
+      <>
+        {/* Mobile View */}
+        <div className="grid grid-cols-1 gap-4 lg:hidden p-4">
           {mappings.map((map) => (
-            <tr key={map._id} className="hover:bg-slate-50 transition-colors">
-              <td className="px-6 py-4 font-medium text-slate-900">
-                {map.university?.name}
-              </td>
-              <td className="px-6 py-4 text-sm text-slate-600">
-                {map.major?.name}
-              </td>
-              <td className="px-6 py-4 text-right">
-                <div className="flex justify-end gap-2">
+            <div
+              key={map._id}
+              className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3"
+            >
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-900 truncate">
+                    {map.university?.name}
+                  </p>
+                  <p className="text-sm text-slate-500 truncate">
+                    {map.major?.name}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => handleOpenModal(map)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    className="p-2 bg-blue-50 text-blue-600 rounded-lg transition"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(map._id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 bg-red-50 text-red-600 rounded-lg transition"
                   >
                     🗑️
                   </button>
                 </div>
-              </td>
-            </tr>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full min-w-[800px] text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                  Trường
+                </th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-600">
+                  Ngành
+                </th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
+                  Hành động
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {mappings.map((map) => (
+                <tr
+                  key={map._id}
+                  className="hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    {map.university?.name}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {map.major?.name}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleOpenModal(map)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(map._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
     );
   };
 
@@ -424,7 +559,7 @@ const AdminMajorUniversityManagement = () => {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">{renderTable()}</div>
+        {renderContent()}
         {renderPagination()}
       </div>
 

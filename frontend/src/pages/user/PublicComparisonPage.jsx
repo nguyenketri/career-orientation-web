@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axiosClient from "../../api/axios";
-import UpgradePrompt from "../../components/UpgradePrompt";
 
 const PublicComparisonPage = () => {
   const [searchParams] = useSearchParams();
   const [selectedMajors, setSelectedMajors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [promptFeature, setPromptFeature] = useState("");
   const tableRef = useRef(null);
 
   useEffect(() => {
@@ -34,11 +31,6 @@ const PublicComparisonPage = () => {
 
     fetchPublicData();
   }, [searchParams]);
-
-  const handlePremiumAction = (feature) => {
-    setPromptFeature(feature);
-    setShowUpgradePrompt(true);
-  };
 
   if (loading) {
     return (
@@ -73,17 +65,6 @@ const PublicComparisonPage = () => {
     );
   }
 
-  if (showUpgradePrompt) {
-    return (
-      <UpgradePrompt
-        feature={promptFeature}
-        requiredPlan={["PAID", "PREMIUM"]}
-        currentPlan="FREE"
-        onBack={() => setShowUpgradePrompt(false)}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F5F7FA] pt-20 pb-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -115,27 +96,7 @@ const PublicComparisonPage = () => {
               Xem chi tiết so sánh các trường đại học được chia sẻ.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handlePremiumAction("Xuất PDF")}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition text-sm"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Xuất PDF
-            </button>
-          </div>
+          <div className="flex items-center gap-3"></div>
         </div>
 
         {/* Comparison Table */}
@@ -144,7 +105,55 @@ const PublicComparisonPage = () => {
             ref={tableRef}
             className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden"
           >
-            <div className="overflow-x-auto">
+            {/* Mobile View: Cards */}
+            <div className="md:hidden p-4 space-y-6">
+              {selectedMajors.map((item) => (
+                <div
+                  key={item._id}
+                  className="border border-slate-200 rounded-lg p-4 bg-slate-50"
+                >
+                  <div className="font-black text-slate-900 mb-4 border-b pb-2">
+                    {item.university?.name} - {item.major?.name}
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Website:</span>
+                      <a
+                        href={item.university?.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        Link
+                      </a>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Địa chỉ:</span>
+                      <span className="text-right">
+                        {item.university?.address || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Học phí:</span>
+                      <span>
+                        {item.tuitionFee
+                          ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu/năm`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">
+                        Điểm chuẩn:
+                      </span>
+                      <span>{item.admissionScore?.toFixed(1) || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full table-fixed min-w-[800px]">
                 <tbody>
                   {/* Title Row */}

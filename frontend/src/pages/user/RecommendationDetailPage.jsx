@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getScoreAnalysisHistory } from "../../services/recommendService";
-import { getUser } from "../../utils/auth";
 
 const RecommendationDetailPage = () => {
   const { id } = useParams();
@@ -10,7 +9,6 @@ const RecommendationDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const user = getUser();
 
   useEffect(() => {
     const fetchResult = async () => {
@@ -80,9 +78,9 @@ const RecommendationDetailPage = () => {
         </button>
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-2">
+            <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-2 leading-tight">
               High School Exam Results{" "}
               {new Date(result.createdAt).getFullYear()}
             </h1>
@@ -115,46 +113,6 @@ const RecommendationDetailPage = () => {
                 })}
               </span>
             </div>
-          </div>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold hover:bg-slate-50 transition">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.684 13.342C8.886 13.171 9 13.103 9.178 13.053c.18-.05.348-.046.555.03c.206.074.41.176.569.314h.4c.22.164.347.483.347.743 0 .26-.127.579-.347.743h-.4c-.21.138-.369.24-.569.314-.207.074-.375.078-.555.03-.18-.05-.312-.122-.438-.25zM15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 11V3m0 0L9 6m3-3l3 3"
-                />
-              </svg>
-              Share
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Download PDF
-            </button>
           </div>
         </div>
 
@@ -236,7 +194,8 @@ const RecommendationDetailPage = () => {
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
@@ -314,6 +273,84 @@ const RecommendationDetailPage = () => {
                       ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {result.recommendedUniversityMajors
+                  ?.slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage,
+                  )
+                  .map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4"
+                    >
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
+                            <img
+                              src={`https://source.unsplash.com/featured/?university,${item.university?.name}`}
+                              alt="uni"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 text-sm">
+                              {item.university?.name}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {item.major?.name}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-600 text-[10px] font-bold rounded">
+                          {item.matchingGroup || "A01"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-200">
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase font-bold">
+                            Benchmark
+                          </div>
+                          <div className="text-sm font-black text-slate-700">
+                            {item.admissionScore}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase font-bold">
+                            Chance
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${idx === 0 ? "bg-orange-500" : "bg-green-500"}`}
+                                style={{ width: `${90 - idx * 5}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700">
+                              {90 - idx * 5}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        {item.university?.website && (
+                          <a
+                            href={item.university.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto text-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition"
+                          >
+                            Visit Website
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
               </div>
 
               {result.recommendedUniversityMajors?.length > itemsPerPage && (

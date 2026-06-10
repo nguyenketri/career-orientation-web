@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { getAllUniversityMajors } from "../../services/universityService";
 import { getUser } from "../../utils/auth";
 import UpgradePrompt from "../../components/UpgradePrompt";
-import axiosClient from "../../api/axios";
-import html2pdf from "html2pdf.js";
 
 const ComparisonPage = () => {
   const navigate = useNavigate();
@@ -21,7 +19,6 @@ const ComparisonPage = () => {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const tableRef = useRef(null);
 
   const plan = user?.subscriptionPlan || "FREE";
@@ -80,164 +77,8 @@ const ComparisonPage = () => {
       alert("Không thể sao chép liên kết.");
     }
   };
-
-  const handleExportPdf = async () => {
-    if (selectedMajors.length === 0) {
-      alert("Vui lòng chọn ít nhất một trường để xuất PDF.");
-      return;
-    }
-
-    if (plan === "FREE") {
-      setShowUpgradePrompt(true);
-      return;
-    }
-
-    try {
-      if (plan === "PAID") {
-        // Standard PDF Export
-        const element = tableRef.current;
-        const opt = {
-          margin: 10,
-          filename: "so-sanh-truong-hoc.pdf",
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-        element.classList.add("pdf-export");
-        await html2pdf().set(opt).from(element).save();
-        element.classList.remove("pdf-export");
-      } else if (plan === "PREMIUM") {
-        // Premium AI-Enhanced PDF Export
-        setIsExporting(true);
-        try {
-          const res = await axiosClient.post("/comparison/analyze", {
-            selectedMajors,
-          });
-          const analysisText = res.data.analysis;
-
-          // Create a temporary container for the PDF
-          const element = document.createElement("div");
-          element.style.padding = "20px";
-          element.style.fontFamily = "Arial, sans-serif";
-
-          // Use innerHTML to create a fresh copy of the table content
-          element.innerHTML = tableRef.current.innerHTML;
-
-          // The content is now inside 'element', so we find the views within 'element'
-          const desktopView = element.querySelector(".hidden.md\\:block");
-          if (desktopView) {
-            desktopView.classList.remove("hidden");
-            desktopView.style.display = "block";
-            desktopView.style.overflow = "visible";
-            desktopView.style.width = "1000px";
-          }
-
-          const mobileView = element.querySelector(".md\\:hidden");
-          if (mobileView) {
-            mobileView.style.display = "none";
-          }
-
-          const innerDiv = element.querySelector(".overflow-x-auto");
-          if (innerDiv) {
-            innerDiv.style.overflow = "visible";
-          }
-
-          // Ensure the wrapper has a white background and fixed width
-          element.style.backgroundColor = "white";
-          element.style.width = "1000px";
-
-          // Add AI Analysis Section
-          const aiSection = document.createElement("div");
-          aiSection.style.marginTop = "30px";
-          aiSection.style.padding = "20px";
-          aiSection.style.borderRadius = "12px";
-          aiSection.style.background =
-            "linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)";
-          aiSection.style.border = "2px solid #e2e8f0";
-          aiSection.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
-
-          const title = document.createElement("h2");
-          title.innerText = "✨ Phân tích chuyên sâu từ Trợ lý AI";
-          title.style.color = "#1e293b";
-          title.style.fontSize = "20px";
-          title.style.marginBottom = "15px";
-          title.style.borderBottom = "2px solid #3b82f6";
-          title.style.display = "inline-block";
-          aiSection.appendChild(title);
-
-          const content = document.createElement("div");
-          content.style.color = "#475569";
-          content.style.lineHeight = "1.6";
-          content.style.fontSize = "14px";
-          content.style.whiteSpace = "pre-wrap";
-          content.innerText = analysisText;
-          aiSection.appendChild(content);
-
-          element.appendChild(aiSection);
-
-          const opt = {
-            margin: 10,
-            filename: "so-sanh-truong-hoc-premium.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              windowWidth: 1200, // Force desktop viewport for html2canvas
-            },
-            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }, // Landscape for wide tables
-          };
-          element.classList.add("pdf-export");
-          // Append to body hidden to ensure CSS is applied
-          element.style.position = "absolute";
-          element.style.left = "-9999px";
-          element.style.top = "0";
-          element.style.width = "1000px";
-          element.style.backgroundColor = "white";
-          element.style.visibility = "visible";
-          element.style.display = "block";
-          element.style.opacity = "1";
-          element.style.pointerEvents = "none";
-          document.body.appendChild(element);
-
-          // Give the browser a moment to render the element and apply styles
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          await html2pdf().set(opt).from(element).save();
-
-          document.body.removeChild(element);
-        } catch (aiErr) {
-          console.error("AI Analysis failed:", aiErr);
-          alert("Không thể lấy phân tích AI, đang xuất PDF tiêu chuẩn...");
-          // Fallback to standard export
-          const opt = {
-            margin: 10,
-            filename: "so-sanh-truong-hoc.pdf",
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              windowWidth: 1200,
-            },
-            jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-          };
-          tableRef.current.classList.add("pdf-export");
-          await html2pdf().set(opt).from(tableRef.current).save();
-          tableRef.current.classList.remove("pdf-export");
-        } finally {
-          setIsExporting(false);
-        }
-      }
-    } catch (err) {
-      console.error("Export PDF Error:", err);
-      alert("Có lỗi xảy ra khi xuất PDF.");
-      setIsExporting(false);
-    }
-  };
   if (showUpgradePrompt) {
-    const featureName =
-      selectedMajors.length >= maxComparisons
-        ? "So sánh nhiều trường"
-        : "Xuất PDF";
+    const featureName = "So sánh nhiều trường";
 
     return (
       <UpgradePrompt
@@ -302,28 +143,6 @@ const ComparisonPage = () => {
                 />
               </svg>
               Chia sẻ
-            </button>
-            <button
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition text-sm ${
-                isExporting ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              {isExporting ? "Đang xử lý..." : "Xuất PDF"}
             </button>
           </div>
         </div>

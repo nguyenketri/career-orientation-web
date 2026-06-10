@@ -117,7 +117,7 @@ const HistoryPage = () => {
       >
         {/* Results Section */}
         <div className="mb-16">
-          <div className="flex justify-between items-end mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
             <div>
               <h2 className="text-xl font-black mb-2">
                 {activeTab === "academic"
@@ -125,7 +125,7 @@ const HistoryPage = () => {
                   : "Lịch sử kết quả"}
               </h2>
               {activeTab === "academic" && (
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 text-sm max-w-md">
                   Xem lại các lần nhập điểm trước đây và nhận các đề xuất cá
                   nhân hóa dựa trên tổ hợp môn của bạn.
                 </p>
@@ -134,19 +134,19 @@ const HistoryPage = () => {
             {activeTab === "academic" && (
               <button
                 onClick={() => navigate("/recommend")}
-                className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
+                className="w-full md:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
               >
                 <span className="text-xl">+</span> Nhập điểm mới
               </button>
             )}
           </div>
 
-          <div className="flex space-x-6 border-b border-slate-200 mb-8">
+          <div className="flex overflow-x-auto space-x-6 border-b border-slate-200 mb-8 no-scrollbar">
             {["holland", "mbti", "academic"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-4 font-bold capitalize transition-colors ${
+                className={`pb-4 font-bold capitalize transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? "text-orange-600 border-b-2 border-orange-600"
                     : "text-slate-500 hover:text-slate-900"
@@ -316,7 +316,8 @@ const HistoryPage = () => {
 
             {activeTab === "academic" && (
               <div className="col-span-full bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
@@ -457,6 +458,101 @@ const HistoryPage = () => {
                         ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-slate-50">
+                  {academicResults
+                    .slice(
+                      (currentPage - 1) * itemsPerPage,
+                      currentPage * itemsPerPage,
+                    )
+                    .map((r) => (
+                      <div key={r._id} className="p-6 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="w-5 h-5 text-teal-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="font-black text-slate-900">
+                                {r.topCombinations?.[0]?.combination}:{" "}
+                                {r.topCombinations?.[0]?.totalScore}
+                              </div>
+                              <div className="text-[10px] font-black text-slate-400 uppercase">
+                                {r.topCombinations?.[0]?.totalScore >= 27
+                                  ? "XUẤT SẮC"
+                                  : r.topCombinations?.[0]?.totalScore >= 24
+                                    ? "GIỎI"
+                                    : "KHÁ"}
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold ${r.isNew ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
+                          >
+                            {r.isNew ? "● Mới" : "● Đã xem"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {new Date(r.createdAt).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() =>
+                              navigate(`/recommendation-detail/${r._id}`)
+                            }
+                            className="w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-md shadow-blue-600/20"
+                          >
+                            Xem đề xuất
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M14 5l7 7-7 7"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                 </div>
                 {academicResults.length === 0 && (
                   <div className="p-20 text-center">

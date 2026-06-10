@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axiosClient from "../../api/axios";
 import { motion } from "framer-motion";
 
@@ -8,26 +8,27 @@ const AdminPaymentManagement = () => {
   const [filter, setFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalPaymentsCount, setTotalPaymentsCount] = useState(0);
 
-  const fetchPayments = async (page = 1) => {
+  const fetchPayments = useCallback(async (page = 1) => {
     try {
       const res = await axiosClient.get(
         `/admin/payments?page=${page}&limit=10`,
       );
       setPayments(res.data.data.payments);
       setTotalPages(res.data.data.pages);
-      setTotalPaymentsCount(res.data.data.total);
     } catch (err) {
       console.error("Error fetching payments:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPayments(currentPage);
-  }, [currentPage]);
+    const loadPayments = async () => {
+      await fetchPayments(currentPage);
+    };
+    loadPayments();
+  }, [currentPage, fetchPayments]);
 
   const handleUpdateStatus = async (paymentId, newStatus) => {
     if (
@@ -70,16 +71,16 @@ const AdminPaymentManagement = () => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
         <div>
-          <h1 className="text-3xl font-black text-slate-900">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900">
             Quản lý Thanh toán
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             Theo dõi doanh thu và phê duyệt các giao dịch nâng cấp
           </p>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm w-full md:w-auto">
           <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">
             Tổng doanh thu
           </p>
@@ -114,8 +115,80 @@ const AdminPaymentManagement = () => {
 
       {/* Payments Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {/* Mobile View */}
+        <div className="lg:hidden p-4 space-y-4">
+          {filteredPayments.length > 0 ? (
+            filteredPayments.map((payment) => (
+              <div
+                key={payment._id}
+                className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3"
+              >
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <p className="text-sm font-mono font-bold text-blue-600">
+                      #{payment.transactionCode}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {new Date(payment.createdAt).toLocaleString("vi-VN")}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                      payment.status === "SUCCESS"
+                        ? "bg-green-100 text-green-700"
+                        : payment.status === "FAILED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {payment.status === "PENDING"
+                      ? "CHỜ"
+                      : payment.status === "SUCCESS"
+                        ? "OK"
+                        : "LỖI"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-slate-900">
+                      {payment.user?.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {payment.user?.email}
+                    </p>
+                  </div>
+                  <p className="font-black text-slate-900">
+                    {payment.amount.toLocaleString()}đ
+                  </p>
+                </div>
+                {payment.status === "PENDING" && (
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleUpdateStatus(payment._id, "SUCCESS")}
+                      className="flex-1 py-2 bg-green-600 text-white text-xs font-bold rounded-lg"
+                    >
+                      Duyệt
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(payment._id, "FAILED")}
+                      className="flex-1 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg"
+                    >
+                      Từ chối
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-center py-10 text-slate-400">
+              Không có dữ liệu thanh toán
+            </p>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full min-w-[800px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-6 py-4 text-sm font-bold text-slate-600">
@@ -235,7 +308,7 @@ const AdminPaymentManagement = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-center gap-2 py-6 border-t border-slate-100">
+        <div className="flex flex-wrap items-center justify-center gap-2 py-6 border-t border-slate-100">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}

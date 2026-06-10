@@ -12,6 +12,7 @@ const MentorChatPage = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversations, setConversations] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const suggestions = [
@@ -168,9 +169,19 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full bg-white overflow-hidden mt-16">
+    <div className="flex h-[calc(100vh-64px)] w-full bg-white overflow-hidden mt-16 relative">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 z-40 md:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full">
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0`}
+      >
         <div className="p-4">
           <button
             onClick={handleNewChat}
@@ -254,8 +265,26 @@ const MentorChatPage = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
         {/* Top Header */}
-        <div className="h-16 shrink-0 border-b border-slate-100 flex items-center justify-between px-6">
+        <div className="h-16 shrink-0 border-b border-slate-100 flex items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-600 hover:text-orange-500 transition"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
             <div className="w-8 h-8 bg-[#0f172a] rounded-lg flex items-center justify-center text-white text-xs">
               🤖
             </div>
@@ -326,7 +355,7 @@ const MentorChatPage = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}

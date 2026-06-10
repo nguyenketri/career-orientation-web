@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { getAuthHeader } from "../../utils/auth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +23,7 @@ const AdminQuestionManagement = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-  const fetchPaginatedData = async () => {
+  const fetchPaginatedData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === "mbti") {
@@ -49,11 +49,14 @@ const AdminQuestionManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, mbtiPage, hollandPage]);
 
   useEffect(() => {
-    fetchPaginatedData();
-  }, [activeTab, mbtiPage, hollandPage]);
+    const loadData = async () => {
+      await fetchPaginatedData();
+    };
+    loadData();
+  }, [activeTab, mbtiPage, hollandPage, fetchPaginatedData]);
 
   const handleOpenModal = (item = null) => {
     setEditingItem(item);
@@ -149,7 +152,7 @@ const AdminQuestionManagement = () => {
     }
 
     return (
-      <div className="flex items-center justify-center gap-2 py-6 border-t border-slate-100">
+      <div className="flex flex-wrap items-center justify-center gap-2 py-6 border-t border-slate-100">
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
@@ -191,8 +194,10 @@ const AdminQuestionManagement = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-3xl font-black text-slate-900">Quản lý Câu hỏi</h1>
+      <div className="px-1">
+        <h1 className="text-2xl md:text-3xl font-black text-slate-900">
+          Quản lý Câu hỏi
+        </h1>
         <p className="text-slate-500 text-sm mt-1">
           Quản lý nội dung câu hỏi cho các bài kiểm tra định hướng nghề nghiệp
         </p>
@@ -228,10 +233,10 @@ const AdminQuestionManagement = () => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+        <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-full md:w-auto justify-center">
           <button
             onClick={() => setActiveTab("mbti")}
-            className={`px-6 py-2 font-bold rounded-lg transition-all ${
+            className={`flex-1 md:flex-none px-6 py-2 font-bold rounded-lg transition-all ${
               activeTab === "mbti"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -241,7 +246,7 @@ const AdminQuestionManagement = () => {
           </button>
           <button
             onClick={() => setActiveTab("holland")}
-            className={`px-6 py-2 font-bold rounded-lg transition-all ${
+            className={`flex-1 md:flex-none px-6 py-2 font-bold rounded-lg transition-all ${
               activeTab === "holland"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -266,7 +271,7 @@ const AdminQuestionManagement = () => {
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition-all shadow-sm whitespace-nowrap"
+            className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition-all shadow-sm whitespace-nowrap shrink-0"
           >
             + Thêm mới
           </button>
@@ -274,8 +279,78 @@ const AdminQuestionManagement = () => {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        {/* Mobile View */}
+        <div className="lg:hidden p-4 space-y-4">
+          {filteredQuestions.length > 0 ? (
+            filteredQuestions.map((q) => (
+              <div
+                key={q._id}
+                className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <p className="text-slate-900 font-medium leading-relaxed">
+                      {q.question || q.content || q.text || (
+                        <span className="text-slate-400 italic">
+                          Không có nội dung câu hỏi
+                        </span>
+                      )}
+                    </p>
+                    {activeTab === "mbti" && q.dimension && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mt-1 block">
+                        Dimension: {q.dimension}
+                      </span>
+                    )}
+                    {activeTab === "holland" && q.type && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 mt-1 block">
+                        Category: {q.type}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => handleOpenModal(q)}
+                      className="p-2 text-blue-600 bg-white border border-slate-200 rounded-lg transition-colors"
+                      title="Chỉnh sửa"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => handleDelete(q._id)}
+                      className="p-2 text-red-600 bg-white border border-slate-200 rounded-lg transition-colors"
+                      title="Xóa"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-10 text-center space-y-3">
+              <span className="text-5xl block">📂</span>
+              <p className="text-slate-500 font-medium">
+                {searchTerm
+                  ? `Không tìm thấy câu hỏi nào khớp với "${searchTerm}"`
+                  : `Không có câu hỏi nào trong mục ${
+                      activeTab === "mbti" ? "MBTI" : "Holland"
+                    }`}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={() => handleOpenModal()}
+                  className="text-blue-600 hover:underline text-sm font-bold"
+                >
+                  Thêm câu hỏi đầu tiên ngay
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full min-w-[800px] text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-6 py-4 text-sm font-bold text-slate-600">

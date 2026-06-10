@@ -203,16 +203,20 @@ const AdminDashboard = () => {
               key={idx}
               className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-lg transition"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
                   {user.name?.charAt(0)}
                 </div>
-                <div>
-                  <p className="font-medium text-slate-900">{user.name}</p>
-                  <p className="text-xs text-slate-500">{user.email}</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-900 truncate">
+                    {user.name}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">
+                    {user.email}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0 ml-4">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded-full ${
                     user.subscriptionPlan === "PREMIUM"

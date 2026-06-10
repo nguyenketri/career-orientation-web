@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../utils/auth";
 
 const AdminLayout = ({ children }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,8 +22,20 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
+      {/* Mobile Menu Button */}
+      <button
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? "✕" : "☰"}
+      </button>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-[#0f172a] text-white flex flex-col">
+      <aside
+        className={`${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 fixed lg:static z-40 w-64 h-full bg-[#0f172a] text-white flex flex-col transition-transform duration-300`}
+      >
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-lg font-bold">Admin Panel</h1>
           <p className="text-xs text-slate-400">System Controller</p>
@@ -58,7 +72,9 @@ const AdminLayout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-8 pt-20 lg:pt-8">
+        {children}
+      </main>
     </div>
   );
 };

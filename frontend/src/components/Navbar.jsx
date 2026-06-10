@@ -6,6 +6,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(getUser());
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleUserUpdate = () => {
@@ -58,7 +59,7 @@ const Navbar = () => {
           />
         </Link>
 
-        {/* Center Navigation - Role based visibility */}
+        {/* Center Navigation - Desktop */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks
             .filter((link) => {
@@ -83,26 +84,7 @@ const Navbar = () => {
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-4">
-          {/* Notification Icon - Hidden on admin pages or for admin users */}
-          {!isAdminPage && !isAdminUser && (
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            </button>
-          )}
-
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* User Profile / Auth */}
           {user ? (
             <div className="flex items-center gap-3">
@@ -143,13 +125,80 @@ const Navbar = () => {
           {!isAdminPage && !isAdminUser && (
             <Link
               to="/pricing"
-              className="bg-[#0f172a] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition shadow-sm"
+              className="hidden sm:block bg-[#0f172a] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition shadow-sm"
             >
               Upgrade
             </Link>
           )}
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 text-slate-600 hover:text-orange-500 transition"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16m-7 6h7"
+                />
+              )}
+            </svg>
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMenuOpen && (
+        <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-lg animate-in slide-in-from-top duration-200">
+          <div className="px-4 py-4 flex flex-col gap-4">
+            {navLinks
+              .filter((link) => {
+                if (isAdminPage) {
+                  return link.path.startsWith("/admin");
+                }
+                return isAdminUser || !link.path.startsWith("/admin");
+              })
+              .map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`text-base font-medium transition-colors ${
+                    isActive(link.path)
+                      ? "text-orange-500 font-bold"
+                      : "text-slate-600 hover:text-orange-500"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            {!isAdminPage && !isAdminUser && (
+              <Link
+                to="/pricing"
+                onClick={() => setIsMenuOpen(false)}
+                className="bg-[#0f172a] text-white px-4 py-2 rounded-full text-center text-sm font-bold hover:bg-slate-800 transition shadow-sm"
+              >
+                Upgrade
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

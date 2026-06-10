@@ -47,21 +47,6 @@ exports.createPayment = async (req, res) => {
 
     let amount = PLAN_PRICES[planType];
 
-    // Cost Offset Logic: PAID -> PREMIUM
-    if (user.subscriptionPlan === "PAID" && planType === "PREMIUM") {
-      const now = new Date();
-      const expiry = new Date(user.subscriptionExpiry);
-      if (expiry > now) {
-        const remainingMs = expiry - now;
-        const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
-        const dailyRate = PLAN_PRICES.PAID / 30;
-        const remainingValue = Math.floor(remainingDays * dailyRate);
-
-        // Subtract remaining value from Premium price, minimum 10,000đ
-        amount = Math.max(10000, amount - remainingValue);
-      }
-    }
-
     // Generate a unique 6-digit transaction code: CZP + XXXXXX
     let transactionCode;
     let codeExists = true;
@@ -129,10 +114,10 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
     };
   }
 
-  if (payment.amount !== transferAmount) {
+  if (transferAmount < payment.amount) {
     return {
       success: false,
-      reason: `Amount mismatch. Expected ${payment.amount}, received ${transferAmount}.`,
+      reason: `Insufficient amount. Expected at least ${payment.amount}, received ${transferAmount}.`,
     };
   }
 

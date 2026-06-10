@@ -1,4 +1,5 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 const os = require("os");
 const path = require("path");
 const User = require("../models/user.model");
@@ -294,15 +295,15 @@ const generateTestResultPdf = async (userId, res) => {
         `[PDF Service] Launching Puppeteer (isProduction: ${isProduction})`,
       );
 
-      let executablePath = isProduction
-        ? process.env.CHROME_BIN || "/usr/bin/google-chrome"
-        : null;
+      let executablePath;
+      let args = [];
 
-      // Local Windows Fix: Explicitly point to the installed Chrome
-      if (!isProduction && !executablePath) {
+      if (isProduction) {
+        executablePath = await chromium.getExecutablePath();
+        args = chromium.getArgs();
+      } else {
+        // Local Windows Fix: Explicitly point to the installed Chrome
         const homeDir = os.homedir();
-        // Based on your previous install: C:\Users\Admin\.cache\puppeteer\chrome\win64-148.0.7778.97\chrome-win64\chrome.exe
-        // We use a glob-like approach or just hardcode the path if we know the version
         executablePath = path.join(
           homeDir,
           ".cache",
@@ -318,16 +319,9 @@ const generateTestResultPdf = async (userId, res) => {
       }
 
       browser = await puppeteer.launch({
-        headless: isProduction ? "shell" : true,
+        headless: isProduction ? chromium.headless : true,
         executablePath: executablePath,
-        args: isProduction
-          ? [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
-              "--disable-dev-shm-usage",
-              "--disable-gpu",
-            ]
-          : [],
+        args: args,
       });
       console.log(`[PDF Service] Browser launched successfully`);
 

@@ -114,8 +114,8 @@ const HollandTestPage = () => {
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
       <div className="mx-auto w-full max-w-4xl flex-grow flex flex-col">
         {!isStarted ? (
-          <div className="text-center bg-white p-6 md:p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
-            <h1 className="text-2xl md:text-4xl font-black text-slate-900">
+          <div className="text-center bg-white p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <h1 className="text-4xl font-black text-slate-900">
               Không tìm thấy bộ câu hỏi
             </h1>
             <p className="text-slate-500 mt-4">
@@ -140,7 +140,7 @@ const HollandTestPage = () => {
             </div>
 
             <div className="flex-grow flex flex-col justify-center mb-12">
-              <div className="bg-white p-6 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+              <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
                 <div className="text-center mb-16">
                   <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
@@ -217,7 +217,7 @@ const HollandTestPage = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="w-full sm:w-auto px-8 md:px-10 py-4 rounded-full bg-blue-600 text-white font-black text-base md:text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50 text-center"
+                  className="px-8 md:px-10 py-4 rounded-full bg-blue-600 text-white font-black text-base md:text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
                 >
                   {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
                 </button>
@@ -225,7 +225,7 @@ const HollandTestPage = () => {
                 <button
                   onClick={() => setCurrentIndex((curr) => curr + 1)}
                   disabled={currentIndex === totalQuestions - 1}
-                  className="w-full sm:w-auto px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-sm md:text-base"
+                  className="px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
                 >
                   Bỏ qua
                   <svg

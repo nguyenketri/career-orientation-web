@@ -6,7 +6,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(getUser());
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleUserUpdate = () => {
@@ -43,13 +42,6 @@ const Navbar = () => {
     { name: "History", path: "/history" },
   ];
 
-  const filteredLinks = navLinks.filter((link) => {
-    if (isAdminPage) {
-      return link.path.startsWith("/admin");
-    }
-    return isAdminUser || !link.path.startsWith("/admin");
-  });
-
   if (isAdminUser) {
     navLinks.push({ name: "Admin Panel", path: "/admin/dashboard" });
   }
@@ -66,25 +58,32 @@ const Navbar = () => {
           />
         </Link>
 
-        {/* Center Navigation - Desktop */}
+        {/* Center Navigation - Role based visibility */}
         <div className="hidden md:flex items-center gap-8">
-          {filteredLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`text-sm font-medium transition-colors ${
-                isActive(link.path)
-                  ? "text-orange-500 font-bold"
-                  : "text-slate-600 hover:text-orange-500"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {navLinks
+            .filter((link) => {
+              if (isAdminPage) {
+                return link.path.startsWith("/admin");
+              }
+              return isAdminUser || !link.path.startsWith("/admin");
+            })
+            .map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`text-sm font-medium transition-colors ${
+                  isActive(link.path)
+                    ? "text-orange-500 font-bold"
+                    : "text-slate-600 hover:text-orange-500"
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-4">
           {/* Notification Icon - Hidden on admin pages or for admin users */}
           {!isAdminPage && !isAdminUser && (
             <button className="p-2 text-slate-400 hover:text-slate-600 transition">
@@ -144,74 +143,12 @@ const Navbar = () => {
           {!isAdminPage && !isAdminUser && (
             <Link
               to="/pricing"
-              className="hidden sm:block bg-[#0f172a] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition shadow-sm"
+              className="bg-[#0f172a] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition shadow-sm"
             >
               Upgrade
             </Link>
           )}
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-orange-500 transition"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              {isMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </button>
         </div>
-
-        {/* Mobile Menu Overlay */}
-        {isMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-lg animate-in slide-in-from-top duration-200">
-            <div className="flex flex-col p-4 gap-4">
-              {filteredLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`text-base font-medium transition-colors ${
-                    isActive(link.path)
-                      ? "text-orange-500 font-bold"
-                      : "text-slate-600 hover:text-orange-500"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              <hr className="border-gray-100" />
-              {/* Mobile Upgrade Button */}
-              {!isAdminPage && !isAdminUser && (
-                <Link
-                  to="/pricing"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="bg-[#0f172a] text-white px-4 py-3 rounded-xl text-center text-sm font-bold hover:bg-slate-800 transition"
-                >
-                  Upgrade
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );

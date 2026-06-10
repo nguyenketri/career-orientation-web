@@ -12,7 +12,6 @@ const MentorChatPage = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversations, setConversations] = useState([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const suggestions = [
@@ -42,13 +41,11 @@ const MentorChatPage = () => {
     const newId = uuidv4();
     setSessionId(newId);
     setMessages([]);
-    setIsSidebarOpen(false);
   }, []);
 
   const handleSwitchSession = (id) => {
     setSessionId(id);
     setMessages([]); // Clear messages when switching
-    setIsSidebarOpen(false);
   };
 
   const fetchSessions = useCallback(async () => {
@@ -125,6 +122,8 @@ const MentorChatPage = () => {
 
     try {
       const response = await sendChatMessage(sessionId, userMessage);
+      // Fix: response is already the data object from axiosClient,
+      // and the controller returns { status: "success", data: { response, history } }
       if (response && response.data) {
         const chatHistory = response.data.history;
         if (chatHistory && chatHistory.length > 0) {
@@ -136,6 +135,7 @@ const MentorChatPage = () => {
           setTimeout(scrollToBottom, 100);
         }
 
+        // Refresh sessions if it was the first message to get the new title
         if (isFirstMessage) {
           fetchSessions();
         }
@@ -168,19 +168,9 @@ const MentorChatPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full bg-white overflow-hidden mt-16 relative">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
+    <div className="flex h-[calc(100vh-64px)] w-full bg-white overflow-hidden mt-16">
       {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full transition-transform duration-300 ease-in-out transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0`}
-      >
+      <div className="w-72 bg-[#f8fafc] border-r border-slate-200 flex flex-col h-full">
         <div className="p-4">
           <button
             onClick={handleNewChat}
@@ -194,6 +184,7 @@ const MentorChatPage = () => {
           <p className="px-3 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
             GẦN ĐÂY
           </p>
+          {/* Show current session if it's a new one not yet in the list */}
           {sessionId &&
             !conversations.some((c) => c.sessionId === sessionId) && (
               <button
@@ -263,26 +254,8 @@ const MentorChatPage = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
         {/* Top Header */}
-        <div className="h-16 shrink-0 border-b border-slate-100 flex items-center justify-between px-4 md:px-6">
+        <div className="h-16 shrink-0 border-b border-slate-100 flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
             <div className="w-8 h-8 bg-[#0f172a] rounded-lg flex items-center justify-center text-white text-xs">
               🤖
             </div>
@@ -296,7 +269,7 @@ const MentorChatPage = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-4">
             <button className="text-slate-400 hover:text-slate-600">
               <svg
                 className="w-5 h-5"
@@ -337,7 +310,7 @@ const MentorChatPage = () => {
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar relative">
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
           {messages.length === 0 ? (
             <div className="max-w-3xl mx-auto mt-10">
               <div className="text-center mb-12">
@@ -353,7 +326,7 @@ const MentorChatPage = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
@@ -416,7 +389,7 @@ const MentorChatPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 md:p-6 bg-white shrink-0">
+        <div className="p-6 bg-white shrink-0">
           <div className="max-w-3xl mx-auto relative">
             <div className="bg-white border border-slate-200 rounded-[24px] shadow-2xl shadow-slate-200/50 p-2 focus-within:border-blue-400 transition-all">
               <textarea

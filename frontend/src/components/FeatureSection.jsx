@@ -82,11 +82,11 @@ const features = [
 
 const FeatureSection = () => {
   return (
-    <section className="bg-slate-50 px-6 py-12 md:py-24 text-slate-900">
+    <section className="bg-slate-50 px-6 py-24 text-slate-900">
       <div className="mx-auto max-w-7xl">
         {/* Heading */}
-        <div className="mb-12 md:mb-16 text-center">
-          <h2 className="mb-4 text-2xl md:text-3xl font-black text-slate-900">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-3xl font-black text-slate-900">
             Công cụ mạnh mẽ cho tương lai
           </h2>
           <p className="mx-auto max-w-2xl text-slate-500 font-medium text-sm">
@@ -101,7 +101,7 @@ const FeatureSection = () => {
             <Link
               key={index}
               to={feature.link}
-              className={`group relative flex flex-col rounded-[32px] p-6 md:p-8 transition-all duration-300 hover:-translate-y-2 ${
+              className={`group relative flex flex-col rounded-[32px] p-8 transition-all duration-300 hover:-translate-y-2 ${
                 feature.variant === "dark"
                   ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20"
                   : "bg-white border border-slate-100 text-slate-900 shadow-xl shadow-slate-200/50"

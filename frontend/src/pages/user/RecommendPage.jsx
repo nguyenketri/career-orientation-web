@@ -317,7 +317,7 @@ const RecommendPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
+              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
                 {subjectInputs.map((subj) => (
                   <div key={subj.name} className="flex flex-col gap-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase text-center">
@@ -556,7 +556,7 @@ const RecommendPage = () => {
                       </div>
 
                       {/* Score */}
-                      <div className="flex flex-col items-center justify-center px-4 py-3 md:py-0 border-t md:border-t-0 md:border-l border-slate-100">
+                      <div className="flex flex-col items-center justify-center px-4 border-l border-slate-100">
                         <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">
                           Điểm chuẩn
                         </span>

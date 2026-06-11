@@ -118,7 +118,7 @@ const RecommendationDetailPage = () => {
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column */}
-          <div className="space-y-8">
+          <div className="space-y-8 w-full">
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
               <h3 className="text-lg font-black mb-6">Historical Entry</h3>
               <div className="space-y-3">

@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://career-orientation-web-backend.onrender.com/api/$1"
+      "destination": "https://career-orientation-web.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",

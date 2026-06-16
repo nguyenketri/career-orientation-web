@@ -21,7 +21,8 @@ exports.getQuestions = async (req, res) => {
 };
 exports.submitTest = async (req, res) => {
   try {
-    const result = await submitHollandTest(req.user.id, req.body.answers);
+    const userId = req.user ? req.user.id : null;
+    const result = await submitHollandTest(userId, req.body.answers);
 
     return res.status(200).json({
       status: "success",

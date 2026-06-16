@@ -1,17 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const mbtiController = require("../controllers/mbti.controller");
-const { authMiddleware } = require("../middlewares/auth.middleware");
+const {
+  authMiddleware,
+  optionalAuthMiddleware,
+} = require("../middlewares/auth.middleware");
 const { requirePlan } = require("../middlewares/subscription.middleware");
 
 // PROTECTED: get questions
-router.get("/questions", authMiddleware, mbtiController.getQuestions);
+router.get("/questions", optionalAuthMiddleware, mbtiController.getQuestions);
 
 // PROTECTED: submit and get history
-router.post("/submit", authMiddleware, mbtiController.submitTest);
+router.post("/submit", optionalAuthMiddleware, mbtiController.submitTest);
 router.get("/history", authMiddleware, mbtiController.getHistory);
 // get by id
-router.get("/:id", authMiddleware, async (req, res) => {
+router.get("/:id", optionalAuthMiddleware, async (req, res) => {
   try {
     const MbtiResult = require("../models/mbtiResult.model");
     const UniversityMajor = require("../models/universityMajor.model");

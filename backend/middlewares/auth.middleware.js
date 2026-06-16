@@ -47,6 +47,36 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
+const optionalAuthMiddleware = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      subscriptionPlan: user.subscriptionPlan,
+    };
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
 const adminMiddleware = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
     next();
@@ -60,5 +90,6 @@ const adminMiddleware = (req, res, next) => {
 
 module.exports = {
   authMiddleware,
+  optionalAuthMiddleware,
   adminMiddleware,
 };

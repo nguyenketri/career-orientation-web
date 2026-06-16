@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { authMiddleware } = require("../middlewares/auth.middleware");
+const {
+  authMiddleware,
+  optionalAuthMiddleware,
+} = require("../middlewares/auth.middleware");
 const { requirePlan } = require("../middlewares/subscription.middleware");
 
 const {
@@ -9,8 +12,8 @@ const {
   generateAiAnalysis,
 } = require("../controllers/holland.controller");
 
-router.get("/questions", authMiddleware, getQuestions);
-router.post("/submit", authMiddleware, submitTest);
+router.get("/questions", optionalAuthMiddleware, getQuestions);
+router.post("/submit", optionalAuthMiddleware, submitTest);
 router.post(
   "/ai-analysis/:resultId",
   authMiddleware,

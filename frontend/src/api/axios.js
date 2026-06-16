@@ -2,7 +2,7 @@ import axios from "axios";
 
 // create axios instance
 const axiosClient = axios.create({
-  baseURL: "https://career-orientation-web.onrender.com/api",
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -27,8 +27,17 @@ axiosClient.interceptors.response.use(
       // token sai / hết hạn
       localStorage.removeItem("token");
 
-      // redirect về login
-      window.location.href = "/login";
+      // Only redirect to login if the request was not to a "silent" or optional endpoint
+      // We check if the request URL contains certain keywords that should not trigger a redirect
+      const url = error.config?.url || "";
+      const isSilentRequest =
+        url.includes("/mbti/history") ||
+        url.includes("/holland-results/me") ||
+        url.includes("/quota");
+
+      if (!isSilentRequest) {
+        window.location.href = "/login";
+      }
     }
 
     if (

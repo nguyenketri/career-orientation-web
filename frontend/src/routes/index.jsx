@@ -56,30 +56,9 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/recommend"
-            element={
-              <ProtectedRoute>
-                <RecommendPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/university/:id"
-            element={
-              <ProtectedRoute>
-                <UniversityDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/test-result"
-            element={
-              <ProtectedRoute>
-                <TestResultPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/recommend" element={<RecommendPage />} />
+          <Route path="/university/:id" element={<UniversityDetailPage />} />
+          <Route path="/test-result" element={<TestResultPage />} />
           <Route
             path="/result-detail/:type/:id"
             element={
@@ -96,22 +75,8 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/tests"
-            element={
-              <ProtectedRoute>
-                <TestsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/comparison"
-            element={
-              <ProtectedRoute>
-                <ComparisonPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/tests" element={<TestsPage />} />
+          <Route path="/comparison" element={<ComparisonPage />} />
           <Route path="/share-comparison" element={<PublicComparisonPage />} />
           <Route
             path="/mentor"

@@ -3,10 +3,10 @@ import {
   recommendBySubjects,
   getRecommendQuota,
 } from "../../services/recommendService";
+import { getUser } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useRecommendation } from "../../context/RecommendationContext";
-import UpgradePrompt from "../../components/UpgradePrompt";
 
 const RecommendPage = () => {
   const {
@@ -24,11 +24,20 @@ const RecommendPage = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [quota, setQuota] = useState(null);
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const navigate = useNavigate();
   const requestCountRef = useRef(0);
 
   const fetchQuota = useCallback(async () => {
+    if (!getUser()) {
+      const guestUsed = localStorage.getItem("guest_recommendation_used");
+      if (guestUsed) {
+        setQuota({ used: 1, limit: 1, remaining: 0 });
+      } else {
+        setQuota({ used: 0, limit: 1, remaining: 1 });
+      }
+      return;
+    }
+
     try {
       const data = await getRecommendQuota();
       setQuota(data.data);
@@ -45,6 +54,15 @@ const RecommendPage = () => {
   }, [fetchQuota]);
 
   const handleRecommend = async (isLoadMore = false) => {
+    // Check guest quota
+    if (!getUser() && !isLoadMore) {
+      const guestUsed = localStorage.getItem("guest_recommendation_used");
+      if (guestUsed) {
+        navigate("/login");
+        return;
+      }
+    }
+
     requestCountRef.current += 1;
     const currentRequestId = requestCountRef.current;
 
@@ -101,13 +119,19 @@ const RecommendPage = () => {
       }
 
       // Update quota after successful search
+      if (!getUser() && !isLoadMore) {
+        localStorage.setItem("guest_recommendation_used", "true");
+      }
       fetchQuota();
     } catch (err) {
       if (currentRequestId !== requestCountRef.current) return;
 
       if (err.response?.data?.code === "QUOTA_EXCEEDED") {
-        setShowUpgradePrompt(true);
-        setError("Bạn đã hết lượt gợi ý cho hôm nay.");
+        if (!getUser()) {
+          navigate("/login");
+        } else {
+          navigate("/upgrade-prompt?feature=Phân tích tổ hợp điểm");
+        }
       } else {
         setError("Có lỗi xảy ra, vui lòng thử lại sau.");
       }
@@ -360,6 +384,12 @@ const RecommendPage = () => {
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-2">
+                  {!getUser() && (
+                    <p className="text-[10px] font-bold text-slate-500 text-center mb-1">
+                      Bạn có 1 lần thử miễn phí. Sau đó hãy đăng ký hoặc đăng
+                      nhập để thêm lượt.
+                    </p>
+                  )}
                   <button
                     onClick={() => handleRecommend()}
                     className="w-full md:w-auto px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition shadow-lg shadow-orange-200 active:scale-95"
@@ -410,7 +440,8 @@ const RecommendPage = () => {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-black text-slate-900">
                   Ngành học & Trường phù hợp{" "}
-                  {result && `(${result.recommendations?.length || 0} kết quả)`}
+                  {result &&
+                    `(${result.totalResults || result.recommendations?.length || 0} kết quả)`}
                 </h3>
                 <div className="flex bg-white border border-slate-200 rounded-lg p-1">
                   <button className="p-1.5 bg-slate-100 rounded-md text-slate-600">
@@ -593,13 +624,6 @@ const RecommendPage = () => {
           </main>
         </div>
       </div>
-      <UpgradePrompt
-        isOpen={showUpgradePrompt}
-        onBack={() => setShowUpgradePrompt(false)}
-        feature="Phân tích tổ hợp điểm"
-        requiredPlan={["PAID", "PREMIUM"]}
-        currentPlan="FREE"
-      />
     </>
   );
 };

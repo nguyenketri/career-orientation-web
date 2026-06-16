@@ -81,8 +81,8 @@ const TestsPage = () => {
             Khám Phá Bản Thân
           </h1>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            Lựa chọn bài trắc nghiệm phù hợp để tìm hiểu về thiên hướng nghề
-            nghiệp và tính cách của bạn.
+            Lựa chọn bài trắc nghiệm phù hợp để tìm hiểu về thiên hướng ngành
+            học và tính cách của bạn.
           </p>
         </div>
 
@@ -158,9 +158,11 @@ const TestsPage = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="font-bold">Định hướng nghề nghiệp</p>
+                  <p className="font-bold">
+                    Định hướng ngành và trường đại học
+                  </p>
                   <p className="text-slate-400 text-xs">
-                    Gợi ý các ngành học và công việc phù hợp với tiềm năng.
+                    Gợi ý các ngành học và trường đại học phù hợp với tiềm năng.
                   </p>
                 </div>
                 <div>

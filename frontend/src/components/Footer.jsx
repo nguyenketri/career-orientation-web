@@ -23,7 +23,7 @@ const Footer = () => {
             <Link to="/recommend" className="hover:text-blue-400 transition">
               Gợi ý nghề nghiệp
             </Link>
-            <Link to="/holland" className="hover:text-blue-400 transition">
+            <Link to="/tests" className="hover:text-blue-400 transition">
               Trắc nghiệm Holland
             </Link>
           </div>
@@ -46,14 +46,13 @@ const Footer = () => {
         <div>
           <h3 className="mb-4 text-lg font-bold text-white">Kết nối</h3>
           <div className="flex flex-col gap-3 text-slate-400 font-medium">
-            <a href="#" className="hover:text-blue-400 transition">
+            <a
+              href="https://www.facebook.com/giaiphapdinhhuongnganhhoccazup"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-400 transition"
+            >
               Facebook
-            </a>
-            <a href="#" className="hover:text-blue-400 transition">
-              LinkedIn
-            </a>
-            <a href="#" className="hover:text-blue-400 transition">
-              GitHub
             </a>
           </div>
         </div>
@@ -61,7 +60,7 @@ const Footer = () => {
 
       {/* Bottom */}
       <div className="mx-auto mt-16 max-w-7xl border-t border-slate-800 pt-6 text-center text-sm text-slate-500 font-medium">
-        © 2024 EduPath AI. Empowering the next generation of students.
+        © Contact caZUP by email: cazup.vn@gmail.com.
       </div>
     </footer>
   );

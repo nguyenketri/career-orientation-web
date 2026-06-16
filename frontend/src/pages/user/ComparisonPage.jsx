@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { getAllUniversityMajors } from "../../services/universityService";
 import { getUser } from "../../utils/auth";
 import UpgradePrompt from "../../components/UpgradePrompt";
 
 const ComparisonPage = () => {
-  const navigate = useNavigate();
   const user = getUser();
   const userId = user?._id || user?.id;
   const storageKey = userId
@@ -85,7 +84,7 @@ const ComparisonPage = () => {
         feature={featureName}
         requiredPlan={plan === "FREE" ? ["PAID", "PREMIUM"] : ["PREMIUM"]}
         currentPlan={plan}
-        onBack={() => navigate("/recommend")}
+        onBack={() => setShowUpgradePrompt(false)}
       />
     );
   }

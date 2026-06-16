@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
+import { getUser } from "../../utils/auth";
 
 const MbtiTestPage = () => {
   const navigate = useNavigate();
@@ -26,15 +27,18 @@ const MbtiTestPage = () => {
   }, []);
 
   const totalQuestions = questions.length;
+  const answeredCount = questions.filter((q) => answers[q._id]).length;
   const progress =
-    totalQuestions > 0 ? (currentIndex / totalQuestions) * 100 : 0;
+    totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   const handleSelect = (typeValue) => {
     const currentQ = questions[currentIndex];
-    setAnswers({
+    const newAnswers = {
       ...answers,
       [currentQ._id]: { typeValue },
-    });
+    };
+    setAnswers(newAnswers);
+    localStorage.setItem("mbti_answers", JSON.stringify(newAnswers));
 
     if (currentIndex < totalQuestions - 1) {
       setTimeout(() => setCurrentIndex((curr) => curr + 1), 300);
@@ -46,13 +50,21 @@ const MbtiTestPage = () => {
   };
 
   const handleSubmit = async () => {
-    const answeredCount = Object.keys(answers).length;
+    const currentAnsweredCount = questions.filter((q) => answers[q._id]).length;
     const minRequired = totalQuestions;
 
-    if (answeredCount < minRequired) {
-      setError(
-        `Vui lòng trả lời tất cả ${minRequired} câu hỏi để xem kết quả.`,
-      );
+    if (currentAnsweredCount < minRequired) {
+      const firstUnansweredIndex = questions.findIndex((q) => !answers[q._id]);
+      if (firstUnansweredIndex !== -1) {
+        setCurrentIndex(firstUnansweredIndex);
+        setError(
+          "Vui lòng hoàn thành các câu hỏi bị bỏ qua trước khi nộp bài.",
+        );
+      } else {
+        setError(
+          `Vui lòng trả lời tất cả ${minRequired} câu hỏi để xem kết quả.`,
+        );
+      }
       return;
     }
 
@@ -63,17 +75,21 @@ const MbtiTestPage = () => {
       const res = await submitMbtiTest(formattedAnswers);
       const testResult = res.data;
 
-      // Redirect to analysis result page with the result data in state
-      localStorage.setItem(
-        "guestResult",
-        JSON.stringify({ type: "mbti", result: testResult }),
-      );
-      navigate("/test-result", {
-        state: {
-          type: "mbti",
-          result: testResult,
-        },
-      });
+      localStorage.removeItem("mbti_answers");
+      if (!getUser()) {
+        localStorage.setItem(
+          "guestResult",
+          JSON.stringify({ type: "mbti", result: testResult }),
+        );
+        navigate("/register");
+      } else {
+        navigate("/test-result", {
+          state: {
+            type: "mbti",
+            result: testResult,
+          },
+        });
+      }
     } catch {
       setError("Có lỗi khi phân tích kết quả, vui lòng thử lại.");
     } finally {
@@ -97,7 +113,7 @@ const MbtiTestPage = () => {
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
   const isFreeLimitReached = false;
-  const isAllAnswered = Object.keys(answers).length === totalQuestions;
+  const isAllAnswered = answeredCount === totalQuestions;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
@@ -116,13 +132,15 @@ const MbtiTestPage = () => {
             <div className="mb-12">
               <div className="mb-4 flex items-center justify-between text-sm font-bold uppercase tracking-widest text-slate-400">
                 <span>
-                  Câu {currentIndex + 1} / {totalQuestions}
+                  Đã trả lời: {answeredCount} / {totalQuestions}
                 </span>
-                <span className="text-blue-600">{Math.round(progress)}%</span>
+                <span className="text-blue-600">
+                  {Math.min(100, Math.round(progress))}%
+                </span>
               </div>
               <div className="h-3 overflow-hidden rounded-full bg-slate-200 shadow-inner">
                 <div
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${Math.min(100, progress)}%` }}
                   className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-500 ease-out shadow-lg shadow-blue-200"
                 ></div>
               </div>
@@ -133,7 +151,7 @@ const MbtiTestPage = () => {
                 <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
                 <div className="text-center mb-12">
                   <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest mb-6">
-                    Câu hỏi MBTI
+                    Câu hỏi {currentIndex + 1}
                   </span>
                   <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
                     {currentQuestion?.question}
@@ -241,7 +259,9 @@ const MbtiTestPage = () => {
                 Câu trước
               </button>
 
-              {isAllAnswered || isFreeLimitReached ? (
+              {isAllAnswered ||
+              isFreeLimitReached ||
+              currentIndex === totalQuestions - 1 ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
@@ -252,11 +272,7 @@ const MbtiTestPage = () => {
               ) : (
                 <button
                   onClick={() => setCurrentIndex((curr) => curr + 1)}
-                  disabled={
-                    currentIndex === totalQuestions - 1 ||
-                    !answers[currentQuestion._id]
-                  }
-                  className="px-6 md:px-8 py-4 rounded-full bg-white text-indigo-600 font-bold border border-indigo-100 hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
+                  className="px-6 md:px-8 py-4 rounded-full bg-white text-indigo-600 font-bold border border-indigo-100 hover:bg-indigo-50 transition-all flex items-center gap-2 text-sm md:text-base"
                 >
                   Tiếp theo
                   <svg

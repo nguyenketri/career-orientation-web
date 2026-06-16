@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../services/authService";
+import {
+  registerUser,
+  linkGuestResult,
+  loginUser,
+  googleLoginUser,
+} from "../services/authService";
+import { GoogleLogin } from "@react-oauth/google";
 
 const RegisterForm = () => {
   // form state
@@ -68,10 +74,65 @@ const RegisterForm = () => {
       // call register API
       await registerUser(payload);
 
-      // redirect login
-      navigate("/login");
+      // After registration, we need to log in to get the token for linking
+      const loginRes = await loginUser({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // save token
+      localStorage.setItem("token", loginRes.data.token);
+
+      // save user
+      localStorage.setItem("user", JSON.stringify(loginRes.data.user));
+
+      // carry over guest results if any
+      const linkedResult = await linkGuestResult();
+
+      // Trigger update for Navbar
+      window.dispatchEvent(new Event("userUpdate"));
+
+      // redirect based on result
+      if (linkedResult) {
+        navigate(
+          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
+          {
+            state: { type: linkedResult.type, result: linkedResult.result },
+          },
+        );
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       setError(error.response?.data?.message || "Đăng ký thất bại");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      const response = await googleLoginUser(credentialResponse.credential);
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      // carry over guest results if any
+      const linkedResult = await linkGuestResult();
+
+      window.dispatchEvent(new Event("userUpdate"));
+      if (linkedResult) {
+        navigate(
+          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
+          {
+            state: { type: linkedResult.type, result: linkedResult.result },
+          },
+        );
+      } else {
+        navigate("/");
+      }
+    } catch {
+      setError("Đăng nhập Google thất bại");
     } finally {
       setLoading(false);
     }
@@ -173,6 +234,22 @@ const RegisterForm = () => {
           {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
         </button>
       </form>
+
+      <div className="relative flex items-center justify-center py-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200"></div>
+        </div>
+        <div className="relative bg-white px-4 text-sm text-slate-500">
+          Hoặc
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => setError("Đăng nhập Google thất bại")}
+        />
+      </div>
 
       {/* Login */}
       <p className="mt-8 text-center text-sm text-slate-500">

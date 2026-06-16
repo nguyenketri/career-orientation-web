@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { hollandMaps } from "../../utils/hollandMap";
 import { mbtiMaps } from "../../utils/mbtiMap";
 import { getUser } from "../../utils/auth";
+import axiosClient from "../../api/axios";
 
 const RecommendationCard = ({ major, matchPercent, navigate }) => (
   <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
@@ -100,20 +101,10 @@ const ResultDetailPage = () => {
       setLoading(true);
       try {
         const endpoint = type === "holland" ? "holland-results" : type;
-        const url = `/api/${endpoint}/${id}`;
+        const url = `/${endpoint}/${id}`;
         console.log("Fetching result from:", url);
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error(`Server responded with status ${res.status}`);
-        }
-
-        const json = await res.json();
-        setResult(json.data);
+        const res = await axiosClient.get(url);
+        setResult(res.data.data);
       } catch (err) {
         console.error("Error fetching result detail:", err);
       } finally {
@@ -339,7 +330,25 @@ const ResultDetailPage = () => {
           )}
         </motion.div>
 
-        {getUser()?.subscriptionPlan !== "FREE" && (
+        {!getUser() && (
+          <div className="mt-16 bg-blue-50 p-8 rounded-3xl border border-blue-100 text-center">
+            <h3 className="text-xl font-black text-blue-900 mb-2">
+              Bạn muốn lưu kết quả này?
+            </h3>
+            <p className="text-blue-700 mb-6">
+              Đăng ký tài khoản để lưu lại kết quả trắc nghiệm và xem gợi ý
+              ngành học chi tiết.
+            </p>
+            <button
+              onClick={() => navigate("/register")}
+              className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+            >
+              Đăng ký ngay
+            </button>
+          </div>
+        )}
+
+        {getUser() && getUser()?.subscriptionPlan !== "FREE" && (
           <div className="mt-16">
             <h2 className="text-2xl font-black text-slate-900 mb-8 text-center md:text-left">
               Gợi Ý Ngành & Trường Phù Hợp

@@ -4,6 +4,7 @@ import {
   getHollandQuestions,
   submitHollandTest,
 } from "../../services/hollandService";
+import { getUser } from "../../utils/auth";
 
 const LIKERT_OPTIONS = [
   { value: 1, label: "Rất không đúng" },
@@ -17,7 +18,10 @@ const HollandTestPage = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => {
+    const saved = localStorage.getItem("holland_answers");
+    return saved ? JSON.parse(saved) : {};
+  });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -37,15 +41,18 @@ const HollandTestPage = () => {
   }, []);
 
   const totalQuestions = questions.length;
+  const answeredCount = questions.filter((q) => answers[q._id]).length;
   const progress =
-    totalQuestions > 0 ? (currentIndex / totalQuestions) * 100 : 0;
+    totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   const handleSelect = (value) => {
     const currentQ = questions[currentIndex];
-    setAnswers({
+    const newAnswers = {
       ...answers,
       [currentQ._id]: { type: currentQ.type, score: value },
-    });
+    };
+    setAnswers(newAnswers);
+    localStorage.setItem("holland_answers", JSON.stringify(newAnswers));
 
     if (currentIndex < totalQuestions - 1) {
       setTimeout(() => setCurrentIndex((curr) => curr + 1), 300);
@@ -57,11 +64,19 @@ const HollandTestPage = () => {
   };
 
   const handleSubmit = async () => {
-    const answeredCount = Object.keys(answers).length;
+    const currentAnsweredCount = questions.filter((q) => answers[q._id]).length;
     const minRequired = totalQuestions;
 
-    if (answeredCount < minRequired) {
-      setError(`Vui lòng trả lời tất cả ${minRequired} câu hỏi.`);
+    if (currentAnsweredCount < minRequired) {
+      const firstUnansweredIndex = questions.findIndex((q) => !answers[q._id]);
+      if (firstUnansweredIndex !== -1) {
+        setCurrentIndex(firstUnansweredIndex);
+        setError(
+          "Vui lòng hoàn thành các câu hỏi bị bỏ qua trước khi nộp bài.",
+        );
+      } else {
+        setError(`Vui lòng trả lời tất cả ${minRequired} câu hỏi.`);
+      }
       return;
     }
 
@@ -72,17 +87,21 @@ const HollandTestPage = () => {
       const res = await submitHollandTest(formattedAnswers);
       const testResult = res.data;
 
-      // Redirect to analysis result page with the result data in state
-      localStorage.setItem(
-        "guestResult",
-        JSON.stringify({ type: "holland", result: testResult }),
-      );
-      navigate("/test-result", {
-        state: {
-          type: "holland",
-          result: testResult,
-        },
-      });
+      localStorage.removeItem("holland_answers");
+      if (!getUser()) {
+        localStorage.setItem(
+          "guestResult",
+          JSON.stringify({ type: "holland", result: testResult }),
+        );
+        navigate("/register");
+      } else {
+        navigate("/test-result", {
+          state: {
+            type: "holland",
+            result: testResult,
+          },
+        });
+      }
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -108,7 +127,7 @@ const HollandTestPage = () => {
 
   const currentQuestion = questions[currentIndex];
   const isStarted = questions.length > 0;
-  const isAllAnswered = Object.keys(answers).length === totalQuestions;
+  const isAllAnswered = answeredCount === totalQuestions;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
@@ -127,13 +146,15 @@ const HollandTestPage = () => {
             <div className="mb-12">
               <div className="mb-4 flex items-center justify-between text-sm font-bold uppercase tracking-widest text-slate-400">
                 <span>
-                  Câu hỏi {currentIndex + 1} / {totalQuestions}
+                  Đã trả lời: {answeredCount} / {totalQuestions}
                 </span>
-                <span className="text-blue-600">{Math.round(progress)}%</span>
+                <span className="text-blue-600">
+                  {Math.min(100, Math.round(progress))}%
+                </span>
               </div>
               <div className="h-3 overflow-hidden rounded-full bg-slate-200 shadow-inner">
                 <div
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${Math.min(100, progress)}%` }}
                   className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-500 ease-out shadow-lg shadow-blue-200"
                 ></div>
               </div>
@@ -144,7 +165,7 @@ const HollandTestPage = () => {
                 <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
                 <div className="text-center mb-16">
                   <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
-                    Câu hỏi hiện tại
+                    Câu hỏi {currentIndex + 1}
                   </span>
                   <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
                     {currentQuestion?.content}
@@ -213,7 +234,7 @@ const HollandTestPage = () => {
                 Câu trước
               </button>
 
-              {isAllAnswered ? (
+              {isAllAnswered || currentIndex === totalQuestions - 1 ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
@@ -224,8 +245,7 @@ const HollandTestPage = () => {
               ) : (
                 <button
                   onClick={() => setCurrentIndex((curr) => curr + 1)}
-                  disabled={currentIndex === totalQuestions - 1}
-                  className="px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
+                  className="px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 transition-all flex items-center gap-2 text-sm md:text-base"
                 >
                   Bỏ qua
                   <svg

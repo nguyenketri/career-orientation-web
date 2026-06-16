@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { loginUser, googleLoginUser } from "../services/authService";
+import {
+  loginUser,
+  googleLoginUser,
+  linkGuestResult,
+} from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import { submitMbtiTest } from "../services/mbtiService";
-import { saveHollandResult } from "../services/hollandService";
 
 const LoginForm = () => {
   // form state
@@ -20,25 +22,6 @@ const LoginForm = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-
-  // handle guest result carry-over
-  const handleGuestResultCarryOver = async () => {
-    const guestResult = localStorage.getItem("guestResult");
-    if (!guestResult) return;
-
-    try {
-      const parsedResult = JSON.parse(guestResult);
-      if (parsedResult.type === "mbti") {
-        await submitMbtiTest(parsedResult.answers);
-      } else if (parsedResult.type === "holland") {
-        await saveHollandResult(parsedResult.data);
-      }
-      localStorage.removeItem("guestResult");
-      console.log("Guest result carried over successfully");
-    } catch (error) {
-      console.error("Error carrying over guest result:", error);
-    }
-  };
 
   // handle input change
   const handleChange = (e) => {
@@ -59,8 +42,6 @@ const LoginForm = () => {
       // call login API
       const response = await loginUser(formData);
 
-      console.log(response);
-
       // save token
       localStorage.setItem("token", response.data.token);
 
@@ -68,13 +49,20 @@ const LoginForm = () => {
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
       // carry over guest results if any
-      await handleGuestResultCarryOver();
+      const linkedResult = await linkGuestResult();
 
       // Trigger update for Navbar
       window.dispatchEvent(new Event("userUpdate"));
 
       // redirect based on role
-      if (response.data.user.role === "admin") {
+      if (linkedResult) {
+        navigate(
+          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
+          {
+            state: { type: linkedResult.type, result: linkedResult.result },
+          },
+        );
+      } else if (response.data.user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/");
@@ -186,10 +174,20 @@ const LoginForm = () => {
                 );
 
                 // carry over guest results if any
-                await handleGuestResultCarryOver();
+                const linkedResult = await linkGuestResult();
 
                 window.dispatchEvent(new Event("userUpdate"));
-                if (response.data.user.role === "admin") {
+                if (linkedResult) {
+                  navigate(
+                    `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
+                    {
+                      state: {
+                        type: linkedResult.type,
+                        result: linkedResult.result,
+                      },
+                    },
+                  );
+                } else if (response.data.user.role === "admin") {
                   navigate("/admin/dashboard");
                 } else {
                   navigate("/");

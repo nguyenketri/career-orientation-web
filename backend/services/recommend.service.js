@@ -123,16 +123,19 @@ const recommendBySubjects = async (
     }
   }
 
-  // Lưu lịch sử
-  const analysisRecord = await ScoreAnalysis.create({
-    user: userId,
-    subjectScores: scores,
-    topCombinations: combinations.map((c) => ({
-      combination: c.name,
-      totalScore: c.score,
-    })),
-    recommendedUniversityMajors: uniqueResults.map((e) => e._id),
-  });
+  let analysisRecord = null;
+  // Lưu lịch sử chỉ khi có userId (User đã đăng nhập)
+  if (userId) {
+    analysisRecord = await ScoreAnalysis.create({
+      user: userId,
+      subjectScores: scores,
+      topCombinations: combinations.map((c) => ({
+        combination: c.name,
+        totalScore: c.score,
+      })),
+      recommendedUniversityMajors: uniqueResults.map((e) => e._id),
+    });
+  }
 
   const processedResults = uniqueResults;
 
@@ -151,7 +154,7 @@ const recommendBySubjects = async (
     limit: Number(limit),
     totalPages: Math.ceil(total / limit),
     recommendations: paginatedResults,
-    analysisId: analysisRecord._id,
+    analysisId: analysisRecord ? analysisRecord._id : null,
   };
 };
 

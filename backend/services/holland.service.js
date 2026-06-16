@@ -57,8 +57,11 @@ const submitHollandTest = async (userId, answers) => {
   const topType = topTypes[0];
 
   // Check user plan
-  const user = await User.findById(userId);
-  const plan = user?.subscriptionPlan || "FREE";
+  let plan = "FREE";
+  if (userId) {
+    const user = await User.findById(userId);
+    plan = user?.subscriptionPlan || "FREE";
+  }
 
   //  tìm ngành phù hợp - Only for PAID and PREMIUM
   let recommendedMajors = [];

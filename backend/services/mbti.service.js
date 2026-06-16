@@ -74,18 +74,9 @@ const submitMbtiTest = async (userId, answers) => {
     recommendedMajors = majors.map((m) => m._id);
   }
 
-  if (!userId) {
-    return {
-      mbtiType,
-      scores,
-      recommendedMajors,
-      isGuest: true,
-    };
-  }
-
-  // Lưu kết quả
+  // Luôn lưu kết quả vào database kể cả guest để có Object ID
   const newResult = await MbtiResult.create({
-    user: userId,
+    user: userId || null,
     mbtiType,
     scores,
     recommendedMajors,

@@ -81,15 +81,14 @@ exports.createPayment = async (req, res) => {
 
     // Create payOS payment link
     try {
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
       const paymentLink = await payosService.createPaymentLink({
         orderCode: transactionCode,
         amount: amount,
         description: "Payment",
-        cancelUrl:
-          process.env.PAYMENT_CANCEL_URL || "http://localhost:5173/pricing",
+        cancelUrl: process.env.PAYMENT_CANCEL_URL || `${frontendUrl}/pricing`,
         returnUrl:
-          process.env.PAYMENT_RETURN_URL ||
-          "http://localhost:5173/payment/success",
+          process.env.PAYMENT_RETURN_URL || `${frontendUrl}/payment/success`,
       });
 
       return res.status(200).json({
@@ -184,6 +183,9 @@ exports.webhookPayment = async (req, res) => {
     console.log("[Payment Webhook] Received payload:", JSON.stringify(payload));
 
     if (!signature) {
+      console.error(
+        "[Payment Webhook] Error: Missing x-payos-signature header",
+      );
       return res
         .status(400)
         .json({ status: "error", message: "Missing payOS signature" });
@@ -191,6 +193,14 @@ exports.webhookPayment = async (req, res) => {
 
     const isValid = await payosService.verifyWebhook(payload, signature);
     if (!isValid) {
+      console.error(
+        "[Payment Webhook] Error: Signature verification failed. Check PAYOS_CHECKSUM_KEY on Render.",
+      );
+      console.log(
+        "[Payment Webhook] Payload used for verification:",
+        JSON.stringify(payload),
+      );
+      console.log("[Payment Webhook] Signature received:", signature);
       return res
         .status(400)
         .json({ status: "error", message: "Invalid payOS signature" });

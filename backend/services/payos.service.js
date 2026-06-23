@@ -55,7 +55,16 @@ exports.createPaymentLink = async (paymentData) => {
  */
 exports.verifyWebhook = async (payload, signature) => {
   try {
+    console.log(
+      "[PayOS Service] Verifying webhook with payload:",
+      JSON.stringify(payload),
+    );
+    console.log(
+      "[PayOS Service] Using Checksum Key:",
+      process.env.PAYOS_CHECKSUM_KEY ? "Present" : "MISSING",
+    );
     const isValid = await payOS.webhooks.verify(payload, signature);
+    console.log("[PayOS Service] Webhook verification result:", isValid);
     return isValid;
   } catch (error) {
     console.error("[PayOS Service] Error verifying webhook:", error);

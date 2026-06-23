@@ -106,12 +106,12 @@ const LoginForm = () => {
           <div className="mb-2 flex items-center justify-between">
             <label className="text-sm text-slate-600">Mật khẩu</label>
 
-            <button
-              type="button"
+            <Link
+              to="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-500"
             >
               Quên mật khẩu?
-            </button>
+            </Link>
           </div>
 
           <div className="relative">

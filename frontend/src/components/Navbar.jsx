@@ -105,7 +105,7 @@ const Navbar = () => {
               </Link>
               <button
                 onClick={handleLogout}
-                className="hidden sm:block text-xs font-medium text-slate-500 hover:text-red-500 transition"
+                className="text-sm font-medium text-slate-500 hover:text-red-500 transition"
               >
                 Đăng xuất
               </button>

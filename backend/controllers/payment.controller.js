@@ -1,5 +1,6 @@
 const Payment = require("../models/payment.model");
 const User = require("../models/user.model");
+const payosService = require("../services/payos.service");
 
 // Duration in milliseconds
 const PLAN_DURATIONS = {
@@ -8,12 +9,15 @@ const PLAN_DURATIONS = {
 };
 
 const PLAN_PRICES = {
-  PAID: 79000,
-  PREMIUM: 129000,
+  PAID: 99000,
+  PREMIUM: 199000,
 };
 
-// Create a new payment session and generate VietQR URL
+// Create a new payment session and generate payOS payment link
 exports.createPayment = async (req, res) => {
+  console.log("[Payment Controller] createPayment request received");
+  console.log("[Payment Controller] Request Body:", req.body);
+  console.log("[Payment Controller] User:", req.user);
   try {
     const { planType } = req.body;
     if (!planType || !PLAN_PRICES[planType]) {
@@ -47,14 +51,16 @@ exports.createPayment = async (req, res) => {
 
     let amount = PLAN_PRICES[planType];
 
-    // Generate a unique 6-digit transaction code: CZP + XXXXXX
+    // Generate a unique numeric transaction code for PayOS (must be an integer)
     let transactionCode;
     let codeExists = true;
     while (codeExists) {
-      const randomDigits = Math.floor(
-        100000 + Math.random() * 900000,
-      ).toString();
-      transactionCode = `CZP${randomDigits}`;
+      // PayOS orderCode must be a number.
+      // We'll use a smaller number to ensure it fits in a 32-bit integer if needed,
+      // though JS handles up to 2^53 - 1. PayOS might have limits.
+      // Let's use a 6-8 digit random number.
+      transactionCode = Math.floor(10000000 + Math.random() * 90000000);
+
       const existing = await Payment.findOne({ transactionCode });
       if (!existing) {
         codeExists = false;
@@ -73,26 +79,41 @@ exports.createPayment = async (req, res) => {
       expiresAt,
     });
 
-    // Load bank info from env or fallback to demo account
-    const bankId = process.env.BANK_ID || "tpbank";
-    const bankAccount = process.env.BANK_ACCOUNT || "00000807478";
-    const accountName = process.env.BANK_ACCOUNT_NAME || "NGUYEN KE TRI";
+    // Create payOS payment link
+    try {
+      const paymentLink = await payosService.createPaymentLink({
+        orderCode: transactionCode,
+        amount: amount,
+        description: "Payment",
+        cancelUrl:
+          process.env.PAYMENT_CANCEL_URL || "http://localhost:5173/pricing",
+        returnUrl:
+          process.env.PAYMENT_RETURN_URL ||
+          "http://localhost:5173/payment/success",
+      });
 
-    // Generate VietQR Url
-    const qrCodeUrl = `https://img.vietqr.io/image/${bankId}-${bankAccount}-print.png?amount=${amount}&addInfo=${transactionCode}&accountName=${encodeURIComponent(accountName)}`;
-
-    return res.status(200).json({
-      status: "success",
-      data: {
-        paymentId: payment._id,
-        transactionCode,
-        amount,
-        planType,
-        expiresAt,
-        qrCodeUrl,
-      },
-    });
+      return res.status(200).json({
+        status: "success",
+        data: {
+          paymentId: payment._id,
+          transactionCode,
+          amount,
+          planType,
+          expiresAt,
+          checkoutUrl: paymentLink.checkoutUrl,
+        },
+      });
+    } catch (payosError) {
+      console.error("[Payment Controller] PayOS Error:", payosError);
+      return res.status(500).json({
+        status: "error",
+        message:
+          payosError.message || "Failed to create payment link via payOS",
+        details: payosError.response ? payosError.response.data : null,
+      });
+    }
   } catch (error) {
+    console.error("[Payment Controller] Global Error:", error);
     return res.status(500).json({
       status: "error",
       message: error.message,
@@ -155,75 +176,42 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
   return { success: true, user, payment };
 };
 
-// Unified webhook receiver (compatible with Casso / SePay)
+// Webhook receiver for payOS
 exports.webhookPayment = async (req, res) => {
   try {
     const payload = req.body;
+    const signature = req.headers["x-payos-signature"];
     console.log("[Payment Webhook] Received payload:", JSON.stringify(payload));
 
-    // Handle authentication (optional token check for security if configured)
-    const secretToken = process.env.PAYMENT_WEBHOOK_SECRET;
-    if (secretToken) {
-      const headerToken =
-        req.headers["secure-token"] || req.headers["authorization"];
-      if (
-        headerToken !== secretToken &&
-        headerToken !== `Apikey ${secretToken}`
-      ) {
+    if (!signature) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Missing payOS signature" });
+    }
+
+    const isValid = await payosService.verifyWebhook(payload, signature);
+    if (!isValid) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid payOS signature" });
+    }
+
+    if (payload.code && payload.amount && payload.status === "PAID") {
+      const result = await processPaymentSuccess(payload.code, payload.amount);
+      if (result.success) {
+        return res.status(200).json({
+          status: "success",
+          message: "Payment processed via payOS",
+        });
+      } else {
         return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized webhook caller" });
+          .status(400)
+          .json({ status: "error", message: result.reason });
       }
     }
-
-    let transactions = [];
-
-    // Parse Casso format (array inside data property)
-    if (payload.data && Array.isArray(payload.data)) {
-      transactions = payload.data.map((item) => ({
-        content: item.description || "",
-        amount: Number(item.amount || 0),
-      }));
-    }
-    // Parse SePay format (direct body attributes)
-    else if (payload.content || payload.transferAmount) {
-      transactions = [
-        {
-          content: payload.content || "",
-          amount: Number(payload.transferAmount || payload.amount || 0),
-        },
-      ];
-    }
-    // Fallback: Generic array payload
-    else if (Array.isArray(payload)) {
-      transactions = payload.map((item) => ({
-        content: item.content || item.description || "",
-        amount: Number(item.amount || item.transferAmount || 0),
-      }));
-    }
-
-    let processedCount = 0;
-    const errors = [];
-
-    // Process transactions extracted
-    for (const tx of transactions) {
-      // Find matches for pattern CZPxxxxxx
-      const match = tx.content.match(/CZP\d{6}/i);
-      if (match) {
-        const matchedCode = match[0].toUpperCase();
-        const result = await processPaymentSuccess(matchedCode, tx.amount);
-        if (result.success) {
-          processedCount++;
-        } else {
-          errors.push({ code: matchedCode, reason: result.reason });
-        }
-      }
-    }
-
     return res.status(200).json({
       status: "success",
-      message: `Processed ${processedCount} payments.`,
-      errors,
+      message: "Webhook received but no action needed",
     });
   } catch (error) {
     console.error("[Payment Webhook Error]:", error);

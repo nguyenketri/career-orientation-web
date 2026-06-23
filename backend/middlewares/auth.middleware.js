@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
 const authMiddleware = async (req, res, next) => {
+  console.log(`[Auth Middleware] Request to: ${req.originalUrl}`);
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -78,9 +79,14 @@ const optionalAuthMiddleware = async (req, res, next) => {
 };
 
 const adminMiddleware = (req, res, next) => {
+  console.log("AdminMiddleware - User:", req.user);
   if (req.user && req.user.role === "admin") {
     next();
   } else {
+    console.log(
+      "AdminMiddleware - Access Denied for role:",
+      req.user ? req.user.role : "no user",
+    );
     return res.status(403).json({
       status: "error",
       message: "Forbidden - Admin access required",

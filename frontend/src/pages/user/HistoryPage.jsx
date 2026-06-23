@@ -5,18 +5,19 @@ import { getScoreAnalysisHistory } from "../../services/recommendService";
 import { getPaymentHistory } from "../../services/paymentService";
 import { hollandMaps } from "../../utils/hollandMap";
 import { mbtiMaps } from "../../utils/mbtiMap";
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const HistoryPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [hollandResults, setHollandResults] = useState([]);
   const [mbtiResults, setMbtiResults] = useState([]);
   const [hollandStability, setHollandStability] = useState(0);
   const [mbtiStability, setMbtiStability] = useState(0);
   const [academicResults, setAcademicResults] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [activeTab, setActiveTab] = useState("holland");
+  const activeTab = searchParams.get("tab") || "holland";
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -145,7 +146,7 @@ const HistoryPage = () => {
             {["holland", "mbti", "academic"].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setSearchParams({ tab })}
                 className={`pb-4 font-bold capitalize transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? "text-orange-600 border-b-2 border-orange-600"
@@ -325,6 +326,22 @@ const HistoryPage = () => {
                           Tổ hợp môn & Điểm
                         </th>
                         <th className="px-8 py-6 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-300">📍</span> Khu vực
+                          </div>
+                        </th>
+                        <th className="px-8 py-6 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-300">🏫</span> Loại
+                            trường
+                          </div>
+                        </th>
+                        <th className="px-8 py-6 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-300">💳</span> Học phí
+                          </div>
+                        </th>
+                        <th className="px-8 py-6 font-medium">
                           Ngày thực hiện
                         </th>
                         <th className="px-8 py-6 font-medium">Trạng thái</th>
@@ -375,6 +392,41 @@ const HistoryPage = () => {
                                   </div>
                                 </div>
                               </div>
+                            </td>
+                            <td className="px-8 py-6 text-slate-600 font-medium">
+                              {r.filters?.location ? (
+                                r.filters.location
+                              ) : (
+                                <span className="text-slate-400 italic font-normal">
+                                  Toàn quốc
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-8 py-6 text-slate-600 font-medium">
+                              {r.filters?.type ? (
+                                r.filters.type === "Public" ? (
+                                  "Công lập"
+                                ) : r.filters.type === "Private" ? (
+                                  "Dân lập"
+                                ) : r.filters.type === "International" ? (
+                                  "Quốc tế"
+                                ) : (
+                                  r.filters.type
+                                )
+                              ) : (
+                                <span className="text-slate-400 italic font-normal">
+                                  Tất cả
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-8 py-6 text-slate-600 font-medium">
+                              {r.filters?.maxTuition ? (
+                                `<${(r.filters.maxTuition / 1000000).toFixed(0)}M`
+                              ) : (
+                                <span className="text-slate-400 italic font-normal">
+                                  Không giới hạn
+                                </span>
+                              )}
                             </td>
                             <td className="px-8 py-6 text-slate-600 font-medium">
                               <div className="flex items-center gap-2">
@@ -437,7 +489,7 @@ const HistoryPage = () => {
                                   }
                                   className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-md shadow-blue-600/20"
                                 >
-                                  Re-view Recommendations
+                                  Xem lại gợi ý
                                   <svg
                                     className="w-4 h-4"
                                     fill="none"
@@ -497,6 +549,36 @@ const HistoryPage = () => {
                                   : r.topCombinations?.[0]?.totalScore >= 24
                                     ? "GIỎI"
                                     : "KHÁ"}
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                                  <span className="text-slate-400">📍</span>
+                                  <span className="truncate">
+                                    {r.filters?.location || "Toàn quốc"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                                  <span className="text-slate-400">🏫</span>
+                                  <span className="truncate">
+                                    {r.filters?.type
+                                      ? r.filters.type === "Public"
+                                        ? "Công lập"
+                                        : r.filters.type === "Private"
+                                          ? "Dân lập"
+                                          : r.filters.type === "International"
+                                            ? "Quốc tế"
+                                            : r.filters.type
+                                      : "Tất cả"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                                  <span className="text-slate-400">💳</span>
+                                  <span className="truncate">
+                                    {r.filters?.maxTuition
+                                      ? `<${(r.filters.maxTuition / 1000000).toFixed(0)}M`
+                                      : "Không giới hạn"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -601,7 +683,7 @@ const HistoryPage = () => {
                             d="M15 19l-7-7 7-7"
                           />
                         </svg>
-                        Back
+                        Trước
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -671,7 +753,7 @@ const HistoryPage = () => {
                         }
                         className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
                       >
-                        Next
+                        Sau
                         <svg
                           className="w-4 h-4"
                           fill="none"
@@ -693,52 +775,6 @@ const HistoryPage = () => {
             )}
           </div>
         </div>
-
-        {/* Smart Tip Section */}
-        {activeTab === "academic" && (
-          <div className="mt-10 bg-slate-100/50 p-8 rounded-3xl border border-slate-100 flex flex-col md:flex-row items-center gap-8">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4.001z" />
-                </svg>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-lg font-black text-slate-900 mb-2">
-                Mẹo chọn trường thông minh
-              </h4>
-              <p className="text-slate-500 text-sm leading-relaxed mb-4">
-                Bạn có thể nhập nhiều tổ hợp điểm khác nhau để so sánh tỷ lệ
-                trúng tuyển giữa các khối thi. EduPath AI sẽ tự động phân tích
-                và đưa ra lộ trình tối ưu nhất.
-              </p>
-              <a
-                href="#"
-                className="text-sm font-bold text-slate-900 hover:underline flex items-center gap-1"
-              >
-                Tìm hiểu thêm về thuật toán EduPath AI
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
-            </div>
-          </div>
-        )}
 
         {/* Payment History */}
         <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">

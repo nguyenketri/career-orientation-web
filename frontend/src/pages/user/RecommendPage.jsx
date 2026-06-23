@@ -164,15 +164,7 @@ const RecommendPage = () => {
   ];
 
   const getUniversityImage = (name) => {
-    const images = {
-      NEU: "https://images.unsplash.com/photo-1562774053-701939374587?q=80&w=1974&auto=format&fit=crop",
-      FPT: "https://images.unsplash.com/photo-1541339907198-e08756edd81f?q=80&w=2070&auto=format&fit=crop",
-      BK: "https://images.unsplash.com/photo-1592280771195-a6976a97337a?q=80&w=2070&auto=format&fit=crop",
-    };
-    return (
-      images[name] ||
-      "https://images.unsplash.com/photo-1523050853063-915894691067?q=80&w=2070&auto=format&fit=crop"
-    );
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Uni")}&background=random&size=400`;
   };
 
   return (
@@ -514,6 +506,11 @@ const RecommendPage = () => {
                           }
                           alt={item.university?.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          onError={(e) => {
+                            e.target.src = getUniversityImage(
+                              item.university?.name,
+                            );
+                          }}
                         />
                       </div>
 

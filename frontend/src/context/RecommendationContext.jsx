@@ -1,31 +1,50 @@
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const RecommendationContext = createContext();
 
+const INITIAL_SCORES = {
+  math: "",
+  literature: "",
+  english: "",
+  physics: "",
+  chemistry: "",
+  biology: "",
+  history: "",
+  geography: "",
+  civicEducation: "",
+};
+
+const INITIAL_FILTERS = {
+  location: "",
+  maxTuition: 200,
+  type: "",
+};
+
+const INITIAL_PAGINATION = {
+  page: 1,
+  limit: 5,
+};
+
 export const RecommendationProvider = ({ children }) => {
-  const [scores, setScores] = useState({
-    math: "",
-    literature: "",
-    english: "",
-    physics: "",
-    chemistry: "",
-    biology: "",
-    history: "",
-    geography: "",
-    civicEducation: "",
-  });
-
-  const [filters, setFilters] = useState({
-    location: "",
-    maxTuition: 200,
-    type: "",
-  });
-
+  const [scores, setScores] = useState(INITIAL_SCORES);
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [result, setResult] = useState(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 5,
-  });
+  const [pagination, setPagination] = useState(INITIAL_PAGINATION);
+
+  const resetRecommendation = () => {
+    setScores(INITIAL_SCORES);
+    setFilters(INITIAL_FILTERS);
+    setResult(null);
+    setPagination(INITIAL_PAGINATION);
+  };
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      resetRecommendation();
+    };
+    window.addEventListener("userUpdate", handleUserUpdate);
+    return () => window.removeEventListener("userUpdate", handleUserUpdate);
+  }, []);
 
   return (
     <RecommendationContext.Provider
@@ -38,6 +57,7 @@ export const RecommendationProvider = ({ children }) => {
         setResult,
         pagination,
         setPagination,
+        resetRecommendation,
       }}
     >
       {children}

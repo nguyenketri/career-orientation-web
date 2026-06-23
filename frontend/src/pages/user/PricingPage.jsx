@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../../utils/auth";
-import { createPayment, getPaymentStatus } from "../../services/paymentService";
-import axiosClient from "../../api/axios";
+import { createPayment } from "../../services/paymentService";
 
 const PricingPage = () => {
   const [user] = useState(getUser());
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [qrCode, setQrCode] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState(null);
-  const [transactionCode, setTransactionCode] = useState(null);
-  const [pollingInterval, setPollingInterval] = useState(null);
 
   const plans = [
     {
@@ -29,7 +23,7 @@ const PricingPage = () => {
     },
     {
       name: "Gói TIÊU CHUẨN",
-      price: 79000,
+      price: 99000,
       type: "PAID",
       features: [
         { text: "So sánh chi tiết 5 trường đại học", checked: true },
@@ -43,7 +37,7 @@ const PricingPage = () => {
     },
     {
       name: "Gói CAO CẤP",
-      price: 129000,
+      price: 199000,
       type: "PREMIUM",
       features: [
         { text: "So sánh không giới hạn trường & ngành", checked: true },
@@ -68,42 +62,21 @@ const PricingPage = () => {
 
   const handlePlanClick = async (plan) => {
     if (isButtonDisabled(plan)) return;
-    setSelectedPlan(plan);
-    setPaymentStatus(null);
-    setQrCode(null);
 
     try {
       setPaymentLoading(true);
       const data = await createPayment(plan.type);
-      const { qrCodeUrl, transactionCode: code, paymentId } = data.data;
-      setQrCode(qrCodeUrl);
-      setTransactionCode(code);
-      setSelectedPlan({ ...plan, paymentId });
-      setPaymentStatus("pending");
-      const interval = setInterval(
-        () => checkPaymentStatus(paymentId, true),
-        5000,
-      );
-      setPollingInterval(interval);
+      const { checkoutUrl } = data.data;
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error("Không nhận được link thanh toán từ hệ thống.");
+      }
     } catch (error) {
       alert("Lỗi: " + (error.response?.data?.message || error.message));
     } finally {
       setPaymentLoading(false);
-    }
-  };
-
-  const checkPaymentStatus = async (paymentId) => {
-    try {
-      const data = await getPaymentStatus(paymentId);
-      if (data.data.status === "SUCCESS") {
-        if (pollingInterval) clearInterval(pollingInterval);
-        setPaymentStatus("success");
-        const profileRes = await axiosClient.get("/users/me");
-        localStorage.setItem("user", JSON.stringify(profileRes.data.data));
-        window.dispatchEvent(new Event("userUpdate"));
-      }
-    } catch (error) {
-      console.error(error);
     }
   };
 
@@ -226,105 +199,29 @@ const PricingPage = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Payment Loading Modal */}
       <AnimatePresence>
-        {selectedPlan && (
+        {paymentLoading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedPlan(null)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center"
             >
-              {paymentStatus === "success" ? (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <span className="text-4xl">✅</span>
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">
-                    Thanh toán thành công!
-                  </h2>
-                  <p className="text-slate-500 mb-8">
-                    Gói của bạn đã được kích hoạt.
-                  </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="bg-slate-900 text-white px-8 py-3 rounded-full font-bold hover:bg-slate-800 transition-all"
-                  >
-                    Đóng
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h2 className="text-2xl font-black text-slate-900">
-                        Thanh toán
-                      </h2>
-                      <p className="text-slate-500 font-bold">
-                        {selectedPlan.name} •{" "}
-                        {selectedPlan.price.toLocaleString()}đ
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedPlan(null)}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  <div className="text-center mb-8">
-                    <p className="text-slate-600 text-sm mb-4">
-                      Quét mã QR bên dưới bằng ứng dụng Ngân hàng để thanh toán
-                    </p>
-                    <div className="relative inline-block p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
-                      <img
-                        src={qrCode}
-                        alt="QR"
-                        className="w-64 h-64 rounded-xl"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100 mb-6">
-                    <p className="text-xs text-orange-600 font-black uppercase tracking-widest mb-1">
-                      Nội dung chuyển khoản:
-                    </p>
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-xl font-black text-orange-900 font-mono">
-                        {transactionCode}
-                      </p>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(transactionCode);
-                          alert("Đã sao chép mã!");
-                        }}
-                        className="text-orange-600 text-sm font-bold hover:underline"
-                      >
-                        Sao chép
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => checkPaymentStatus(selectedPlan.paymentId)}
-                    disabled={paymentLoading}
-                    className="w-full bg-orange-500 text-white py-4 rounded-full font-black hover:bg-orange-600 transition-all shadow-lg shadow-orange-200 disabled:opacity-50"
-                  >
-                    {paymentLoading
-                      ? "Đang xác thực..."
-                      : "Tôi đã chuyển khoản xong"}
-                  </button>
-                </>
-              )}
+              <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">
+                Đang khởi tạo thanh toán...
+              </h2>
+              <p className="text-slate-500">
+                Vui lòng chờ trong giây lát, chúng tôi đang chuyển bạn đến cổng
+                thanh toán payOS.
+              </p>
             </motion.div>
           </motion.div>
         )}

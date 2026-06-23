@@ -9,9 +9,18 @@ exports.getUniversities = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = req.query.search || "";
 
-    const total = await University.countDocuments({ isDeleted: false });
-    const universities = await University.find({ isDeleted: false })
+    const query = {
+      isDeleted: false,
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { location: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const total = await University.countDocuments(query);
+    const universities = await University.find(query)
       .sort({ name: 1 })
       .skip(skip)
       .limit(limit);
@@ -77,9 +86,18 @@ exports.getMajors = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = req.query.search || "";
 
-    const total = await Major.countDocuments({ isDeleted: false });
-    const majors = await Major.find({ isDeleted: false })
+    const query = {
+      isDeleted: false,
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const total = await Major.countDocuments(query);
+    const majors = await Major.find(query)
       .sort({ name: 1 })
       .skip(skip)
       .limit(limit);
@@ -143,9 +161,28 @@ exports.getUniversityMajors = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = req.query.search || "";
 
-    const total = await UniversityMajor.countDocuments({ isDeleted: false });
-    const universityMajors = await UniversityMajor.find({ isDeleted: false })
+    // For mappings, we need to search in populated fields.
+    // Since MongoDB find doesn't search populated fields easily,
+    // we first find the IDs of universities and majors that match the search.
+    const uniMatches = await University.find({
+      name: { $regex: search, $options: "i" },
+    }).select("_id");
+    const majorMatches = await Major.find({
+      name: { $regex: search, $options: "i" },
+    }).select("_id");
+
+    const query = {
+      isDeleted: false,
+      $or: [
+        { university: { $in: uniMatches.map((u) => u._id) } },
+        { major: { $in: majorMatches.map((m) => m._id) } },
+      ],
+    };
+
+    const total = await UniversityMajor.countDocuments(query);
+    const universityMajors = await UniversityMajor.find(query)
       .populate("university")
       .populate("major")
       .sort({ createdAt: -1 })

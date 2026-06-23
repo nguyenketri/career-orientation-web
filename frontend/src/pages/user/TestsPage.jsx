@@ -81,8 +81,9 @@ const TestsPage = () => {
             Khám Phá Bản Thân
           </h1>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            Lựa chọn bài trắc nghiệm phù hợp để tìm hiểu về thiên hướng ngành
-            học và tính cách của bạn.
+            Đây chỉ là dữ liệu tham khảo được tính theo sở thích và tính cách
+            của bạn để đưa ra gợi ý ngành học và trường học phù hợp chứ chưa thể
+            chắc chắn 100%.
           </p>
         </div>
 
@@ -132,12 +133,12 @@ const TestsPage = () => {
               </h3>
               <ul className="space-y-3 text-sm text-slate-600">
                 <li className="flex gap-2">
-                  <span>1.</span> Đọc kỹ từng câu hỏi và chọn mức độ phù hợp từ
-                  1 đến 5.
+                  <span>1.</span> Đọc kỹ từng câu hỏi và chọn câu trả lời phù
+                  hợp nhất.
                 </li>
                 <li className="flex gap-2">
-                  <span>2.</span> Không có câu trả lời đúng hay sai, chỉ có câu
-                  trả lời phù hợp với bạn nhất.
+                  <span>2.</span> Hãy lựa chọn nơi làm bài Test thật yên tĩnh để
+                  có thể trả lời 1 cách tập trung và chuẩn nhất.
                 </li>
                 <li className="flex gap-2">
                   <span>3.</span> Thời gian hoàn thành dự kiến: 5 - 10 phút.

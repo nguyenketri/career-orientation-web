@@ -136,9 +136,16 @@ const PublicComparisonPage = () => {
                     <div className="flex justify-between">
                       <span className="font-bold text-slate-500">Học phí:</span>
                       <span>
-                        {item.tuitionFee
-                          ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu/năm`
-                          : "N/A"}
+                        {(() => {
+                          const history = item.admissionHistory || [];
+                          const fees = history
+                            .filter((h) => h.tuitionFee)
+                            .map((h) => h.tuitionFee);
+                          if (fees.length === 0) return "N/A";
+                          const avg =
+                            fees.reduce((a, b) => a + b, 0) / fees.length;
+                          return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu/năm`;
+                        })()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -259,9 +266,16 @@ const PublicComparisonPage = () => {
                         className="p-4 border-l border-slate-200"
                       >
                         <p className="text-xs font-bold text-slate-900 text-center">
-                          {item.tuitionFee
-                            ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu VND/năm`
-                            : "N/A"}
+                          {(() => {
+                            const history = item.admissionHistory || [];
+                            const fees = history
+                              .filter((h) => h.tuitionFee)
+                              .map((h) => h.tuitionFee);
+                            if (fees.length === 0) return "N/A";
+                            const avg =
+                              fees.reduce((a, b) => a + b, 0) / fees.length;
+                            return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu VND/năm`;
+                          })()}
                         </p>
                       </td>
                     ))}

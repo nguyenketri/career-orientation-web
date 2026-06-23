@@ -184,11 +184,14 @@ exports.getAllPayments = async (req, res) => {
 // Lấy báo cáo chi tiết cho Admin
 exports.getAdminReport = async (req, res) => {
   try {
+    console.log("[AdminReport] Generating report for admin...");
+
     // 1. Tổng quan
     const totalUsers = await User.countDocuments();
-    const totalTests =
-      (await HollandResult.countDocuments()) +
-      (await MbtiResult.countDocuments());
+    const totalHolland = await HollandResult.countDocuments();
+    const totalMbti = await MbtiResult.countDocuments();
+    const totalTests = totalHolland + totalMbti;
+
     const revenueData = await Payment.aggregate([
       { $match: { status: "SUCCESS" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -197,7 +200,13 @@ exports.getAdminReport = async (req, res) => {
 
     // 2. Phân bổ gói cước
     const planDistribution = await User.aggregate([
-      { $group: { _id: "$subscriptionPlan", count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: { $ifNull: ["$subscriptionPlan", "FREE"] },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
     ]);
 
     // 3. Xu hướng doanh thu (6 tháng gần nhất)
@@ -205,7 +214,12 @@ exports.getAdminReport = async (req, res) => {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const revenueTrend = await Payment.aggregate([
-      { $match: { status: "SUCCESS", createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $match: {
+          status: "SUCCESS",
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
@@ -217,27 +231,79 @@ exports.getAdminReport = async (req, res) => {
 
     // 4. Phân bổ loại test
     const testDistribution = {
-      holland: await HollandResult.countDocuments(),
-      mbti: await MbtiResult.countDocuments(),
+      holland: totalHolland || 0,
+      mbti: totalMbti || 0,
     };
+
+    console.log("[AdminReport] Report generated successfully with data:", {
+      totalUsers,
+      totalRevenue,
+      totalTests,
+    });
 
     res.status(200).json({
       status: "success",
       data: {
         summary: {
-          totalUsers,
-          totalRevenue,
-          totalTests,
+          totalUsers: totalUsers || 0,
+          totalRevenue: totalRevenue || 0,
+          totalTests: totalTests || 0,
         },
-        planDistribution,
-        revenueTrend,
-        testDistribution,
+        planDistribution: planDistribution || [],
+        revenueTrend: revenueTrend || [],
+        testDistribution: testDistribution,
       },
+    });
+  } catch (error) {
+    console.error("[AdminReport] Error during report generation:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error generating report: " + error.message,
+    });
+  }
+};
+
+// Lấy doanh thu chi tiết theo từng tháng trong năm hiện tại
+exports.getMonthlyRevenue = async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+
+    const revenueData = await Payment.aggregate([
+      {
+        $match: {
+          status: "SUCCESS",
+          createdAt: { $gte: startOfYear, $lte: endOfYear },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          amount: { $sum: "$amount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Tạo mảng đầy đủ 12 tháng để tránh thiếu tháng không có doanh thu
+    const monthlyRevenue = [];
+    for (let i = 1; i <= 12; i++) {
+      const monthData = revenueData.find((d) => d._id === i);
+      monthlyRevenue.push({
+        month: `T${i}`,
+        amount: monthData ? monthData.amount : 0,
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: monthlyRevenue,
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Error generating report: " + error.message,
+      message: "Error fetching monthly revenue: " + error.message,
     });
   }
 };

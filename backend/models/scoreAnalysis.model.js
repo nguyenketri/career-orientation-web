@@ -25,22 +25,27 @@ const scoreAnalysisSchema = new mongoose.Schema(
 
     targetYear: { type: Number },
     province: { type: String },
+    filters: {
+      location: String,
+      type: String,
+      maxTuition: Number,
+    },
 
     topCombinations: [
       {
         combination: String, // ví dụ: "A00"
         totalScore: Number, // tổng điểm 3 môn
-      }
+      },
     ],
 
     recommendedUniversityMajors: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "UniversityMajor",
-      }
-    ]
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("ScoreAnalysis", scoreAnalysisSchema);

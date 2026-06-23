@@ -272,9 +272,19 @@ const ComparisonPage = () => {
                     <div className="flex justify-between">
                       <span className="font-bold text-slate-500">Học phí:</span>
                       <span>
-                        {item.tuitionFee
-                          ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu/năm`
-                          : "N/A"}
+                        {(() => {
+                          const fees = [];
+                          if (item.tuitionFee) fees.push(item.tuitionFee);
+                          if (item.admissionHistory) {
+                            item.admissionHistory.forEach((h) => {
+                              if (h.tuitionFee) fees.push(h.tuitionFee);
+                            });
+                          }
+                          if (fees.length === 0) return "N/A";
+                          const avg =
+                            fees.reduce((a, b) => a + b, 0) / fees.length;
+                          return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu/năm`;
+                        })()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -290,7 +300,7 @@ const ComparisonPage = () => {
 
             {/* Desktop View: Table */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full table-fixed min-w-[800px]">
+              <table className="w-full table-auto min-w-[1000px]">
                 <tbody>
                   {/* Title Row */}
                   <tr className="border-b border-slate-200 bg-slate-50">
@@ -302,13 +312,13 @@ const ComparisonPage = () => {
                     {selectedMajors.map((item) => (
                       <td
                         key={item._id}
-                        className="p-4 border-l border-slate-200 min-w-[200px]"
+                        className="p-4 border-l border-slate-200 min-w-[250px]"
                       >
-                        <div className="text-center">
-                          <p className="text-sm font-black text-slate-900 line-clamp-1">
+                        <div className="text-center px-2">
+                          <p className="text-sm font-black text-slate-900 leading-tight mb-1 break-words">
                             {item.university?.name}
                           </p>
-                          <p className="text-xs font-bold text-orange-600 line-clamp-1">
+                          <p className="text-xs font-bold text-orange-600 leading-tight break-words">
                             {item.major?.name}
                           </p>
                         </div>
@@ -370,7 +380,7 @@ const ComparisonPage = () => {
                         key={item._id}
                         className="p-4 border-l border-slate-200"
                       >
-                        <p className="text-xs text-slate-600 text-center">
+                        <p className="text-xs text-slate-600 text-center px-2 break-words whitespace-normal">
                           {item.university?.address || "N/A"}
                         </p>
                       </td>
@@ -395,9 +405,19 @@ const ComparisonPage = () => {
                         className="p-4 border-l border-slate-200"
                       >
                         <p className="text-xs font-bold text-slate-900 text-center">
-                          {item.tuitionFee
-                            ? `${Math.floor(item.tuitionFee / 1000000)} - ${Math.floor(item.tuitionFee / 1000000) + 6} triệu VND/năm`
-                            : "N/A"}
+                          {(() => {
+                            const fees = [];
+                            if (item.tuitionFee) fees.push(item.tuitionFee);
+                            if (item.admissionHistory) {
+                              item.admissionHistory.forEach((h) => {
+                                if (h.tuitionFee) fees.push(h.tuitionFee);
+                              });
+                            }
+                            if (fees.length === 0) return "N/A";
+                            const avg =
+                              fees.reduce((a, b) => a + b, 0) / fees.length;
+                            return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu VND/năm`;
+                          })()}
                         </p>
                       </td>
                     ))}
@@ -411,7 +431,7 @@ const ComparisonPage = () => {
                           📊
                         </div>
                         <span className="text-sm font-bold text-slate-900">
-                          Điểm chuẩn (2 năm)
+                          Điểm chuẩn (3 năm)
                         </span>
                       </div>
                     </td>
@@ -420,27 +440,32 @@ const ComparisonPage = () => {
                         key={item._id}
                         className="p-4 border-l border-slate-200"
                       >
-                        <div className="grid grid-cols-2 gap-2 text-center">
-                          <div>
-                            <p className="text-[10px] text-slate-400 font-bold">
-                              2023
-                            </p>
-                            <p className="text-xs font-bold text-slate-900">
-                              {item.admissionScore
-                                ? `${(item.admissionScore - 1.5).toFixed(1)} - ${item.admissionScore.toFixed(1)}`
-                                : "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-slate-400 font-bold">
-                              2022
-                            </p>
-                            <p className="text-xs font-bold text-slate-900">
-                              {item.admissionScore
-                                ? `${(item.admissionScore - 2).toFixed(1)} - ${(item.admissionScore - 0.5).toFixed(1)}`
-                                : "N/A"}
-                            </p>
-                          </div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          {[2025, 2024, 2023].map((year) => {
+                            const scoreData = item.admissionHistory?.find(
+                              (h) => h.year === year,
+                            );
+                            const score = scoreData
+                              ? scoreData.admissionScore
+                              : year === 2025
+                                ? item.admissionScore
+                                : null;
+
+                            return (
+                              <div key={year}>
+                                <p className="text-[10px] text-slate-400 font-bold">
+                                  {year}
+                                </p>
+                                <p className="text-xs font-bold text-slate-900">
+                                  {score
+                                    ? typeof score === "number"
+                                      ? score.toFixed(2)
+                                      : score
+                                    : "N/A"}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
                       </td>
                     ))}

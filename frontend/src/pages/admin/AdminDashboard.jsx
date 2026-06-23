@@ -11,6 +11,8 @@ const AdminDashboard = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState("All");
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -24,6 +26,18 @@ const AdminDashboard = () => {
       }
     };
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchMonthlyRevenue = async () => {
+      try {
+        const res = await axiosClient.get("/admin/monthly-revenue");
+        setMonthlyRevenueData(res.data.data);
+      } catch (err) {
+        console.error("Error fetching monthly revenue:", err);
+      }
+    };
+    fetchMonthlyRevenue();
   }, []);
 
   useEffect(() => {
@@ -42,13 +56,15 @@ const AdminDashboard = () => {
   }, [currentPage]);
 
   const handleGenerateReport = async () => {
+    console.log("[Frontend] Generating report...");
     setReportLoading(true);
     setIsReportModalOpen(true);
     try {
       const res = await axiosClient.get("/admin/report");
+      console.log("[Frontend] Report data received:", res.data);
       setReportData(res.data.data);
     } catch (err) {
-      console.error("Error fetching report:", err);
+      console.error("[Frontend] Error fetching report:", err);
     } finally {
       setReportLoading(false);
     }
@@ -71,7 +87,7 @@ const AdminDashboard = () => {
       textColor: "text-blue-600",
     },
     {
-      name: "Doanh thu tháng",
+      name: "Doanh thu tổng",
       value: `${(stats?.totalRevenue || 0).toLocaleString()}đ`,
       trend: "Thực tế",
       icon: "📊",
@@ -147,26 +163,88 @@ const AdminDashboard = () => {
         {/* Revenue Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-900">
-              Xu hướng doanh thu
-            </h3>
-            <span className="text-xs text-slate-500">Xem lịch sử →</span>
+            <div>
+              <h3 className="font-bold text-slate-900">Doanh thu theo tháng</h3>
+              <p className="text-2xl font-black text-orange-600 mt-1">
+                {selectedMonth === "All"
+                  ? `${monthlyRevenueData.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}đ`
+                  : `${(monthlyRevenueData.find((m) => m.month === selectedMonth)?.amount || 0).toLocaleString()}đ`}
+              </p>
+            </div>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-1 outline-none focus:ring-2 focus:ring-orange-500 transition"
+            >
+              <option value="All">Tất cả các tháng</option>
+              {[
+                "T1",
+                "T2",
+                "T3",
+                "T4",
+                "T5",
+                "T6",
+                "T7",
+                "T8",
+                "T9",
+                "T10",
+                "T11",
+                "T12",
+              ].map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-4">
-            <div className="flex items-end justify-between h-32 gap-2">
-              {["T2", "T3", "T4", "T5", "T6", "T7"].map((day, i) => (
-                <div
-                  key={day}
-                  className="flex-1 flex flex-col items-center gap-2"
-                >
-                  <div
-                    className={`w-full rounded-lg transition-all ${
-                      i === 3 ? "bg-slate-900 h-20" : "bg-slate-200 h-12"
-                    }`}
-                  />
-                  <span className="text-xs text-slate-500">{day}</span>
-                </div>
-              ))}
+            <div className="flex items-end justify-between h-40 gap-2">
+              {[
+                "T1",
+                "T2",
+                "T3",
+                "T4",
+                "T5",
+                "T6",
+                "T7",
+                "T8",
+                "T9",
+                "T10",
+                "T11",
+                "T12",
+              ]
+                .filter((m) => selectedMonth === "All" || m === selectedMonth)
+                .map((month) => {
+                  const monthData = monthlyRevenueData.find(
+                    (m) => m.month === month,
+                  );
+                  const amount = monthData ? monthData.amount : 0;
+                  const maxAmount = Math.max(
+                    ...monthlyRevenueData.map((m) => m.amount),
+                    1,
+                  );
+                  const heightPercentage = (amount / maxAmount) * 100;
+
+                  return (
+                    <div
+                      key={month}
+                      className="flex-1 flex flex-col items-center gap-2"
+                    >
+                      <div className="w-full h-32 flex items-end justify-center">
+                        <div
+                          className={`w-full rounded-t-lg transition-all duration-500 ${
+                            amount > 0 ? "bg-slate-900" : "bg-slate-200"
+                          }`}
+                          style={{
+                            height: `${heightPercentage}%`,
+                            minHeight: "4px",
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-500">{month}</span>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -275,14 +353,14 @@ const AdminDashboard = () => {
       {/* Report Modal */}
       <AnimatePresence>
         {isReportModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:bg-white print:backdrop-blur-none print:p-0 print:static print:block">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl"
+              className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl print:shadow-none print:max-h-none print:overflow-visible print:rounded-none"
             >
-              <div className="p-8">
+              <div className="p-8 print:p-0">
                 <div className="flex justify-between items-center mb-8">
                   <div>
                     <h2 className="text-2xl font-black text-slate-900">
@@ -403,13 +481,16 @@ const AdminDashboard = () => {
                                 className="h-full bg-orange-500"
                                 style={{
                                   width: `${
-                                    (item.amount /
-                                      Math.max(
-                                        ...reportData.revenueTrend.map(
-                                          (r) => r.amount,
-                                        ),
-                                      )) *
-                                    100
+                                    reportData.revenueTrend.length > 0
+                                      ? (item.amount /
+                                          Math.max(
+                                            ...reportData.revenueTrend.map(
+                                              (r) => r.amount,
+                                            ),
+                                            1,
+                                          )) *
+                                        100
+                                      : 0
                                   }%`,
                                 }}
                               />
@@ -422,7 +503,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-4 pt-4">
+                    <div className="flex justify-end gap-4 pt-4 print:hidden">
                       <button
                         onClick={() => window.print()}
                         className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition"
@@ -438,8 +519,16 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="py-20 text-center text-red-500">
-                    Không thể tải dữ liệu báo cáo.
+                  <div className="py-20 text-center space-y-4">
+                    <p className="text-red-500 font-medium">
+                      Không thể tải dữ liệu báo cáo.
+                    </p>
+                    <button
+                      onClick={handleGenerateReport}
+                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm hover:bg-slate-200 transition"
+                    >
+                      Thử lại
+                    </button>
                   </div>
                 )}
               </div>

@@ -10,6 +10,7 @@ const AdminMajorUniversityManagement = () => {
   const [mappings, setMappings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Pagination states
   const [uniPage, setUniPage] = useState(1);
@@ -48,23 +49,26 @@ const AdminMajorUniversityManagement = () => {
   const fetchPaginatedData = useCallback(async () => {
     setLoading(true);
     try {
+      const searchParam = debouncedSearchTerm
+        ? `&search=${encodeURIComponent(debouncedSearchTerm)}`
+        : "";
       if (activeTab === "universities") {
         const res = await axios.get(
-          `${API_URL}/admin/majors/universities?page=${uniPage}&limit=10`,
+          `${API_URL}/admin/majors/universities?page=${uniPage}&limit=10${searchParam}`,
           { headers: getAuthHeader() },
         );
         setUniversities(res.data.data.universities);
         setUniTotalPages(res.data.data.pages);
       } else if (activeTab === "majors") {
         const res = await axios.get(
-          `${API_URL}/admin/majors/majors?page=${majorPage}&limit=10`,
+          `${API_URL}/admin/majors/majors?page=${majorPage}&limit=10${searchParam}`,
           { headers: getAuthHeader() },
         );
         setMajors(res.data.data.majors);
         setMajorTotalPages(res.data.data.pages);
       } else if (activeTab === "mappings") {
         const res = await axios.get(
-          `${API_URL}/admin/majors/university-majors?page=${mapPage}&limit=10`,
+          `${API_URL}/admin/majors/university-majors?page=${mapPage}&limit=10${searchParam}`,
           { headers: getAuthHeader() },
         );
         setMappings(res.data.data.universityMajors);
@@ -76,7 +80,7 @@ const AdminMajorUniversityManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, uniPage, majorPage, mapPage]);
+  }, [activeTab, uniPage, majorPage, mapPage, debouncedSearchTerm]);
 
   useEffect(() => {
     const init = async () => {
@@ -87,11 +91,26 @@ const AdminMajorUniversityManagement = () => {
   }, []);
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
     const loadData = async () => {
       await fetchPaginatedData();
     };
     loadData();
-  }, [activeTab, uniPage, majorPage, mapPage, fetchPaginatedData]);
+  }, [
+    activeTab,
+    uniPage,
+    majorPage,
+    mapPage,
+    debouncedSearchTerm,
+    fetchPaginatedData,
+  ]);
 
   const handleOpenModal = (item = null) => {
     setEditingItem(item);
@@ -100,10 +119,34 @@ const AdminMajorUniversityManagement = () => {
     } else {
       setFormData(
         activeTab === "universities"
-          ? { name: "", location: "", website: "" }
+          ? {
+              name: "",
+              location: "",
+              address: "",
+              website: "",
+              type: "Public",
+              image: "",
+              facilities: [],
+              admissionYear: 2024,
+            }
           : activeTab === "majors"
-            ? { name: "", description: "" }
-            : { university: "", major: "" },
+            ? {
+                name: "",
+                description: "",
+                benchmarkScore: 0,
+                tuitionFee: 0,
+                hollandTypes: [],
+                mbtiTypes: [],
+                subjectCombinations: [],
+              }
+            : {
+                university: "",
+                major: "",
+                admissionScore: 0,
+                subjectCombination: "",
+                tuitionFee: 0,
+                admissionHistory: [],
+              },
       );
     }
     setIsModalOpen(true);
@@ -279,6 +322,9 @@ const AdminMajorUniversityManagement = () => {
                   <th className="px-6 py-4 text-sm font-bold text-slate-600">
                     Website
                   </th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-600 text-center">
+                    Đánh giá
+                  </th>
                   <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
                     Hành động
                   </th>
@@ -298,6 +344,11 @@ const AdminMajorUniversityManagement = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {u.website}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-md text-xs font-bold">
+                        ⭐ {u.rating || 0}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
@@ -590,8 +641,8 @@ const AdminMajorUniversityManagement = () => {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 {activeTab === "universities" && (
-                  <>
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-slate-700 mb-1">
                         Tên trường
                       </label>
@@ -606,13 +657,44 @@ const AdminMajorUniversityManagement = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Địa điểm
+                        Địa điểm (Tỉnh/Thành)
                       </label>
                       <input
+                        required
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         value={formData.location || ""}
                         onChange={(e) =>
                           setFormData({ ...formData, location: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Loại trường
+                      </label>
+                      <select
+                        required
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.type || "Public"}
+                        onChange={(e) =>
+                          setFormData({ ...formData, type: e.target.value })
+                        }
+                      >
+                        <option value="Public">Công lập</option>
+                        <option value="Private">Tư thục</option>
+                        <option value="International">Quốc tế</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Địa chỉ chi tiết
+                      </label>
+                      <input
+                        required
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.address || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
                         }
                       />
                     </div>
@@ -628,7 +710,57 @@ const AdminMajorUniversityManagement = () => {
                         }
                       />
                     </div>
-                  </>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Ảnh trường (URL)
+                      </label>
+                      <input
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.image || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, image: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Đánh giá (Rating)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.rating || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            rating: parseFloat(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Cơ sở vật chất (phẩy tách)
+                      </label>
+                      <input
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={
+                          Array.isArray(formData.facilities)
+                            ? formData.facilities.join(", ")
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            facilities: e.target.value
+                              .split(",")
+                              .map((s) => s.trim()),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
                 )}
                 {activeTab === "majors" && (
                   <>
@@ -664,51 +796,206 @@ const AdminMajorUniversityManagement = () => {
                   </>
                 )}
                 {activeTab === "mappings" && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Trường
-                      </label>
-                      <select
-                        required
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.university || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            university: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">Chọn trường</option>
-                        {universities.map((u) => (
-                          <option key={u._id} value={u._id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Trường
+                        </label>
+                        <select
+                          required
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={formData.university || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              university: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Chọn trường</option>
+                          {universities.map((u) => (
+                            <option key={u._id} value={u._id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Ngành
+                        </label>
+                        <select
+                          required
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={formData.major || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, major: e.target.value })
+                          }
+                        >
+                          <option value="">Chọn ngành</option>
+                          {majors.map((m) => (
+                            <option key={m._id} value={m._id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Ngành
-                      </label>
-                      <select
-                        required
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.major || ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, major: e.target.value })
-                        }
-                      >
-                        <option value="">Chọn ngành</option>
-                        {majors.map((m) => (
-                          <option key={m._id} value={m._id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
+
+                    <div className="border-t border-slate-100 pt-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-bold text-slate-800">
+                          Lịch sử tuyển sinh (Điểm chuẩn & Học phí)
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const history = formData.admissionHistory || [];
+                            setFormData({
+                              ...formData,
+                              admissionHistory: [
+                                ...history,
+                                {
+                                  year: new Date().getFullYear(),
+                                  admissionScore: 0,
+                                  tuitionFee: 0,
+                                  subjectCombination: "",
+                                },
+                              ],
+                            });
+                          }}
+                          className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-md hover:bg-blue-100 transition font-bold"
+                        >
+                          + Thêm năm
+                        </button>
+                      </div>
+
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        {(formData.admissionHistory || []).map(
+                          (item, index) => (
+                            <div
+                              key={index}
+                              className="p-3 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-3 relative group"
+                            >
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase">
+                                  Năm
+                                </label>
+                                <input
+                                  type="number"
+                                  required
+                                  className="w-full px-2 py-1 text-sm border border-slate-200 rounded bg-white"
+                                  value={item.year || ""}
+                                  onChange={(e) => {
+                                    const newHistory = [
+                                      ...(formData.admissionHistory || []),
+                                    ];
+                                    newHistory[index].year = parseInt(
+                                      e.target.value,
+                                    );
+                                    setFormData({
+                                      ...formData,
+                                      admissionHistory: newHistory,
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase">
+                                  Điểm
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  required
+                                  className="w-full px-2 py-1 text-sm border border-slate-200 rounded bg-white"
+                                  value={item.admissionScore || ""}
+                                  onChange={(e) => {
+                                    const newHistory = [
+                                      ...(formData.admissionHistory || []),
+                                    ];
+                                    newHistory[index].admissionScore =
+                                      parseFloat(e.target.value);
+                                    setFormData({
+                                      ...formData,
+                                      admissionHistory: newHistory,
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase">
+                                  Học phí
+                                </label>
+                                <input
+                                  type="number"
+                                  required
+                                  className="w-full px-2 py-1 text-sm border border-slate-200 rounded bg-white"
+                                  value={item.tuitionFee || ""}
+                                  onChange={(e) => {
+                                    const newHistory = [
+                                      ...(formData.admissionHistory || []),
+                                    ];
+                                    newHistory[index].tuitionFee = parseInt(
+                                      e.target.value,
+                                    );
+                                    setFormData({
+                                      ...formData,
+                                      admissionHistory: newHistory,
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase">
+                                  Tổ hợp
+                                </label>
+                                <input
+                                  type="text"
+                                  className="w-full px-2 py-1 text-sm border border-slate-200 rounded bg-white"
+                                  value={item.subjectCombination || ""}
+                                  onChange={(e) => {
+                                    const newHistory = [
+                                      ...(formData.admissionHistory || []),
+                                    ];
+                                    newHistory[index].subjectCombination =
+                                      e.target.value;
+                                    setFormData({
+                                      ...formData,
+                                      admissionHistory: newHistory,
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newHistory = (
+                                    formData.admissionHistory || []
+                                  ).filter((_, i) => i !== index);
+                                  setFormData({
+                                    ...formData,
+                                    admissionHistory: newHistory,
+                                  });
+                                }}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ),
+                        )}
+                        {(!formData.admissionHistory ||
+                          formData.admissionHistory.length === 0) && (
+                          <p className="text-center text-xs text-slate-400 py-4">
+                            Chưa có dữ liệu tuyển sinh. Vui lòng nhấn "+ Thêm
+                            năm".
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <button

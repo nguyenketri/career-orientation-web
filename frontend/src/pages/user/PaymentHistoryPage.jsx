@@ -48,12 +48,12 @@ const PaymentHistoryPage = () => {
 
   const getPaymentMethodLabel = (method) => {
     const methods = {
-      QR: "VietQR",
+      QR: "payOS",
       CARD: "Thẻ ngân hàng",
       WALLET: "Ví điện tử",
       BANK_TRANSFER: "Chuyển khoản",
     };
-    return methods[method] || method || "QR";
+    return methods[method] || method || "payOS";
   };
 
   const downloadInvoice = (payment) => {
@@ -65,7 +65,7 @@ const PaymentHistoryPage = () => {
 
     doc.setFontSize(12);
     doc.text(`Ma giao dich: ${payment.transactionCode}`, 20, 40);
-    doc.text(`Ngay: ${new Date(payment.date).toLocaleString()}`, 20, 50);
+    doc.text(`Ngay: ${new Date(payment.createdAt).toLocaleString()}`, 20, 50);
     doc.text(`Goi dich vu: ${payment.planType}`, 20, 60);
     doc.text(`So tien: ${payment.amount.toLocaleString()} VND`, 20, 70);
     doc.text(
@@ -148,7 +148,9 @@ const PaymentHistoryPage = () => {
                       className="hover:bg-slate-50/50 transition-colors"
                     >
                       <td className="px-6 py-4 text-sm text-slate-600">
-                        {new Date(payment.date).toLocaleDateString("vi-VN")}
+                        {new Date(payment.createdAt).toLocaleDateString(
+                          "vi-VN",
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm font-mono font-medium text-blue-600">
                         {payment.transactionCode}

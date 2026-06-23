@@ -59,9 +59,6 @@ const AdminLayout = ({ children }) => {
         </nav>
 
         <div className="p-6 border-t border-slate-700">
-          <button className="w-full bg-orange-500 py-2 rounded-lg font-bold text-sm mb-4 hover:bg-orange-600 transition">
-            Generate Report
-          </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition"

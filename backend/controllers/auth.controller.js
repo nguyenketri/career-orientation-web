@@ -2,6 +2,8 @@ const {
   registerUser,
   loginUser,
   googleLogin,
+  forgotPassword: forgotPasswordService,
+  resetPassword: resetPasswordService,
 } = require("../services/auth.service");
 
 const register = async (req, res) => {
@@ -65,4 +67,48 @@ const googleAuth = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleAuth };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email is required",
+      });
+    }
+    const result = await forgotPasswordService(email);
+    res.status(200).json({
+      status: "success",
+      message: result.message,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Token and password are required",
+      });
+    }
+    const result = await resetPasswordService(token, password);
+    res.status(200).json({
+      status: "success",
+      message: result.message,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
+module.exports = { register, login, googleAuth, forgotPassword, resetPassword };

@@ -28,15 +28,8 @@ const UniversityDetailPage = () => {
   }, [id]);
 
   const getUniversityImage = (name) => {
-    const images = {
-      NEU: "https://images.unsplash.com/photo-1562774053-701939374587?q=80&w=1974&auto=format&fit=crop",
-      FPT: "https://images.unsplash.com/photo-1541339907198-e08756edd81f?q=80&w=2070&auto=format&fit=crop",
-      BK: "https://images.unsplash.com/photo-1592280771195-a6976a97337a?q=80&w=2070&auto=format&fit=crop",
-    };
-    return (
-      images[name] ||
-      "https://images.unsplash.com/photo-1523050853063-915894691067?q=80&w=2070&auto=format&fit=crop"
-    );
+    // Fallback logic if university.image is missing or invalid
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Uni")}&background=random&size=400`;
   };
 
   if (loading) {
@@ -98,6 +91,9 @@ const UniversityDetailPage = () => {
               src={university.image || getUniversityImage(university.name)}
               alt={university.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.src = getUniversityImage(university.name);
+              }}
             />
           </div>
           <div className="flex-1 text-center md:text-left">

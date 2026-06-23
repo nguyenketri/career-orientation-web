@@ -17,9 +17,15 @@ const RecommendationCard = ({ major, matchPercent, navigate }) => (
   <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
     <div className="relative h-40 overflow-hidden">
       <img
-        src={`https://source.unsplash.com/featured/?university,education,${major.name}`}
+        src={
+          major.universities?.[0]?.image ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(major.name)}&background=random&size=400`
+        }
         alt={major.name}
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(major.name)}&background=random&size=400`;
+        }}
       />
       <div className="absolute top-3 right-3 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
         {matchPercent}% Phù hợp
@@ -387,7 +393,7 @@ const TestResultPage = () => {
               Hoàn thành lúc: {new Date().toLocaleString()}
             </div>
             <button
-              onClick={() => navigate("/history")}
+              onClick={() => navigate("/history?tab=holland")}
               className="text-xs font-bold text-blue-600 hover:underline"
             >
               Xem toàn bộ lịch sử →
@@ -606,7 +612,7 @@ const TestResultPage = () => {
                 <RecommendationCard
                   key={major._id}
                   major={major}
-                  matchPercent={90 + idx}
+                  matchPercent={Math.min(100, 90 + idx)}
                   navigate={navigate}
                 />
               ))}

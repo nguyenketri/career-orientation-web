@@ -30,25 +30,6 @@ const AdminPaymentManagement = () => {
     loadPayments();
   }, [currentPage, fetchPayments]);
 
-  const handleUpdateStatus = async (paymentId, newStatus) => {
-    if (
-      !window.confirm(
-        `Xác nhận cập nhật trạng thái giao dịch thành ${newStatus}?`,
-      )
-    )
-      return;
-
-    try {
-      await axiosClient.put("/admin/payments/status", {
-        paymentId,
-        status: newStatus,
-      });
-      fetchPayments(currentPage);
-    } catch {
-      alert("Lỗi khi cập nhật trạng thái");
-    }
-  };
-
   if (loading)
     return (
       <div className="flex items-center justify-center h-full text-slate-600">
@@ -77,7 +58,7 @@ const AdminPaymentManagement = () => {
             Quản lý Thanh toán
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Theo dõi doanh thu và phê duyệt các giao dịch nâng cấp
+            Theo dõi doanh thu và trạng thái giao dịch nâng cấp
           </p>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm w-full md:w-auto">
@@ -105,7 +86,7 @@ const AdminPaymentManagement = () => {
             {f === "ALL"
               ? "Tất cả"
               : f === "PENDING"
-                ? "Chờ duyệt"
+                ? "Đang chờ"
                 : f === "SUCCESS"
                   ? "Thành công"
                   : "Thất bại"}
@@ -161,22 +142,6 @@ const AdminPaymentManagement = () => {
                     {payment.amount.toLocaleString()}đ
                   </p>
                 </div>
-                {payment.status === "PENDING" && (
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => handleUpdateStatus(payment._id, "SUCCESS")}
-                      className="flex-1 py-2 bg-green-600 text-white text-xs font-bold rounded-lg"
-                    >
-                      Duyệt
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(payment._id, "FAILED")}
-                      className="flex-1 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg"
-                    >
-                      Từ chối
-                    </button>
-                  </div>
-                )}
               </div>
             ))
           ) : (
@@ -205,9 +170,6 @@ const AdminPaymentManagement = () => {
                 </th>
                 <th className="px-6 py-4 text-sm font-bold text-slate-600">
                   Trạng thái
-                </th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
-                  Hành động
                 </th>
               </tr>
             </thead>
@@ -265,38 +227,12 @@ const AdminPaymentManagement = () => {
                             : "THẤT BẠI"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      {payment.status === "PENDING" ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(payment._id, "SUCCESS")
-                            }
-                            className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition"
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(payment._id, "FAILED")
-                            }
-                            className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-lg hover:bg-red-100 transition"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">
-                          Đã xử lý
-                        </span>
-                      )}
-                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     className="px-6 py-12 text-center text-slate-400"
                   >
                     Không có dữ liệu thanh toán

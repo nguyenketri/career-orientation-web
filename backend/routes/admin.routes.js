@@ -13,6 +13,7 @@ router.use(adminMiddleware);
 // Thống kê
 router.get("/stats", adminController.getAdminStats);
 router.get("/report", adminController.getAdminReport);
+router.get("/monthly-revenue", adminController.getMonthlyRevenue);
 
 // Quản lý người dùng
 router.get("/users", adminController.getAllUsers);

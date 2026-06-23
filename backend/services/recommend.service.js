@@ -13,6 +13,7 @@ const genAI = new GoogleGenerativeAI(
 
 // Hàm Helper để tính điểm theo tổ hợp
 const calculateCombinations = (scores) => {
+  if (!scores) return [];
   const {
     math = 0,
     literature = 0,
@@ -66,6 +67,10 @@ const recommendBySubjects = async (
   const { location, type, maxTuition } = filters;
   const { page = 1, limit = 5 } = pagination;
 
+  console.log("\n--- Recommendation Request ---");
+  console.log("Filters:", { location, type, maxTuition });
+  console.log("Combinations:", combinations);
+
   // Sort descending by score
   combinations.sort((a, b) => b.score - a.score);
 
@@ -75,7 +80,7 @@ const recommendBySubjects = async (
   for (const combo of combinations) {
     const um = await UniversityMajor.find({
       subjectCombination: combo.name,
-      admissionScore: { $lte: combo.score + 2 }, // Mở rộng khoảng điểm để tìm được nhiều trường hơn
+      admissionScore: { $lte: combo.score + 5 },
       isDeleted: false,
     })
       .populate({
@@ -90,10 +95,44 @@ const recommendBySubjects = async (
 
     // Filter out if university didn't match filters
     const filteredUm = um.filter((item) => item.university !== null);
+    console.log(
+      `- Combo ${combo.name}: Found ${um.length} total, ${filteredUm.length} matched filters`,
+    );
 
     // Filter by tuition fee
     const finalUm = maxTuition
-      ? filteredUm.filter((item) => item.tuitionFee <= maxTuition)
+      ? filteredUm.filter((item) => {
+          const itemObj = item.toObject();
+
+          // Try to get tuition fee from top level or the most recent admission history
+          let fee = itemObj.tuitionFee;
+          if (
+            (fee === undefined || fee === null) &&
+            itemObj.admissionHistory?.length > 0
+          ) {
+            // Get the most recent year's tuition fee
+            const sortedHistory = [...itemObj.admissionHistory].sort(
+              (a, b) => b.year - a.year,
+            );
+            fee = sortedHistory[0].tuitionFee;
+          }
+
+          const numericMaxTuition = Number(maxTuition);
+          const numericFee =
+            fee !== undefined && fee !== null ? Number(fee) : null;
+
+          // If fee is missing, we allow it (as per previous requirement)
+          if (numericFee === null) return true;
+
+          const isAllowed = numericFee <= numericMaxTuition;
+
+          if (!isAllowed) {
+            console.log(
+              `[TuitionFilter] Filtering out Major ${itemObj._id}: Fee ${numericFee} > Max ${numericMaxTuition}`,
+            );
+          }
+          return isAllowed;
+        })
       : filteredUm;
 
     // Thêm thuộc tính để nhận dạng
@@ -116,6 +155,7 @@ const recommendBySubjects = async (
   const uniqueResults = [];
   const seen = new Set();
   for (const item of eligibleUniversityMajors) {
+    if (!item.university || !item.major) continue;
     const key = `${item.university._id}-${item.major._id}`;
     if (!seen.has(key)) {
       seen.add(key);
@@ -126,15 +166,30 @@ const recommendBySubjects = async (
   let analysisRecord = null;
   // Lưu lịch sử chỉ khi có userId (User đã đăng nhập)
   if (userId) {
-    analysisRecord = await ScoreAnalysis.create({
-      user: userId,
-      subjectScores: scores,
-      topCombinations: combinations.map((c) => ({
-        combination: c.name,
-        totalScore: c.score,
-      })),
-      recommendedUniversityMajors: uniqueResults.map((e) => e._id),
-    });
+    try {
+      console.log("Creating ScoreAnalysis record for user:", userId);
+      analysisRecord = await ScoreAnalysis.create({
+        user: userId,
+        subjectScores: scores,
+        filters: {
+          location,
+          type,
+          maxTuition,
+        },
+        topCombinations: combinations.map((c) => ({
+          combination: c.name,
+          totalScore: c.score,
+        })),
+        recommendedUniversityMajors: uniqueResults.map((e) => e._id),
+      });
+      console.log(
+        "ScoreAnalysis record created successfully:",
+        analysisRecord._id,
+      );
+    } catch (createErr) {
+      console.error("Error creating ScoreAnalysis record:", createErr);
+      // We don't throw here so the user still gets their recommendations even if history fails
+    }
   }
 
   const processedResults = uniqueResults;

@@ -43,7 +43,7 @@ const RecommendationDetailPage = () => {
         <div className="text-center">
           <p className="text-slate-500 mb-4">Không tìm thấy dữ liệu gợi ý.</p>
           <button
-            onClick={() => navigate("/history")}
+            onClick={() => navigate("/history?tab=holland")}
             className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold"
           >
             Quay lại lịch sử
@@ -215,9 +215,15 @@ const RecommendationDetailPage = () => {
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
                                 <img
-                                  src={`https://source.unsplash.com/featured/?university,${item.university?.name}`}
+                                  src={
+                                    item.university?.image ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(item.university?.name || "Uni")}&background=random&size=400`
+                                  }
                                   alt="uni"
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.university?.name || "Uni")}&background=random&size=400`;
+                                  }}
                                 />
                               </div>
                               <div>
@@ -285,9 +291,15 @@ const RecommendationDetailPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
                             <img
-                              src={`https://source.unsplash.com/featured/?university,${item.university?.name}`}
+                              src={
+                                item.university?.image ||
+                                `https://ui-avatars.com/api/?name=${encodeURIComponent(item.university?.name || "Uni")}&background=random&size=400`
+                              }
                               alt="uni"
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.university?.name || "Uni")}&background=random&size=400`;
+                              }}
                             />
                           </div>
                           <div>

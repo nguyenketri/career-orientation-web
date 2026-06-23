@@ -179,12 +179,19 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
 exports.webhookPayment = async (req, res) => {
   try {
     const payload = req.body;
-    const signature = req.headers["x-payos-signature"];
+    // PayOS sometimes sends signature in different header formats or casing
+    const signature =
+      req.headers["x-payos-signature"] || req.headers["X-PayOS-Signature"];
     console.log("[Payment Webhook] Received payload:", JSON.stringify(payload));
+    console.log(
+      "[Payment Webhook] Received headers:",
+      JSON.stringify(req.headers),
+    );
 
     if (!signature) {
       console.error(
-        "[Payment Webhook] Error: Missing x-payos-signature header",
+        "[Payment Webhook] Error: Missing x-payos-signature header. Headers received:",
+        JSON.stringify(req.headers),
       );
       return res
         .status(400)

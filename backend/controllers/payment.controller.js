@@ -182,6 +182,7 @@ exports.webhookPayment = async (req, res) => {
     const signature =
       req.headers["x-payos-signature"] ||
       req.headers["X-PayOS-Signature"] ||
+      payload.signature ||
       payload.data?.signature;
     console.log("[Payment Webhook] Received payload:", JSON.stringify(payload));
     console.log(

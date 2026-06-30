@@ -164,31 +164,22 @@ const recommendBySubjects = async (
   }
 
   let analysisRecord = null;
-  // Lưu lịch sử chỉ khi có userId (User đã đăng nhập)
-  if (userId) {
+  // Chỉ lưu lịch sử khi user đăng nhập VÀ đây là trang đầu tiên (tránh tạo trùng lặp khi load-more)
+  if (userId && page === 1) {
     try {
-      console.log("Creating ScoreAnalysis record for user:", userId);
       analysisRecord = await ScoreAnalysis.create({
         user: userId,
         subjectScores: scores,
-        filters: {
-          location,
-          type,
-          maxTuition,
-        },
+        filters: { location, type, maxTuition },
         topCombinations: combinations.map((c) => ({
           combination: c.name,
           totalScore: c.score,
         })),
         recommendedUniversityMajors: uniqueResults.map((e) => e._id),
       });
-      console.log(
-        "ScoreAnalysis record created successfully:",
-        analysisRecord._id,
-      );
+      console.log("[Recommend] ScoreAnalysis saved:", analysisRecord._id);
     } catch (createErr) {
-      console.error("Error creating ScoreAnalysis record:", createErr);
-      // We don't throw here so the user still gets their recommendations even if history fails
+      console.error("[Recommend] Failed to save ScoreAnalysis:", createErr.message);
     }
   }
 

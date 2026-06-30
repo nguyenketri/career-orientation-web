@@ -9,8 +9,9 @@ const quotaService = require("../services/quota.service");
 exports.recommendSubjects = async (req, res) => {
   try {
     const { scores, filters, pagination } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?.id || null;
     const page = pagination?.page || 1;
+    console.log(`[Recommend] userId=${userId}, page=${page}`);
 
     // Guest logic: 1 free trial
     if (!userId) {

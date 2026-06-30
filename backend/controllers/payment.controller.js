@@ -86,9 +86,8 @@ exports.createPayment = async (req, res) => {
         orderCode: transactionCode,
         amount: amount,
         description: "Payment",
-        cancelUrl: process.env.PAYMENT_CANCEL_URL || `${frontendUrl}/pricing`,
-        returnUrl:
-          process.env.PAYMENT_RETURN_URL || `${frontendUrl}/payment/success`,
+        cancelUrl: `${frontendUrl}/pricing`,
+        returnUrl: `${frontendUrl}/payment/success`,
       });
 
       return res.status(200).json({
@@ -123,7 +122,7 @@ exports.createPayment = async (req, res) => {
 // Process verification and user upgrade
 const processPaymentSuccess = async (transactionCode, transferAmount) => {
   const payment = await Payment.findOne({
-    transactionCode: { $regex: new RegExp(`^${transactionCode}$`, "i") },
+    transactionCode: Number(transactionCode),
     status: "PENDING",
   });
 
@@ -179,11 +178,11 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
 exports.webhookPayment = async (req, res) => {
   try {
     const payload = req.body;
-    // PayOS sends signature in the body, not the header, for some versions/configurations
+    // PayOS sends signature in the body (inside data object), not the header, for some versions/configurations
     const signature =
       req.headers["x-payos-signature"] ||
       req.headers["X-PayOS-Signature"] ||
-      payload.signature;
+      payload.data?.signature;
     console.log("[Payment Webhook] Received payload:", JSON.stringify(payload));
     console.log(
       "[Payment Webhook] Received headers:",
@@ -215,8 +214,12 @@ exports.webhookPayment = async (req, res) => {
         .json({ status: "error", message: "Invalid payOS signature" });
     }
 
-    if (payload.code && payload.amount && payload.status === "PAID") {
-      const result = await processPaymentSuccess(payload.code, payload.amount);
+    // PayOS webhook structure: { code: "00", success: true, data: { orderCode, amount, ... } }
+    if (payload.code === "00" && payload.success === true && payload.data) {
+      const result = await processPaymentSuccess(
+        payload.data.orderCode,
+        payload.data.amount,
+      );
       if (result.success) {
         return res.status(200).json({
           status: "success",

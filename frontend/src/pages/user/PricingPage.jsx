@@ -66,9 +66,11 @@ const PricingPage = () => {
     try {
       setPaymentLoading(true);
       const data = await createPayment(plan.type);
-      const { checkoutUrl } = data.data;
+      const { checkoutUrl, paymentId } = data.data;
 
       if (checkoutUrl) {
+        // Lưu paymentId để trang success dùng polling kiểm tra trạng thái
+        localStorage.setItem("pending_payment_id", paymentId);
         window.location.href = checkoutUrl;
       } else {
         throw new Error("Không nhận được link thanh toán từ hệ thống.");

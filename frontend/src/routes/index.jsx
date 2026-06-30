@@ -22,6 +22,7 @@ import RecommendationDetailPage from "../pages/user/RecommendationDetailPage";
 import PaymentHistoryPage from "../pages/user/PaymentHistoryPage";
 import PricingPage from "../pages/user/PricingPage";
 import UpgradePromptPage from "../pages/user/UpgradePromptPage";
+import PaymentSuccessPage from "../pages/user/PaymentSuccessPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 // Admin Pages
@@ -114,6 +115,14 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <UpgradePromptPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccessPage />
               </ProtectedRoute>
             }
           />

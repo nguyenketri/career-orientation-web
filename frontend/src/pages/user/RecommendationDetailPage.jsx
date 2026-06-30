@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getScoreAnalysisHistory } from "../../services/recommendService";
+import { getScoreAnalysisById } from "../../services/recommendService";
 
 const RecommendationDetailPage = () => {
   const { id } = useParams();
@@ -14,11 +14,8 @@ const RecommendationDetailPage = () => {
     const fetchResult = async () => {
       setLoading(true);
       try {
-        const res = await getScoreAnalysisHistory();
-        const data = (res.data?.data || res.data || []).find(
-          (r) => r._id === id,
-        );
-        setResult(data);
+        const res = await getScoreAnalysisById(id);
+        setResult(res.data || null);
       } catch (err) {
         console.error("Error fetching recommendation detail:", err);
       } finally {

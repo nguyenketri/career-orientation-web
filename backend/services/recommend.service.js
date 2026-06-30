@@ -179,7 +179,7 @@ const recommendBySubjects = async (
       });
       console.log("[Recommend] ScoreAnalysis saved:", analysisRecord._id);
     } catch (createErr) {
-      console.error("[Recommend] Failed to save ScoreAnalysis:", createErr.message);
+      console.error("[Recommend] Failed to save ScoreAnalysis:", createErr.message, createErr.stack);
     }
   }
 
@@ -205,17 +205,23 @@ const recommendBySubjects = async (
 };
 
 const getScoreAnalysisHistory = async (userId) => {
-  const user = await User.findById(userId);
-  const plan = user ? user.subscriptionPlan : "FREE";
-
   const history = await ScoreAnalysis.find({ user: userId })
     .sort({ createdAt: -1 })
+    .select("-recommendedUniversityMajors")
+    .lean();
+
+  return history;
+};
+
+const getScoreAnalysisById = async (id, userId) => {
+  const record = await ScoreAnalysis.findOne({ _id: id, user: userId })
     .populate({
       path: "recommendedUniversityMajors",
       populate: [{ path: "university" }, { path: "major" }],
-    });
+    })
+    .lean();
 
-  return history.map((record) => record.toObject());
+  return record;
 };
 
 const recommendByScore = async (input) => {
@@ -305,6 +311,7 @@ Hãy viết một cách chuyên nghiệp, truyền cảm hứng, chi tiết và 
 module.exports = {
   recommendBySubjects,
   getScoreAnalysisHistory,
+  getScoreAnalysisById,
   recommendByScore,
   recommendByHolland,
   generateCombinedAiAnalysis,

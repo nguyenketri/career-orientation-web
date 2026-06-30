@@ -16,9 +16,15 @@ export const recommendBySubjects = async (scores, filters, pagination) => {
   return response.data;
 };
 
-// get user score analysis history
+// get user score analysis history (summary list, no heavy populate)
 export const getScoreAnalysisHistory = async () => {
   const response = await axiosClient.get("/recommend/history");
+  return response.data;
+};
+
+// get a single score analysis record with full populated details
+export const getScoreAnalysisById = async (id) => {
+  const response = await axiosClient.get(`/recommend/history/${id}`);
   return response.data;
 };
 

@@ -26,9 +26,8 @@ const scoreAnalysisSchema = new mongoose.Schema(
     targetYear: { type: Number },
     province: { type: String },
     filters: {
-      location: String,
-      type: String,
-      maxTuition: Number,
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
 
     topCombinations: [

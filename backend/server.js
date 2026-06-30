@@ -1,5 +1,6 @@
 require("dotenv").config();
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 process.env.PUPPETEER_CACHE_DIR = "./.cache/puppeteer";
 const express = require("express");
 const connectDB = require("./config/db");
@@ -21,6 +22,7 @@ const adminQuestionRoutes = require("./routes/adminQuestion.routes");
 const app = express();
 
 app.use(cors());
+app.use(cookieParser());
 // middleware : biến JSON -> OBJECT JS
 app.use(express.json());
 

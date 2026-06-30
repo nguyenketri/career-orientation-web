@@ -8,6 +8,7 @@ const {
 const {
   recommendSubjects,
   getAnalysisHistory,
+  getAnalysisDetail,
   recommendScore,
   recommendHolland,
   getRecommendQuota,
@@ -16,6 +17,7 @@ const {
 // NEW:
 router.post("/subjects", optionalAuthMiddleware, recommendSubjects);
 router.get("/history", authMiddleware, getAnalysisHistory);
+router.get("/history/:id", authMiddleware, getAnalysisDetail);
 
 // POST /api/recommend/score (old)
 router.post("/score", authMiddleware, recommendScore);

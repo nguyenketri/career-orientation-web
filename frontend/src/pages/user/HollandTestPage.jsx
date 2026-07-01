@@ -6,6 +6,8 @@ import {
 } from "../../services/hollandService";
 import { getUser } from "../../utils/auth";
 
+const DRAFT_KEY = "holland_draft";
+
 const LIKERT_OPTIONS = [
   { value: 1, label: "Hoàn toàn không" },
   { value: 2, label: "Không đúng" },
@@ -14,20 +16,35 @@ const LIKERT_OPTIONS = [
   { value: 5, label: "Bắt chính xác" },
 ];
 
+const loadDraft = () => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft?.answers || Object.keys(draft.answers).length === 0) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+};
+
+const saveDraft = (answers, currentIndex) => {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex }));
+};
+
+const clearDraft = () => {
+  localStorage.removeItem(DRAFT_KEY);
+};
+
 const HollandTestPage = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("holland_answers") || "{}");
-    } catch {
-      return {};
-    }
-  });
+  const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [draft, setDraft] = useState(null); // draft detected on mount
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -37,6 +54,10 @@ const HollandTestPage = () => {
   }, []);
 
   useEffect(() => {
+    // Detect draft trước khi fetch questions
+    const saved = loadDraft();
+    if (saved) setDraft(saved);
+
     getHollandQuestions()
       .then((res) => {
         if (res.data) setQuestions(res.data);
@@ -44,6 +65,22 @@ const HollandTestPage = () => {
       .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleResume = () => {
+    if (!draft) return;
+    setAnswers(draft.answers);
+    setCurrentIndex(
+      Math.min(draft.currentIndex ?? 0, questions.length > 0 ? questions.length - 1 : 0),
+    );
+    setDraft(null);
+  };
+
+  const handleRestart = () => {
+    clearDraft();
+    setAnswers({});
+    setCurrentIndex(0);
+    setDraft(null);
+  };
 
   const totalQuestions = questions.length;
   const answeredCount = questions.filter((q) => answers[q._id]).length;
@@ -59,13 +96,15 @@ const HollandTestPage = () => {
       [currentQuestion._id]: { type: currentQuestion.type, score: value },
     };
     setAnswers(newAnswers);
-    localStorage.setItem("holland_answers", JSON.stringify(newAnswers));
+    saveDraft(newAnswers, currentIndex);
+
     if (currentIndex < totalQuestions - 1) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(
-        () => setCurrentIndex((i) => Math.min(i + 1, totalQuestions - 1)),
-        400,
-      );
+      timerRef.current = setTimeout(() => {
+        const next = Math.min(currentIndex + 1, totalQuestions - 1);
+        setCurrentIndex(next);
+        saveDraft(newAnswers, next);
+      }, 400);
     }
   };
 
@@ -80,7 +119,7 @@ const HollandTestPage = () => {
       setSubmitting(true);
       setError("");
       const res = await submitHollandTest(Object.values(answers));
-      localStorage.removeItem("holland_answers");
+      clearDraft();
       if (!getUser()) {
         localStorage.setItem(
           "guestResult",
@@ -99,6 +138,8 @@ const HollandTestPage = () => {
       setSubmitting(false);
     }
   };
+
+  // --- Screens ---
 
   if (loading) {
     return (
@@ -128,6 +169,49 @@ const HollandTestPage = () => {
     );
   }
 
+  // Draft resume screen
+  if (draft) {
+    const draftAnsweredCount = Object.keys(draft.answers).length;
+    const draftIndex = (draft.currentIndex ?? 0) + 1;
+    return (
+      <div className="min-h-screen bg-slate-100 pt-24 pb-10 px-4 flex items-center justify-center">
+        <div className="max-w-sm w-full bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">
+            Bạn có bài làm dang dở
+          </h2>
+          <p className="text-slate-500 text-sm mb-1">
+            Đã hoàn thành{" "}
+            <span className="font-bold text-blue-600">
+              {draftAnsweredCount}/{totalQuestions}
+            </span>{" "}
+            câu hỏi
+          </p>
+          <p className="text-slate-400 text-xs mb-8">
+            Đang dừng ở câu {Math.min(draftIndex, totalQuestions)}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleResume}
+              className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+            >
+              Tiếp tục bài làm
+            </button>
+            <button
+              onClick={handleRestart}
+              className="w-full py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all"
+            >
+              Làm lại từ đầu
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main test screen
   return (
     <div className="min-h-screen bg-slate-100 pt-24 pb-10 px-4">
       <div className="max-w-5xl mx-auto">
@@ -161,7 +245,8 @@ const HollandTestPage = () => {
                 </span>
                 <div className="flex gap-3 justify-center flex-1">
                   {LIKERT_OPTIONS.map((option) => {
-                    const isSelected = answers[currentQuestion?._id]?.score === option.value;
+                    const isSelected =
+                      answers[currentQuestion?._id]?.score === option.value;
                     return (
                       <button
                         key={option.value}
@@ -193,7 +278,9 @@ const HollandTestPage = () => {
             <div className="flex justify-between items-center">
               <button
                 onClick={() =>
-                  safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests")
+                  safeIndex > 0
+                    ? setCurrentIndex((i) => i - 1)
+                    : navigate("/tests")
                 }
                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
               >

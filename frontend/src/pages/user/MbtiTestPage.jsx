@@ -3,6 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
 import { getUser } from "../../utils/auth";
 
+const DRAFT_KEY = "mbti_draft";
+
+const loadDraft = () => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft?.answers || Object.keys(draft.answers).length === 0) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+};
+
+const saveDraft = (answers, currentIndex) => {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex }));
+};
+
+const clearDraft = () => {
+  localStorage.removeItem(DRAFT_KEY);
+};
+
 const MbtiTestPage = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
@@ -11,6 +33,7 @@ const MbtiTestPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [draft, setDraft] = useState(null); // draft detected on mount
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -20,6 +43,10 @@ const MbtiTestPage = () => {
   }, []);
 
   useEffect(() => {
+    // Detect draft trước khi fetch questions
+    const saved = loadDraft();
+    if (saved) setDraft(saved);
+
     getMbtiQuestions()
       .then((res) => {
         if (res.data) setQuestions(res.data);
@@ -27,6 +54,22 @@ const MbtiTestPage = () => {
       .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleResume = () => {
+    if (!draft) return;
+    setAnswers(draft.answers);
+    setCurrentIndex(
+      Math.min(draft.currentIndex ?? 0, questions.length > 0 ? questions.length - 1 : 0),
+    );
+    setDraft(null);
+  };
+
+  const handleRestart = () => {
+    clearDraft();
+    setAnswers({});
+    setCurrentIndex(0);
+    setDraft(null);
+  };
 
   const totalQuestions = questions.length;
   const answeredCount = questions.filter((q) => answers[q._id]).length;
@@ -42,13 +85,15 @@ const MbtiTestPage = () => {
       [currentQuestion._id]: { typeValue },
     };
     setAnswers(newAnswers);
-    localStorage.setItem("mbti_answers", JSON.stringify(newAnswers));
+    saveDraft(newAnswers, currentIndex);
+
     if (currentIndex < totalQuestions - 1) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(
-        () => setCurrentIndex((i) => Math.min(i + 1, totalQuestions - 1)),
-        400,
-      );
+      timerRef.current = setTimeout(() => {
+        const next = Math.min(currentIndex + 1, totalQuestions - 1);
+        setCurrentIndex(next);
+        saveDraft(newAnswers, next);
+      }, 400);
     }
   };
 
@@ -63,7 +108,7 @@ const MbtiTestPage = () => {
       setSubmitting(true);
       setError("");
       const res = await submitMbtiTest(Object.values(answers));
-      localStorage.removeItem("mbti_answers");
+      clearDraft();
       if (!getUser()) {
         localStorage.setItem(
           "guestResult",
@@ -79,6 +124,8 @@ const MbtiTestPage = () => {
       setSubmitting(false);
     }
   };
+
+  // --- Screens ---
 
   if (loading) {
     return (
@@ -108,6 +155,49 @@ const MbtiTestPage = () => {
     );
   }
 
+  // Draft resume screen
+  if (draft) {
+    const draftAnsweredCount = Object.keys(draft.answers).length;
+    const draftIndex = (draft.currentIndex ?? 0) + 1;
+    return (
+      <div className="min-h-screen bg-slate-100 pt-24 pb-10 px-4 flex items-center justify-center">
+        <div className="max-w-sm w-full bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">
+            Bạn có bài làm dang dở
+          </h2>
+          <p className="text-slate-500 text-sm mb-1">
+            Đã hoàn thành{" "}
+            <span className="font-bold text-indigo-600">
+              {draftAnsweredCount}/{totalQuestions}
+            </span>{" "}
+            câu hỏi
+          </p>
+          <p className="text-slate-400 text-xs mb-8">
+            Đang dừng ở câu {Math.min(draftIndex, totalQuestions)}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleResume}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
+            >
+              Tiếp tục bài làm
+            </button>
+            <button
+              onClick={handleRestart}
+              className="w-full py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all"
+            >
+              Làm lại từ đầu
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main test screen
   const selectedTypeValue = answers[currentQuestion?._id]?.typeValue;
 
   return (
@@ -128,7 +218,7 @@ const MbtiTestPage = () => {
         </div>
 
         <div className="flex gap-5 items-start">
-          {/* Left: question + A/B options + nav */}
+          {/* Left: question + A/B options + nav buttons */}
           <div className="flex-1 min-w-0 space-y-4">
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
@@ -139,11 +229,8 @@ const MbtiTestPage = () => {
               </p>
 
               <div className="flex flex-col gap-3">
-                {/* Option A */}
                 <button
-                  onClick={() =>
-                    handleSelect(currentQuestion?.optionA?.typeValue)
-                  }
+                  onClick={() => handleSelect(currentQuestion?.optionA?.typeValue)}
                   className={`group relative rounded-2xl p-6 text-left border-2 transition-all duration-200
                     ${
                       selectedTypeValue === currentQuestion?.optionA?.typeValue
@@ -176,11 +263,8 @@ const MbtiTestPage = () => {
                   </div>
                 </button>
 
-                {/* Option B */}
                 <button
-                  onClick={() =>
-                    handleSelect(currentQuestion?.optionB?.typeValue)
-                  }
+                  onClick={() => handleSelect(currentQuestion?.optionB?.typeValue)}
                   className={`group relative rounded-2xl p-6 text-left border-2 transition-all duration-200
                     ${
                       selectedTypeValue === currentQuestion?.optionB?.typeValue
@@ -224,7 +308,9 @@ const MbtiTestPage = () => {
             <div className="flex justify-between items-center">
               <button
                 onClick={() =>
-                  safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests")
+                  safeIndex > 0
+                    ? setCurrentIndex((i) => i - 1)
+                    : navigate("/tests")
                 }
                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
               >

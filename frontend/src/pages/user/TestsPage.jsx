@@ -5,6 +5,9 @@ import { getUser } from "../../utils/auth";
 
 const HOLLAND_COUNTS = { FREE: 42, PAID: 60, PREMIUM: 90 };
 const MBTI_COUNTS = { FREE: 28, PAID: 48, PREMIUM: 72 };
+// Phải khớp với TIME_PER_QUESTION_SEC ở backend/services/holland.service.js và mbti.service.js
+const HOLLAND_SEC_PER_QUESTION = 20;
+const MBTI_SEC_PER_QUESTION = 15;
 
 const TestsPage = () => {
   const navigate = useNavigate();
@@ -12,6 +15,10 @@ const TestsPage = () => {
   const plan = getUser()?.subscriptionPlan || "FREE";
   const hollandCount = HOLLAND_COUNTS[plan] || 42;
   const mbtiCount = MBTI_COUNTS[plan] || 28;
+  const hollandMinutes = Math.round(
+    (hollandCount * HOLLAND_SEC_PER_QUESTION) / 60,
+  );
+  const mbtiMinutes = Math.round((mbtiCount * MBTI_SEC_PER_QUESTION) / 60);
 
   const hollandInfo = {
     title: "Mô hình Holland là gì?",
@@ -142,7 +149,7 @@ const TestsPage = () => {
                       <div className="text-xs text-slate-500 mt-1">Nhóm tính cách</div>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-2xl text-center">
-                      <div className="text-2xl font-black text-blue-600">10'</div>
+                      <div className="text-2xl font-black text-blue-600">{hollandMinutes}'</div>
                       <div className="text-xs text-slate-500 mt-1">Thời gian</div>
                     </div>
                   </div>
@@ -175,7 +182,7 @@ const TestsPage = () => {
                       <div className="text-xs text-slate-500 mt-1">Loại tính cách</div>
                     </div>
                     <div className="bg-indigo-50 p-4 rounded-2xl text-center">
-                      <div className="text-2xl font-black text-indigo-600">10'</div>
+                      <div className="text-2xl font-black text-indigo-600">{mbtiMinutes}'</div>
                       <div className="text-xs text-slate-500 mt-1">Thời gian</div>
                     </div>
                   </div>

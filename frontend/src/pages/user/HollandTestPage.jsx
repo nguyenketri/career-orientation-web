@@ -14,6 +14,16 @@ const LIKERT_OPTIONS = [
   { value: 5, label: "Rắt chính xác" },
 ];
 
+// Fallback nếu API cũ chưa trả timeLimitSec (draft cũ trước khi có tính năng đếm giờ)
+const FALLBACK_SEC_PER_QUESTION = 20;
+
+const formatTime = (sec) => {
+  const safeSec = Math.max(0, sec);
+  const m = Math.floor(safeSec / 60);
+  const s = safeSec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
 const HollandTestPage = () => {
   const navigate = useNavigate();
   const currentUser = getUser();
@@ -32,7 +42,16 @@ const HollandTestPage = () => {
     }
   };
   const saveDraft = (answers, idx, questionsList) => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex: idx, questions: questionsList }));
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        answers,
+        currentIndex: idx,
+        questions: questionsList,
+        startedAt: startedAtRef.current,
+        timeLimitSec: timeLimitRef.current,
+      }),
+    );
   };
   const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
 
@@ -43,7 +62,17 @@ const HollandTestPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState(null); // draft detected on mount
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [timeLimitSec, setTimeLimitSec] = useState(0);
   const timerRef = useRef(null);
+  const answersRef = useRef(answers);
+  const startedAtRef = useRef(null);
+  const timeLimitRef = useRef(0);
+  const autoSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   useEffect(() => {
     return () => {
@@ -53,9 +82,17 @@ const HollandTestPage = () => {
 
   const fetchFreshQuestions = () => {
     setLoading(true);
+    autoSubmittedRef.current = false;
     getHollandQuestions()
       .then((res) => {
-        if (res.data) setQuestions(res.data);
+        if (res.data) {
+          setQuestions(res.data);
+          startedAtRef.current = Date.now();
+          timeLimitRef.current =
+            res.timeLimitSec || res.data.length * FALLBACK_SEC_PER_QUESTION;
+          setTimeLimitSec(timeLimitRef.current);
+          setTimeLeft(timeLimitRef.current);
+        }
       })
       .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
       .finally(() => setLoading(false));
@@ -68,7 +105,21 @@ const HollandTestPage = () => {
     // Nếu đã có bài làm dang dở, dùng đúng bộ câu hỏi đã lưu (tránh bị random lại)
     const saved = loadDraft();
     if (saved?.questions?.length > 0) {
-      setDraft(saved);
+      // eslint-disable-next-line react-hooks/purity -- side effect chạy trong useEffect, không phải lúc render
+      startedAtRef.current = saved.startedAt || Date.now();
+      timeLimitRef.current =
+        saved.timeLimitSec || saved.questions.length * FALLBACK_SEC_PER_QUESTION;
+      setTimeLimitSec(timeLimitRef.current);
+
+      // Tính thời gian còn lại ngay khi phát hiện draft (tránh gọi Date.now() lúc render)
+      const hasTimerInfo = !!(saved.startedAt && saved.timeLimitSec);
+      // eslint-disable-next-line react-hooks/purity -- side effect chạy trong useEffect, không phải lúc render
+      const now = Date.now();
+      const remainingAtLoad = hasTimerInfo
+        ? Math.max(0, timeLimitRef.current - Math.floor((now - startedAtRef.current) / 1000))
+        : null;
+
+      setDraft({ ...saved, hasTimerInfo, remainingAtLoad });
       setQuestions(saved.questions);
       setLoading(false);
       return;
@@ -78,6 +129,65 @@ const HollandTestPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const doSubmit = async (answersToSubmit) => {
+    try {
+      setSubmitting(true);
+      setError("");
+      const res = await submitHollandTest(Object.values(answersToSubmit));
+      clearDraft();
+      if (!getUser()) {
+        localStorage.setItem(
+          "guestResult",
+          JSON.stringify({ type: "holland", result: res.data }),
+        );
+        navigate("/register");
+      } else {
+        navigate("/test-result", {
+          state: { type: "holland", result: res.data },
+        });
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Có lỗi khi phân tích kết quả, vui lòng thử lại.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleTimeUp = () => {
+    if (autoSubmittedRef.current) return;
+    autoSubmittedRef.current = true;
+    const currentAnswers = answersRef.current;
+    if (Object.keys(currentAnswers).length === 0) {
+      clearDraft();
+      navigate("/tests");
+      return;
+    }
+    doSubmit(currentAnswers);
+  };
+
+  // Đếm ngược thời gian làm bài, tự động nộp bài khi hết giờ
+  useEffect(() => {
+    if (loading || draft || timeLimitRef.current <= 0) return undefined;
+
+    const tick = () => {
+      const remaining = Math.max(
+        0,
+        timeLimitRef.current -
+          Math.floor((Date.now() - startedAtRef.current) / 1000),
+      );
+      setTimeLeft(remaining);
+      if (remaining <= 0) handleTimeUp();
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, draft]);
+
   const handleResume = () => {
     if (!draft) return;
     setAnswers(draft.answers);
@@ -85,6 +195,15 @@ const HollandTestPage = () => {
       Math.min(draft.currentIndex ?? 0, questions.length > 0 ? questions.length - 1 : 0),
     );
     setDraft(null);
+  };
+
+  // Hết giờ trong lúc rời trang: nộp luôn bài với các câu đã trả lời
+  const handleResumeExpired = () => {
+    if (!draft) return;
+    autoSubmittedRef.current = true;
+    setAnswers(draft.answers);
+    setDraft(null);
+    doSubmit(draft.answers);
   };
 
   const handleRestart = () => {
@@ -131,30 +250,8 @@ const HollandTestPage = () => {
       setError("Vui lòng trả lời tất cả câu hỏi trước khi nộp bài.");
       return;
     }
-    try {
-      setSubmitting(true);
-      setError("");
-      const res = await submitHollandTest(Object.values(answers));
-      clearDraft();
-      if (!getUser()) {
-        localStorage.setItem(
-          "guestResult",
-          JSON.stringify({ type: "holland", result: res.data }),
-        );
-        navigate("/register");
-      } else {
-        navigate("/test-result", {
-          state: { type: "holland", result: res.data },
-        });
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Có lỗi khi phân tích kết quả, vui lòng thử lại.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    autoSubmittedRef.current = true;
+    await doSubmit(answers);
   };
 
   // --- Screens ---
@@ -195,14 +292,20 @@ const HollandTestPage = () => {
   if (draft) {
     const draftAnsweredCount = Object.keys(draft.answers).length;
     const draftIndex = (draft.currentIndex ?? 0) + 1;
+    const hasTimerInfo = draft.hasTimerInfo;
+    const draftRemaining = draft.remainingAtLoad;
+    const isExpired = hasTimerInfo && draftRemaining <= 0;
+
     return (
       <div className="min-h-screen bg-slate-100 pt-24 pb-10 px-4 flex items-center justify-center">
         <div className="max-w-sm w-full bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center">
-          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-5">
-            <span className="text-3xl">📋</span>
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${isExpired ? "bg-red-100" : "bg-orange-100"}`}
+          >
+            <span className="text-3xl">{isExpired ? "⏰" : "📋"}</span>
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">
-            Bạn có bài làm dang dở
+            {isExpired ? "Đã hết thời gian làm bài" : "Bạn có bài làm dang dở"}
           </h2>
           <p className="text-slate-500 text-sm mb-1">
             Đã hoàn thành{" "}
@@ -211,16 +314,33 @@ const HollandTestPage = () => {
             </span>{" "}
             câu hỏi
           </p>
-          <p className="text-slate-400 text-xs mb-8">
-            Đang dừng ở câu {Math.min(draftIndex, totalQuestions)}
-          </p>
+          {isExpired ? (
+            <p className="text-red-500 text-xs font-semibold mb-8">
+              Bài làm sẽ được nộp với các câu bạn đã trả lời.
+            </p>
+          ) : (
+            <p className="text-slate-400 text-xs mb-8">
+              Đang dừng ở câu {Math.min(draftIndex, totalQuestions)}
+              {hasTimerInfo && <> · Còn lại {formatTime(draftRemaining)}</>}
+            </p>
+          )}
           <div className="flex flex-col gap-3">
-            <button
-              onClick={handleResume}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
-            >
-              Tiếp tục bài làm
-            </button>
+            {isExpired ? (
+              <button
+                onClick={handleResumeExpired}
+                disabled={submitting}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-50"
+              >
+                {submitting ? "Đang nộp bài..." : "Nộp bài ngay"}
+              </button>
+            ) : (
+              <button
+                onClick={handleResume}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+              >
+                Tiếp tục bài làm
+              </button>
+            )}
             <button
               onClick={handleRestart}
               className="w-full py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all"
@@ -239,13 +359,29 @@ const HollandTestPage = () => {
       <div className="max-w-5xl mx-auto">
         {/* Progress */}
         <div className="mb-5">
-          <div className="flex justify-between text-sm font-semibold text-slate-600 mb-2">
+          <div className="flex justify-between items-center text-sm font-semibold text-slate-600 mb-2">
             <span>
               Câu hỏi {safeIndex + 1} / {totalQuestions}
             </span>
-            <span className="text-orange-500">
-              {Math.round(progress)}% hoàn thành
-            </span>
+            <div className="flex items-center gap-3">
+              {timeLeft !== null && (
+                <span
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tabular-nums transition-colors ${
+                    timeLeft <= 120
+                      ? "bg-red-50 text-red-600 animate-pulse"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {formatTime(timeLeft)}
+                </span>
+              )}
+              <span className="text-orange-500">
+                {Math.round(progress)}% hoàn thành
+              </span>
+            </div>
           </div>
           <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
@@ -434,7 +570,10 @@ const HollandTestPage = () => {
                   Không có câu trả lời đúng hay sai, chỉ có câu phù hợp với bạn
                   nhất.
                 </li>
-                <li>Thời gian hoàn thành dự kiến: 5 - 10 phút.</li>
+                <li>
+                  Thời gian làm bài: {Math.round(timeLimitSec / 60)} phút. Hết
+                  giờ hệ thống sẽ tự động nộp bài.
+                </li>
               </ol>
             </div>
           </div>

@@ -9,6 +9,9 @@ const genAI = new GoogleGenerativeAI(
   apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
 );
 
+// Thời gian ước tính cho mỗi câu hỏi Holland (giây) — dùng để tính thời gian làm bài
+const TIME_PER_QUESTION_SEC = 20;
+
 const getQuestions = async (plan) => {
   const allQuestions = await HollandQuestion.find();
   const shuffled = allQuestions.sort(() => 0.5 - Math.random());
@@ -147,4 +150,5 @@ module.exports = {
   getQuestions,
   submitHollandTest,
   generateAiAnalysis,
+  TIME_PER_QUESTION_SEC,
 };

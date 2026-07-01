@@ -10,6 +10,9 @@ const genAI = new GoogleGenerativeAI(
   apiKey || "AIzaSyBo1Rd5g1pCL0FG0jOibrDX7fTQYnB_J90",
 );
 
+// Thời gian ước tính cho mỗi câu hỏi MBTI (giây) — dùng để tính thời gian làm bài
+const TIME_PER_QUESTION_SEC = 15;
+
 const getQuestions = async (plan) => {
   const allQuestions = await MbtiQuestion.find({ isDeleted: false });
   const shuffled = allQuestions.sort(() => 0.5 - Math.random());
@@ -163,4 +166,5 @@ module.exports = {
   submitMbtiTest,
   getMbtiHistory,
   generateAiAnalysis,
+  TIME_PER_QUESTION_SEC,
 };

@@ -2,6 +2,7 @@ const {
   getQuestions,
   submitHollandTest,
   generateAiAnalysis: generateHollandAnalysis,
+  TIME_PER_QUESTION_SEC,
 } = require("../services/holland.service");
 exports.getQuestions = async (req, res) => {
   try {
@@ -11,6 +12,7 @@ exports.getQuestions = async (req, res) => {
     return res.status(200).json({
       status: "success",
       data: questions,
+      timeLimitSec: questions.length * TIME_PER_QUESTION_SEC,
     });
   } catch (err) {
     return res.status(500).json({

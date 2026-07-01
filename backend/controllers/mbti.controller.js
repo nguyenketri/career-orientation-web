@@ -7,7 +7,11 @@ exports.getQuestions = async (req, res) => {
   try {
     const plan = req.user?.subscriptionPlan || "FREE";
     const questions = await mbtiService.getQuestions(plan);
-    return res.status(200).json({ status: "success", data: questions });
+    return res.status(200).json({
+      status: "success",
+      data: questions,
+      timeLimitSec: questions.length * mbtiService.TIME_PER_QUESTION_SEC,
+    });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });
   }

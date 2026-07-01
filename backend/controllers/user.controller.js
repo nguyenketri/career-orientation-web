@@ -1,5 +1,8 @@
 const User = require("../models/user.model");
 
+// Số ngày trong 1 chu kỳ gói, dùng để vẽ progress bar thời gian còn lại
+const PLAN_CYCLE_DAYS = { PAID: 30, PREMIUM: 90 };
+
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -8,7 +11,21 @@ exports.getProfile = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "User not found" });
     }
-    return res.status(200).json({ status: "success", data: user });
+
+    const userData = user.toObject();
+    userData.subscriptionDaysRemaining = null;
+    userData.subscriptionCycleDays = null;
+    if (userData.subscriptionPlan !== "FREE" && userData.subscriptionExpiry) {
+      const msLeft = new Date(userData.subscriptionExpiry) - new Date();
+      userData.subscriptionDaysRemaining = Math.max(
+        0,
+        Math.ceil(msLeft / (24 * 60 * 60 * 1000)),
+      );
+      userData.subscriptionCycleDays =
+        PLAN_CYCLE_DAYS[userData.subscriptionPlan] || null;
+    }
+
+    return res.status(200).json({ status: "success", data: userData });
   } catch (error) {
     return res.status(500).json({ status: "error", message: error.message });
   }

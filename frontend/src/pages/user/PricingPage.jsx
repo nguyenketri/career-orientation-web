@@ -1,11 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../../utils/auth";
 import { createPayment } from "../../services/paymentService";
+import { getProfile } from "../../services/userService";
+
+const PLAN_CYCLE_DAYS = { PAID: 30, PREMIUM: 90 };
 
 const PricingPage = () => {
-  const [user] = useState(getUser());
+  const [user, setUser] = useState(getUser());
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Lấy lại thông tin gói mới nhất từ server (localStorage có thể đã cũ),
+  // đảm bảo số ngày còn lại hiển thị chính xác mỗi khi vào trang.
+  useEffect(() => {
+    getProfile()
+      .then((res) => {
+        if (res.data) {
+          setUser(res.data);
+          localStorage.setItem("user", JSON.stringify(res.data));
+          window.dispatchEvent(new Event("userUpdate"));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const hasActivePlan =
+    user?.subscriptionPlan === "PAID" || user?.subscriptionPlan === "PREMIUM";
+  const daysRemaining =
+    typeof user?.subscriptionDaysRemaining === "number"
+      ? user.subscriptionDaysRemaining
+      : user?.subscriptionExpiry
+        ? Math.max(
+            0,
+            Math.ceil(
+              (new Date(user.subscriptionExpiry) - new Date()) / 86400000,
+            ),
+          )
+        : null;
+  const cycleDays =
+    user?.subscriptionCycleDays || PLAN_CYCLE_DAYS[user?.subscriptionPlan] || null;
+  const remainingPercent =
+    cycleDays && daysRemaining !== null
+      ? Math.min(100, Math.max(0, (daysRemaining / cycleDays) * 100))
+      : 0;
+  const isExpiringSoon = daysRemaining !== null && daysRemaining <= 3;
+  const showSubscriptionBanner =
+    hasActivePlan && daysRemaining !== null && user?.subscriptionExpiry;
 
   const plans = [
     {
@@ -84,6 +124,74 @@ const PricingPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 py-16 px-6">
+      {/* Subscription Status Banner */}
+      {showSubscriptionBanner && (
+        <div className="max-w-3xl mx-auto mb-12">
+          <div
+            className={`rounded-2xl border p-5 flex items-center gap-4 shadow-sm ${
+              isExpiringSoon
+                ? "bg-amber-50 border-amber-200"
+                : user.subscriptionPlan === "PREMIUM"
+                  ? "bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200"
+                  : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+            }`}
+          >
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+                isExpiringSoon
+                  ? "bg-amber-100"
+                  : user.subscriptionPlan === "PREMIUM"
+                    ? "bg-purple-100"
+                    : "bg-blue-100"
+              }`}
+            >
+              {user.subscriptionPlan === "PREMIUM" ? "⭐" : "✔️"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <p
+                  className={`text-sm font-black ${
+                    isExpiringSoon
+                      ? "text-amber-700"
+                      : user.subscriptionPlan === "PREMIUM"
+                        ? "text-purple-700"
+                        : "text-blue-700"
+                  }`}
+                >
+                  Gói {user.subscriptionPlan === "PREMIUM" ? "CAO CẤP" : "TIÊU CHUẨN"}{" "}
+                  đang hoạt động
+                </p>
+                <span
+                  className={`text-xs font-bold shrink-0 ${
+                    isExpiringSoon ? "text-amber-600" : "text-slate-500"
+                  }`}
+                >
+                  Còn {daysRemaining} ngày
+                </span>
+              </div>
+              <div className="h-1.5 bg-white/70 rounded-full overflow-hidden mb-1.5">
+                <div
+                  style={{ width: `${remainingPercent}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    isExpiringSoon
+                      ? "bg-amber-400"
+                      : user.subscriptionPlan === "PREMIUM"
+                        ? "bg-purple-400"
+                        : "bg-blue-400"
+                  }`}
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                Hết hạn ngày{" "}
+                {new Date(user.subscriptionExpiry).toLocaleDateString("vi-VN")}
+                {isExpiringSoon &&
+                  " · Gia hạn sớm để không bị gián đoạn trải nghiệm"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h1 className="text-4xl font-black text-slate-900 mb-4">
@@ -146,6 +254,17 @@ const PricingPage = () => {
             >
               {user?.subscriptionPlan === plan.type ? "Đang sử dụng" : plan.cta}
             </button>
+            {user?.subscriptionPlan === plan.type &&
+              plan.type !== "FREE" &&
+              daysRemaining !== null && (
+                <p
+                  className={`text-center text-xs font-bold mt-3 ${
+                    isExpiringSoon ? "text-amber-600" : "text-slate-400"
+                  }`}
+                >
+                  Còn {daysRemaining} ngày sử dụng
+                </p>
+              )}
           </div>
         ))}
       </div>

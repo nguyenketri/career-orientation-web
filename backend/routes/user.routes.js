@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { authMiddleware } = require("../middlewares/auth.middleware");
+const { checkSubscription } = require("../middlewares/subscription.middleware");
 const userController = require("../controllers/user.controller");
 
-router.get("/me", authMiddleware, userController.getProfile);
+router.get("/me", authMiddleware, checkSubscription, userController.getProfile);
 router.put("/me", authMiddleware, userController.updateProfile);
 
 router.post("/link-result", authMiddleware, async (req, res) => {

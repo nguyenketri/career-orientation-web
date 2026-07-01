@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
 import { getUser } from "../../utils/auth";
@@ -11,6 +11,11 @@ const MbtiTestPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -33,6 +38,8 @@ const MbtiTestPage = () => {
 
   const handleSelect = (typeValue) => {
     const currentQ = questions[currentIndex];
+    if (!currentQ) return;
+
     const newAnswers = {
       ...answers,
       [currentQ._id]: { typeValue },
@@ -41,7 +48,8 @@ const MbtiTestPage = () => {
     localStorage.setItem("mbti_answers", JSON.stringify(newAnswers));
 
     if (currentIndex < totalQuestions - 1) {
-      setTimeout(() => setCurrentIndex((curr) => curr + 1), 300);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCurrentIndex((curr) => Math.min(curr + 1, totalQuestions - 1)), 300);
     }
   };
 
@@ -110,7 +118,8 @@ const MbtiTestPage = () => {
     );
   }
 
-  const currentQuestion = questions[currentIndex];
+  const safeIndex = Math.min(currentIndex, questions.length - 1);
+  const currentQuestion = questions[safeIndex];
   const isStarted = questions.length > 0;
   const isFreeLimitReached = false;
   const isAllAnswered = answeredCount === totalQuestions;

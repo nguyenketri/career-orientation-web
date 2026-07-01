@@ -81,7 +81,21 @@ exports.createPayment = async (req, res) => {
 
     // Create payOS payment link
     try {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      // Ưu tiên lấy đúng origin mà user đang thực sự truy cập (Origin/Referer header).
+      // Tránh trường hợp FRONTEND_URL trong .env lệch domain (vd www vs non-www, hoặc
+      // domain preview khác) khiến payOS redirect user về một origin khác — làm mất
+      // localStorage (token) và bị văng ra trang đăng nhập sau khi thanh toán xong.
+      let frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      if (req.headers.origin) {
+        frontendUrl = req.headers.origin;
+      } else if (req.headers.referer) {
+        try {
+          frontendUrl = new URL(req.headers.referer).origin;
+        } catch {
+          // giữ nguyên fallback nếu referer không parse được
+        }
+      }
+
       const paymentLink = await payosService.createPaymentLink({
         orderCode: transactionCode,
         amount: amount,

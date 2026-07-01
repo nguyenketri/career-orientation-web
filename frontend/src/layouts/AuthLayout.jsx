@@ -5,10 +5,38 @@ import mascot from "../assets/Mascot1.png";
 const FLOATING_SHAPES = [
   { size: 18, top: "12%", left: "18%", duration: 5, delay: 0, shape: "circle" },
   { size: 12, top: "22%", left: "78%", duration: 6, delay: 0.6, shape: "star" },
-  { size: 14, top: "68%", left: "14%", duration: 7, delay: 1.2, shape: "circle" },
-  { size: 20, top: "78%", left: "72%", duration: 5.5, delay: 0.3, shape: "star" },
-  { size: 10, top: "42%", left: "8%", duration: 4.5, delay: 0.9, shape: "circle" },
-  { size: 16, top: "8%", left: "62%", duration: 6.5, delay: 1.5, shape: "star" },
+  {
+    size: 14,
+    top: "68%",
+    left: "14%",
+    duration: 7,
+    delay: 1.2,
+    shape: "circle",
+  },
+  {
+    size: 20,
+    top: "78%",
+    left: "72%",
+    duration: 5.5,
+    delay: 0.3,
+    shape: "star",
+  },
+  {
+    size: 10,
+    top: "42%",
+    left: "8%",
+    duration: 4.5,
+    delay: 0.9,
+    shape: "circle",
+  },
+  {
+    size: 16,
+    top: "8%",
+    left: "62%",
+    duration: 6.5,
+    delay: 1.5,
+    shape: "star",
+  },
 ];
 
 const Star = ({ size }) => (
@@ -68,11 +96,11 @@ const AuthLayout = ({ children }) => {
             <h2 className="text-2xl font-black text-white leading-snug">
               Định hướng ngành học
               <br />
-              cùng caZup AI
+              cùng caZup
             </h2>
             <p className="mt-3 text-sm text-white/60 max-w-xs mx-auto leading-relaxed">
-              Khám phá sở thích, tính cách và lộ trình học tập phù hợp nhất
-              với bạn.
+              Khám phá sở thích, tính cách và lộ trình học tập phù hợp nhất với
+              bạn.
             </p>
           </div>
         </div>

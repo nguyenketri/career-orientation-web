@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   registerUser,
   linkGuestResult,
@@ -25,6 +25,16 @@ const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  // Trang user đang muốn vào trước khi bị văng ra (vd: /payment/success)
+  const redirectParam = new URLSearchParams(location.search).get("redirect");
+  const isSafeRedirect = (path) =>
+    typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
+  const redirectFrom = location.state?.from
+    ? location.state.from.pathname + (location.state.from.search || "")
+    : isSafeRedirect(redirectParam)
+      ? redirectParam
+      : null;
 
   // handle input
   const handleChange = (e) => {
@@ -32,6 +42,18 @@ const RegisterForm = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const redirectAfterAuth = (linkedResult) => {
+    if (linkedResult) {
+      navigate(`/test-result/${linkedResult.type}/${linkedResult.result._id}`, {
+        state: { type: linkedResult.type, result: linkedResult.result },
+      });
+    } else if (redirectFrom) {
+      navigate(redirectFrom);
+    } else {
+      navigate("/");
+    }
   };
 
   // handle submit
@@ -92,17 +114,7 @@ const RegisterForm = () => {
       // Trigger update for Navbar
       window.dispatchEvent(new Event("userUpdate"));
 
-      // redirect based on result
-      if (linkedResult) {
-        navigate(
-          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
-          {
-            state: { type: linkedResult.type, result: linkedResult.result },
-          },
-        );
-      } else {
-        navigate("/");
-      }
+      redirectAfterAuth(linkedResult);
     } catch (error) {
       setError(error.response?.data?.message || "Đăng ký thất bại");
     } finally {
@@ -121,16 +133,7 @@ const RegisterForm = () => {
       const linkedResult = await linkGuestResult();
 
       window.dispatchEvent(new Event("userUpdate"));
-      if (linkedResult) {
-        navigate(
-          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
-          {
-            state: { type: linkedResult.type, result: linkedResult.result },
-          },
-        );
-      } else {
-        navigate("/");
-      }
+      redirectAfterAuth(linkedResult);
     } catch {
       setError("Đăng nhập Google thất bại");
     } finally {

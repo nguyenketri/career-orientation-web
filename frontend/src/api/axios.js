@@ -36,7 +36,16 @@ axiosClient.interceptors.response.use(
         url.includes("/quota");
 
       if (!isSilentRequest) {
-        window.location.href = "/login";
+        // Đây là điều hướng cứng (reload trang) nên React Router state sẽ mất —
+        // giữ lại đường dẫn hiện tại qua query param để sau khi đăng nhập lại
+        // có thể quay về đúng chỗ (vd giữa luồng xác nhận thanh toán payOS).
+        const current = window.location.pathname + window.location.search;
+        const isAuthPage =
+          window.location.pathname === "/login" ||
+          window.location.pathname === "/register";
+        window.location.href = isAuthPage
+          ? "/login"
+          : `/login?redirect=${encodeURIComponent(current)}`;
       }
     }
 

@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   loginUser,
   googleLoginUser,
   linkGuestResult,
 } from "../services/authService";
-import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 
 const LoginForm = () => {
@@ -22,6 +21,19 @@ const LoginForm = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
+  // Trang user đang muốn vào trước khi bị văng ra /login (vd: /payment/success
+  // giữa luồng thanh toán) — ưu tiên quay lại đúng chỗ đó sau khi đăng nhập.
+  // Có 2 nguồn: state.from (ProtectedRoute điều hướng client-side) hoặc query
+  // param ?redirect= (axios interceptor reload cứng trang khi gặp 401).
+  const redirectParam = new URLSearchParams(location.search).get("redirect");
+  const isSafeRedirect = (path) =>
+    typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
+  const redirectFrom = location.state?.from
+    ? location.state.from.pathname + (location.state.from.search || "")
+    : isSafeRedirect(redirectParam)
+      ? redirectParam
+      : null;
 
   // handle input change
   const handleChange = (e) => {
@@ -29,6 +41,20 @@ const LoginForm = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const redirectAfterLogin = (user, linkedResult) => {
+    if (linkedResult) {
+      navigate(`/test-result/${linkedResult.type}/${linkedResult.result._id}`, {
+        state: { type: linkedResult.type, result: linkedResult.result },
+      });
+    } else if (redirectFrom) {
+      navigate(redirectFrom);
+    } else if (user.role === "admin") {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/");
+    }
   };
 
   // handle submit
@@ -54,19 +80,7 @@ const LoginForm = () => {
       // Trigger update for Navbar
       window.dispatchEvent(new Event("userUpdate"));
 
-      // redirect based on role
-      if (linkedResult) {
-        navigate(
-          `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
-          {
-            state: { type: linkedResult.type, result: linkedResult.result },
-          },
-        );
-      } else if (response.data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
+      redirectAfterLogin(response.data.user, linkedResult);
     } catch (error) {
       setError(error.response?.data?.message || "Đăng nhập thất bại");
     } finally {
@@ -169,21 +183,7 @@ const LoginForm = () => {
                 const linkedResult = await linkGuestResult();
 
                 window.dispatchEvent(new Event("userUpdate"));
-                if (linkedResult) {
-                  navigate(
-                    `/test-result/${linkedResult.type}/${linkedResult.result._id}`,
-                    {
-                      state: {
-                        type: linkedResult.type,
-                        result: linkedResult.result,
-                      },
-                    },
-                  );
-                } else if (response.data.user.role === "admin") {
-                  navigate("/admin/dashboard");
-                } else {
-                  navigate("/");
-                }
+                redirectAfterLogin(response.data.user, linkedResult);
               } catch {
                 setError("Đăng nhập Google thất bại");
               } finally {

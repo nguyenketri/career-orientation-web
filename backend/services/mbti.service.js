@@ -12,20 +12,10 @@ const genAI = new GoogleGenerativeAI(
 
 const getQuestions = async (plan) => {
   const allQuestions = await MbtiQuestion.find({ isDeleted: false });
-
-  // Shuffle questions
   const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-
-  if (plan === "FREE") {
-    return shuffled.slice(0, 28);
-  }
-  if (plan === "PAID") {
-    return shuffled.slice(0, 48);
-  }
-  if (plan === "PREMIUM") {
-    return shuffled.slice(0, 72);
-  }
-  return shuffled;
+  if (plan === "PAID") return shuffled.slice(0, 48);
+  if (plan === "PREMIUM") return shuffled.slice(0, 72);
+  return shuffled.slice(0, 28); // FREE default
 };
 
 const submitMbtiTest = async (userId, answers) => {

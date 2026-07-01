@@ -146,6 +146,16 @@ const ComparisonPage = () => {
           </div>
         </div>
 
+        {/* Disclaimer */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 flex items-start gap-3 mb-8">
+          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            <span className="font-bold">Lưu ý:</span> Dữ liệu so sánh các trường đại học trên caZup được tổng hợp từ nhiều nguồn tham khảo và chỉ mang tính chất gợi ý. Thông tin về học phí, chỉ tiêu và điểm chuẩn có thể thay đổi theo từng năm. Vui lòng kiểm tra trực tiếp với nhà trường hoặc Bộ Giáo dục để có thông tin chính xác nhất.
+          </p>
+        </div>
+
         {/* School Selection */}
         <div className="mb-12">
           <div className="flex flex-wrap items-center justify-center gap-6">

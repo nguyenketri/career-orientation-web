@@ -170,6 +170,18 @@ const RecommendPage = () => {
   return (
     <>
       <div className="min-h-screen bg-slate-50 px-4 md:px-8 pt-24 pb-20 text-slate-900">
+        {/* Disclaimer */}
+        <div className="mx-auto max-w-7xl mb-6">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 flex items-start gap-3">
+            <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              <span className="font-bold">Lưu ý:</span> Các gợi ý trường và ngành học từ caZup AI được tạo ra dựa trên điểm số và bộ lọc bạn cung cấp, chỉ mang tính chất tham khảo. Kết quả chưa được xác thực hoàn toàn và có thể không phản ánh đầy đủ thực tế tuyển sinh. Hãy tham khảo thêm từ nhà trường, thầy cô và các kênh thông tin chính thức.
+            </p>
+          </div>
+        </div>
+
         <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-72 flex-shrink-0">

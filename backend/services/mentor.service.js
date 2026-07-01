@@ -63,7 +63,7 @@ const getChatSession = async (userId, sessionId) => {
   return session;
 };
 
-const sendChatMessage = async (userId, sessionId, message) => {
+const sendChatMessage = async (userId, sessionId, message, imageBase64 = null) => {
   try {
     // Check daily quota before processing
     const quota = await checkDailyQuota(userId);
@@ -73,12 +73,17 @@ const sendChatMessage = async (userId, sessionId, message) => {
     const plan = user.subscriptionPlan || "FREE";
 
     // Xây dựng System Instruction dựa trên thông tin người dùng (Cá nhân hóa cho Premium)
-    let systemInstruction = `Bạn là caZup AI Mentor - Chuyên gia tư vấn định hướng NGÀNH HỌC và TRƯỜNG ĐẠI HỌC.
+    let systemInstruction = `Bạn là caZup AI Mentor - Chuyên gia tư vấn định hướng NGÀNH HỌC và TRƯỜNG ĐẠI HỌC tại Việt Nam.
+
 Nhiệm vụ của bạn:
-1. Chỉ tập trung tư vấn về chọn ngành, chọn trường, học phí, điểm chuẩn, môi trường học tập.
-2. TUYỆT ĐỐI KHÔNG tư vấn về các vấn đề nghề nghiệp chuyên sâu sau khi ra trường, tình yêu, cuộc sống hay các chủ đề ngoài giáo dục đại học.
-3. Nếu người dùng hỏi ngoài phạm vi, hãy khéo léo từ chối và nhắc họ quay lại chủ đề chọn ngành/trường.
-4. Phản hồi thân thiện, chuyên nghiệp, sử dụng emoji phù hợp.
+1. Tư vấn về chọn ngành, chọn trường, học phí, điểm chuẩn, môi trường học tập.
+2. KHI NGƯỜI DÙNG GỬI ẢNH: Bạn CÓ KHẢ NĂNG nhìn thấy và phân tích ảnh. Hãy đọc kỹ nội dung ảnh và đưa ra tư vấn cụ thể dựa trên ảnh đó. Các loại ảnh phổ biến:
+   - Kết quả trắc nghiệm Holland/MBTI → phân tích loại tính cách, gợi ý ngành phù hợp
+   - Bảng điểm THPT/học bạ → phân tích điểm mạnh, gợi ý tổ hợp xét tuyển và trường phù hợp
+   - Thông tin trường đại học → so sánh, nhận xét ưu nhược điểm
+   - Kết quả gợi ý ngành từ caZup → giải thích và tư vấn thêm
+3. Không tư vấn các chủ đề hoàn toàn ngoài giáo dục đại học.
+4. Phản hồi thân thiện, chuyên nghiệp, dùng emoji phù hợp.
 5. Ngôn ngữ: Tiếng Việt.`;
 
     if (plan === "PREMIUM" && user.careerPath) {
@@ -91,24 +96,75 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
 
     const session = await getChatSession(userId, sessionId);
 
+    // Nội dung tin nhắn user hiện tại (có thể có ảnh)
+    let userContent;
+    if (imageBase64) {
+      userContent = [
+        ...(message ? [{ type: "text", text: message }] : [{ type: "text", text: "Hãy phân tích hình ảnh này và tư vấn cho tôi." }]),
+        {
+          type: "image_url",
+          image_url: { url: imageBase64 },
+        },
+      ];
+    } else {
+      userContent = message;
+    }
+
+    // Lưu tin nhắn user vào database (chỉ lưu text, không lưu base64)
+    const savedContent = imageBase64
+      ? `[🖼️ Hình ảnh đính kèm]${message ? " " + message : ""}`
+      : message;
+    session.messages.push({ role: "user", content: savedContent });
+
     // Chuẩn bị lịch sử trò chuyện đúng chuẩn của Groq (OpenAI format)
-    const messages = [
+    const chatMessages = [
       { role: "system", content: systemInstruction },
-      ...session.messages.map((msg) => ({
+      ...session.messages.slice(0, -1).map((msg) => ({
         role: msg.role === "user" ? "user" : "assistant",
         content: msg.content,
       })),
-      { role: "user", content: message },
+      { role: "user", content: userContent },
     ];
 
-    // 1. Lưu tin nhắn thực tế của user vào database trước khi gọi API
-    session.messages.push({ role: "user", content: message });
+    // Gọi API Groq
+    let chatCompletion;
+    if (imageBase64) {
+      // Thử lần lượt các vision model có sẵn trên Groq
+      const VISION_MODELS = [
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "llama-3.2-11b-vision-preview",
+        "llama-3.2-90b-vision-preview",
+      ];
 
-    // 2. Gọi API Groq
-    const chatCompletion = await groq.chat.completions.create({
-      messages: messages,
-      model: "llama-3.3-70b-versatile",
-    });
+      let lastVisionError = null;
+      for (const vModel of VISION_MODELS) {
+        try {
+          console.log(`[Mentor] Trying vision model: ${vModel}`);
+          chatCompletion = await groq.chat.completions.create({
+            messages: chatMessages,
+            model: vModel,
+          });
+          console.log(`[Mentor] Vision model success: ${vModel}`);
+          break;
+        } catch (visionErr) {
+          lastVisionError = visionErr;
+          console.warn(`[Mentor] Vision model ${vModel} failed: ${visionErr.message}`);
+        }
+      }
+
+      if (!chatCompletion) {
+        console.error("[Mentor] All vision models failed:", lastVisionError?.message);
+        throw new Error(
+          "Hệ thống phân tích ảnh hiện không khả dụng. Vui lòng mô tả nội dung ảnh bằng text hoặc thử lại sau.",
+        );
+      }
+    } else {
+      chatCompletion = await groq.chat.completions.create({
+        messages: chatMessages,
+        model: "llama-3.3-70b-versatile",
+      });
+    }
 
     const responseText =
       chatCompletion.choices[0]?.message?.content ||
@@ -119,6 +175,7 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
 
     // 4. Tự động tạo tiêu đề nếu là tin nhắn đầu tiên
     if (session.messages.length <= 2 && session.title === "New Chat") {
+      const titleSource = message || (imageBase64 ? "Phân tích hình ảnh" : "Cuộc hội thoại mới");
       try {
         const titleCompletion = await groq.chat.completions.create({
           messages: [
@@ -127,7 +184,7 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
               content:
                 "Bạn là một trợ lý giúp tạo tiêu đề ngắn gọn (tối đa 6 từ) cho cuộc hội thoại dựa trên tin nhắn của người dùng. Trả về trực tiếp tiêu đề, không thêm dấu ngoặc kép hay bất kỳ giải thích nào. Ví dụ: 'Tư vấn ngành CNTT', 'So sánh Đại học FPT và HUST'.",
             },
-            { role: "user", content: message },
+            { role: "user", content: titleSource },
           ],
           model: "llama-3.3-70b-versatile",
         });
@@ -139,9 +196,8 @@ Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nh�
         }
       } catch (titleError) {
         console.error("Error generating title:", titleError);
-        // Fallback to first few words of message
         session.title =
-          message.split(" ").slice(0, 5).join(" ").substring(0, 40) + "...";
+          titleSource.split(" ").slice(0, 5).join(" ").substring(0, 40) + "...";
       }
     }
 

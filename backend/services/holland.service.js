@@ -11,21 +11,10 @@ const genAI = new GoogleGenerativeAI(
 
 const getQuestions = async (plan) => {
   const allQuestions = await HollandQuestion.find();
-
-  // Shuffle questions
   const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-
-  if (plan === "FREE") {
-    return shuffled.slice(0, 42);
-  }
-  if (plan === "PAID") {
-    return shuffled.slice(0, 60);
-  }
-  if (plan === "PREMIUM") {
-    return shuffled.slice(0, 90);
-  }
-  // Default to all if plan not recognized or other
-  return shuffled;
+  if (plan === "PAID") return shuffled.slice(0, 60);
+  if (plan === "PREMIUM") return shuffled.slice(0, 90);
+  return shuffled.slice(0, 42); // FREE default
 };
 
 const submitHollandTest = async (userId, answers) => {

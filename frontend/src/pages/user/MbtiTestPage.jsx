@@ -3,30 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { getMbtiQuestions, submitMbtiTest } from "../../services/mbtiService";
 import { getUser } from "../../utils/auth";
 
-const DRAFT_KEY = "mbti_draft";
-
-const loadDraft = () => {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const draft = JSON.parse(raw);
-    if (!draft?.answers || Object.keys(draft.answers).length === 0) return null;
-    return draft;
-  } catch {
-    return null;
-  }
-};
-
-const saveDraft = (answers, currentIndex) => {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex }));
-};
-
-const clearDraft = () => {
-  localStorage.removeItem(DRAFT_KEY);
-};
-
 const MbtiTestPage = () => {
   const navigate = useNavigate();
+  const currentUser = getUser();
+  const DRAFT_KEY = `mbti_draft_${currentUser?._id || "guest"}`;
+
+  const loadDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d?.answers || Object.keys(d.answers).length === 0) return null;
+      return d;
+    } catch {
+      return null;
+    }
+  };
+  const saveDraft = (answers, idx, questionIds) => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex: idx, questionIds }));
+  };
+  const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
+
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -43,7 +40,9 @@ const MbtiTestPage = () => {
   }, []);
 
   useEffect(() => {
-    // Detect draft trước khi fetch questions
+    // Dọn key cũ (không có userId) tránh nhầm lẫn
+    localStorage.removeItem("mbti_draft");
+
     const saved = loadDraft();
     if (saved) setDraft(saved);
 
@@ -53,14 +52,29 @@ const MbtiTestPage = () => {
       })
       .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleResume = () => {
     if (!draft) return;
+    if (draft.questionIds?.length > 0 && questions.length > 0) {
+      const idMap = {};
+      questions.forEach((q) => { idMap[q._id] = q; });
+      const savedIdSet = new Set(draft.questionIds);
+      // Khôi phục đúng thứ tự câu đã lưu
+      const ordered = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
+      // Thêm các câu mới (chưa có trong draft) vào cuối để đủ số câu
+      const extras = questions.filter((q) => !savedIdSet.has(q._id));
+      const fullSet = [...ordered, ...extras];
+      if (fullSet.length > 0) setQuestions(fullSet);
+    }
     setAnswers(draft.answers);
-    setCurrentIndex(
-      Math.min(draft.currentIndex ?? 0, questions.length > 0 ? questions.length - 1 : 0),
-    );
+    const maxIdx = draft.questionIds?.length > 0
+      ? draft.questionIds.length - 1
+      : questions.length > 0
+        ? questions.length - 1
+        : 0;
+    setCurrentIndex(Math.min(draft.currentIndex ?? 0, maxIdx));
     setDraft(null);
   };
 
@@ -85,14 +99,15 @@ const MbtiTestPage = () => {
       [currentQuestion._id]: { typeValue },
     };
     setAnswers(newAnswers);
-    saveDraft(newAnswers, currentIndex);
+    const qIds = questions.map((q) => q._id);
+    saveDraft(newAnswers, currentIndex, qIds);
 
     if (currentIndex < totalQuestions - 1) {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const next = Math.min(currentIndex + 1, totalQuestions - 1);
         setCurrentIndex(next);
-        saveDraft(newAnswers, next);
+        saveDraft(newAnswers, next, qIds);
       }, 400);
     }
   };
@@ -217,6 +232,16 @@ const MbtiTestPage = () => {
           </div>
         </div>
 
+        {/* Disclaimer */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3 mb-5">
+          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            <span className="font-bold">Lưu ý:</span> Kết quả trắc nghiệm MBTI chỉ mang tính chất tham khảo về xu hướng tính cách cá nhân. Phân loại MBTI là mô hình phổ biến nhưng chưa được cộng đồng khoa học xác thực hoàn toàn. Sử dụng kết quả để hiểu thêm bản thân, không nên dùng để đưa ra quyết định quan trọng.
+          </p>
+        </div>
+
         <div className="flex gap-5 items-start">
           {/* Left: question + A/B options + nav buttons */}
           <div className="flex-1 min-w-0 space-y-4">
@@ -307,11 +332,10 @@ const MbtiTestPage = () => {
 
             <div className="flex justify-between items-center">
               <button
-                onClick={() =>
-                  safeIndex > 0
-                    ? setCurrentIndex((i) => i - 1)
-                    : navigate("/tests")
-                }
+                onClick={() => {
+                  if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+                  safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests");
+                }}
                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
               >
                 <svg
@@ -341,7 +365,10 @@ const MbtiTestPage = () => {
                 </button>
               ) : (
                 <button
-                  onClick={() => setCurrentIndex((i) => i + 1)}
+                  onClick={() => {
+                    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+                    setCurrentIndex((i) => i + 1);
+                  }}
                   className="flex items-center gap-2 px-6 py-3 rounded-full bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-all shadow-md"
                 >
                   Tiếp theo
@@ -377,7 +404,10 @@ const MbtiTestPage = () => {
                   return (
                     <button
                       key={q._id}
-                      onClick={() => setCurrentIndex(idx)}
+                      onClick={() => {
+                        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+                        setCurrentIndex(idx);
+                      }}
                       title={`Câu ${idx + 1}`}
                       className={`h-8 w-full rounded text-xs font-bold transition-all
                         ${

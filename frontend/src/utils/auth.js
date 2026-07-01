@@ -13,7 +13,13 @@ export const logoutUser = () => {
   const userId = user?._id || user?.id;
   if (userId) {
     localStorage.removeItem(`comparison_selected_majors_${userId}`);
+    // Xóa draft bài test khi logout
+    localStorage.removeItem(`holland_draft_${userId}`);
+    localStorage.removeItem(`mbti_draft_${userId}`);
   }
+  // Dọn key cũ (không có userId) nếu còn tồn tại
+  localStorage.removeItem("holland_draft");
+  localStorage.removeItem("mbti_draft");
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 };

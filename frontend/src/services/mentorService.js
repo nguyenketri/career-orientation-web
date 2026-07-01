@@ -1,7 +1,11 @@
 import axiosClient from "../api/axios";
 
-export const sendChatMessage = async (sessionId, message) => {
-  const response = await axiosClient.post("/mentor/send", { sessionId, message });
+export const sendChatMessage = async (sessionId, message, imageBase64 = null) => {
+  const response = await axiosClient.post("/mentor/send", {
+    sessionId,
+    message,
+    ...(imageBase64 ? { imageBase64 } : {}),
+  });
   return response.data;
 };
 

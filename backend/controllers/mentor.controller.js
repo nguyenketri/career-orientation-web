@@ -3,14 +3,12 @@ const quotaService = require("../services/quota.service");
 
 exports.sendMessage = async (req, res) => {
   try {
-    const { sessionId, message } = req.body;
-    if (!sessionId || !message) {
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "sessionId and message are required",
-        });
+    const { sessionId, message, imageBase64 } = req.body;
+    if (!sessionId || (!message && !imageBase64)) {
+      return res.status(400).json({
+        status: "error",
+        message: "sessionId and message (or image) are required",
+      });
     }
 
     const hasQuota = await quotaService.checkQuota(
@@ -29,7 +27,8 @@ exports.sendMessage = async (req, res) => {
     const data = await mentorService.sendChatMessage(
       req.user.id,
       sessionId,
-      message,
+      message || "",
+      imageBase64 || null,
     );
     await quotaService.incrementQuota(req.user.id, "mentorQuestions");
 

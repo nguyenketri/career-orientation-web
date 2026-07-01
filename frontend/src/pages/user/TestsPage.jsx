@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hollandMaps } from "../../utils/hollandMap";
+import { getUser } from "../../utils/auth";
+
+const HOLLAND_COUNTS = { FREE: 42, PAID: 60, PREMIUM: 90 };
+const MBTI_COUNTS = { FREE: 28, PAID: 48, PREMIUM: 72 };
 
 const TestsPage = () => {
   const navigate = useNavigate();
   const [activeTest, setActiveTest] = useState("holland");
+  const plan = getUser()?.subscriptionPlan || "FREE";
+  const hollandCount = HOLLAND_COUNTS[plan] || 42;
+  const mbtiCount = MBTI_COUNTS[plan] || 28;
 
   const hollandInfo = {
     title: "Mô hình Holland là gì?",
@@ -127,7 +134,7 @@ const TestsPage = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-blue-50 p-4 rounded-2xl text-center">
-                      <div className="text-2xl font-black text-blue-600">42</div>
+                      <div className="text-2xl font-black text-blue-600">{hollandCount}</div>
                       <div className="text-xs text-slate-500 mt-1">Câu hỏi</div>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-2xl text-center">
@@ -160,7 +167,7 @@ const TestsPage = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-indigo-50 p-4 rounded-2xl text-center">
-                      <div className="text-2xl font-black text-indigo-600">28</div>
+                      <div className="text-2xl font-black text-indigo-600">{mbtiCount}</div>
                       <div className="text-xs text-slate-500 mt-1">Câu hỏi</div>
                     </div>
                     <div className="bg-indigo-50 p-4 rounded-2xl text-center">

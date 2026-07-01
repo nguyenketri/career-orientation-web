@@ -23,8 +23,9 @@ const app = express();
 
 app.use(cors());
 app.use(cookieParser());
-// middleware : biến JSON -> OBJECT JS
-app.use(express.json());
+// middleware : biến JSON -> OBJECT JS (tăng giới hạn để nhận base64 ảnh)
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 // ROUTER AUTHEN
 app.use("/api/auth", authRoutes);

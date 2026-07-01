@@ -19,8 +19,8 @@ const MbtiTestPage = () => {
       return null;
     }
   };
-  const saveDraft = (answers, idx, questionIds) => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex: idx, questionIds }));
+  const saveDraft = (answers, idx, questionsList) => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, currentIndex: idx, questions: questionsList }));
   };
   const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
 
@@ -39,42 +39,39 @@ const MbtiTestPage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    // Dọn key cũ (không có userId) tránh nhầm lẫn
-    localStorage.removeItem("mbti_draft");
-
-    const saved = loadDraft();
-    if (saved) setDraft(saved);
-
+  const fetchFreshQuestions = () => {
+    setLoading(true);
     getMbtiQuestions()
       .then((res) => {
         if (res.data) setQuestions(res.data);
       })
       .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    // Dọn key cũ (không có userId) tránh nhầm lẫn
+    localStorage.removeItem("mbti_draft");
+
+    // Nếu đã có bài làm dang dở, dùng đúng bộ câu hỏi đã lưu (tránh bị random lại)
+    const saved = loadDraft();
+    if (saved?.questions?.length > 0) {
+      setDraft(saved);
+      setQuestions(saved.questions);
+      setLoading(false);
+      return;
+    }
+
+    fetchFreshQuestions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleResume = () => {
     if (!draft) return;
-    if (draft.questionIds?.length > 0 && questions.length > 0) {
-      const idMap = {};
-      questions.forEach((q) => { idMap[q._id] = q; });
-      const savedIdSet = new Set(draft.questionIds);
-      // Khôi phục đúng thứ tự câu đã lưu
-      const ordered = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
-      // Thêm các câu mới (chưa có trong draft) vào cuối để đủ số câu
-      const extras = questions.filter((q) => !savedIdSet.has(q._id));
-      const fullSet = [...ordered, ...extras];
-      if (fullSet.length > 0) setQuestions(fullSet);
-    }
     setAnswers(draft.answers);
-    const maxIdx = draft.questionIds?.length > 0
-      ? draft.questionIds.length - 1
-      : questions.length > 0
-        ? questions.length - 1
-        : 0;
-    setCurrentIndex(Math.min(draft.currentIndex ?? 0, maxIdx));
+    setCurrentIndex(
+      Math.min(draft.currentIndex ?? 0, questions.length > 0 ? questions.length - 1 : 0),
+    );
     setDraft(null);
   };
 
@@ -83,6 +80,8 @@ const MbtiTestPage = () => {
     setAnswers({});
     setCurrentIndex(0);
     setDraft(null);
+    // Chỉ random bộ câu hỏi mới khi thực sự bắt đầu lại từ đầu
+    fetchFreshQuestions();
   };
 
   const totalQuestions = questions.length;
@@ -99,15 +98,14 @@ const MbtiTestPage = () => {
       [currentQuestion._id]: { typeValue },
     };
     setAnswers(newAnswers);
-    const qIds = questions.map((q) => q._id);
-    saveDraft(newAnswers, currentIndex, qIds);
+    saveDraft(newAnswers, currentIndex, questions);
 
     if (currentIndex < totalQuestions - 1) {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const next = Math.min(currentIndex + 1, totalQuestions - 1);
         setCurrentIndex(next);
-        saveDraft(newAnswers, next, qIds);
+        saveDraft(newAnswers, next, questions);
       }, 400);
     }
   };

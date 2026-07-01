@@ -1,9 +1,9 @@
 import { useState } from "react";
-import HollandTestPage from "./HollandTestPage";
-import MbtiTestPage from "./MbtiTestPage";
+import { useNavigate } from "react-router-dom";
 import { hollandMaps } from "../../utils/hollandMap";
 
 const TestsPage = () => {
+  const navigate = useNavigate();
   const [activeTest, setActiveTest] = useState("holland");
 
   const hollandInfo = {
@@ -113,13 +113,75 @@ const TestsPage = () => {
 
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Test Content */}
+          {/* Left: Test Info + Start Button */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 p-8">
               {activeTest === "holland" ? (
-                <HollandTestPage />
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl">🎯</div>
+                    <div>
+                      <h2 className="text-xl font-black text-slate-900">Trắc nghiệm Holland</h2>
+                      <p className="text-sm text-slate-500">Khám phá nhóm sở thích nghề nghiệp của bạn</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-blue-600">42</div>
+                      <div className="text-xs text-slate-500 mt-1">Câu hỏi</div>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-blue-600">6</div>
+                      <div className="text-xs text-slate-500 mt-1">Nhóm tính cách</div>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-blue-600">10'</div>
+                      <div className="text-xs text-slate-500 mt-1">Thời gian</div>
+                    </div>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed mb-8">
+                    Bài trắc nghiệm Holland giúp bạn xác định nhóm sở thích nghề nghiệp theo mô hình RIASEC, từ đó gợi ý các ngành học và nghề nghiệp phù hợp nhất với tính cách và đam mê của bạn.
+                  </p>
+                  <button
+                    onClick={() => navigate("/tests/holland")}
+                    className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3"
+                  >
+                    <span>🎯</span> Bắt đầu trắc nghiệm Holland
+                  </button>
+                </div>
               ) : (
-                <MbtiTestPage />
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">✨</div>
+                    <div>
+                      <h2 className="text-xl font-black text-slate-900">Trắc nghiệm MBTI</h2>
+                      <p className="text-sm text-slate-500">Khám phá 16 loại tính cách của bạn</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-indigo-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-indigo-600">28</div>
+                      <div className="text-xs text-slate-500 mt-1">Câu hỏi</div>
+                    </div>
+                    <div className="bg-indigo-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-indigo-600">16</div>
+                      <div className="text-xs text-slate-500 mt-1">Loại tính cách</div>
+                    </div>
+                    <div className="bg-indigo-50 p-4 rounded-2xl text-center">
+                      <div className="text-2xl font-black text-indigo-600">10'</div>
+                      <div className="text-xs text-slate-500 mt-1">Thời gian</div>
+                    </div>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed mb-8">
+                    Bài trắc nghiệm MBTI giúp bạn hiểu rõ hơn về cách suy nghĩ, cảm xúc và hành động của mình thông qua 4 chiều tính cách cơ bản, từ đó định hướng ngành học và môi trường làm việc phù hợp.
+                  </p>
+                  <button
+                    onClick={() => navigate("/tests/mbti")}
+                    className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black text-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-3"
+                  >
+                    <span>✨</span> Bắt đầu trắc nghiệm MBTI
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -13,6 +13,8 @@ import PublicComparisonPage from "../pages/user/PublicComparisonPage";
 import MentorChatPage from "../pages/user/MentorChatPage";
 import TestResultPage from "../pages/user/TestResultPage";
 import TestsPage from "../pages/user/TestsPage";
+import HollandTestPage from "../pages/user/HollandTestPage";
+import MbtiTestPage from "../pages/user/MbtiTestPage";
 import RecommendPage from "../pages/user/RecommendPage";
 import UniversityDetailPage from "../pages/user/UniversityDetailPage";
 import { RecommendationProvider } from "../context/RecommendationContext";
@@ -84,6 +86,8 @@ const AppRoutes = () => {
             }
           />
           <Route path="/tests" element={<TestsPage />} />
+          <Route path="/tests/holland" element={<HollandTestPage />} />
+          <Route path="/tests/mbti" element={<MbtiTestPage />} />
           <Route path="/comparison" element={<ComparisonPage />} />
           <Route path="/share-comparison" element={<PublicComparisonPage />} />
           <Route

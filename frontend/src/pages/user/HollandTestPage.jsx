@@ -7,11 +7,11 @@ import {
 import { getUser } from "../../utils/auth";
 
 const LIKERT_OPTIONS = [
-  { value: 1, label: "Rất không đúng" },
+  { value: 1, label: "Hoàn toàn không" },
   { value: 2, label: "Không đúng" },
   { value: 3, label: "Trung tính" },
   { value: 4, label: "Khá đúng" },
-  { value: 5, label: "Rất đúng" },
+  { value: 5, label: "Bắt chính xác" },
 ];
 
 const HollandTestPage = () => {
@@ -19,8 +19,11 @@ const HollandTestPage = () => {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState(() => {
-    const saved = localStorage.getItem("holland_answers");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      return JSON.parse(localStorage.getItem("holland_answers") || "{}");
+    } catch {
+      return {};
+    }
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -28,93 +31,70 @@ const HollandTestPage = () => {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await getHollandQuestions();
+    getHollandQuestions()
+      .then((res) => {
         if (res.data) setQuestions(res.data);
-      } catch {
-        setError("Không thể tải hệ thống câu hỏi, vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuestions();
+      })
+      .catch(() => setError("Không thể tải câu hỏi, vui lòng thử lại."))
+      .finally(() => setLoading(false));
   }, []);
 
   const totalQuestions = questions.length;
   const answeredCount = questions.filter((q) => answers[q._id]).length;
-  const progress =
-    totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const progress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const safeIndex = questions.length > 0 ? Math.min(currentIndex, questions.length - 1) : 0;
+  const currentQuestion = questions[safeIndex];
+  const isAllAnswered = answeredCount === totalQuestions && totalQuestions > 0;
 
   const handleSelect = (value) => {
-    const currentQ = questions[currentIndex];
-    if (!currentQ) return;
-
+    if (!currentQuestion) return;
     const newAnswers = {
       ...answers,
-      [currentQ._id]: { type: currentQ.type, score: value },
+      [currentQuestion._id]: { type: currentQuestion.type, score: value },
     };
     setAnswers(newAnswers);
     localStorage.setItem("holland_answers", JSON.stringify(newAnswers));
-
     if (currentIndex < totalQuestions - 1) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCurrentIndex((curr) => Math.min(curr + 1, totalQuestions - 1)), 300);
+      timerRef.current = setTimeout(
+        () => setCurrentIndex((i) => Math.min(i + 1, totalQuestions - 1)),
+        400,
+      );
     }
-  };
-
-  const handleBack = () => {
-    if (currentIndex > 0) setCurrentIndex((curr) => curr - 1);
   };
 
   const handleSubmit = async () => {
-    const currentAnsweredCount = questions.filter((q) => answers[q._id]).length;
-    const minRequired = totalQuestions;
-
-    if (currentAnsweredCount < minRequired) {
-      const firstUnansweredIndex = questions.findIndex((q) => !answers[q._id]);
-      if (firstUnansweredIndex !== -1) {
-        setCurrentIndex(firstUnansweredIndex);
-        setError(
-          "Vui lòng hoàn thành các câu hỏi bị bỏ qua trước khi nộp bài.",
-        );
-      } else {
-        setError(`Vui lòng trả lời tất cả ${minRequired} câu hỏi.`);
-      }
+    if (answeredCount < totalQuestions) {
+      const firstUnanswered = questions.findIndex((q) => !answers[q._id]);
+      if (firstUnanswered !== -1) setCurrentIndex(firstUnanswered);
+      setError("Vui lòng trả lời tất cả câu hỏi trước khi nộp bài.");
       return;
     }
-
     try {
       setSubmitting(true);
       setError("");
-      const formattedAnswers = Object.values(answers);
-      const res = await submitHollandTest(formattedAnswers);
-      const testResult = res.data;
-
+      const res = await submitHollandTest(Object.values(answers));
       localStorage.removeItem("holland_answers");
       if (!getUser()) {
         localStorage.setItem(
           "guestResult",
-          JSON.stringify({ type: "holland", result: testResult }),
+          JSON.stringify({ type: "holland", result: res.data }),
         );
         navigate("/register");
       } else {
-        navigate("/test-result", {
-          state: {
-            type: "holland",
-            result: testResult,
-          },
-        });
+        navigate("/test-result", { state: { type: "holland", result: res.data } });
       }
     } catch (err) {
-      const errorMessage =
+      setError(
         err.response?.data?.message ||
-        "Có lỗi khi phân tích kết quả, vui lòng thử lại.";
-      setError(errorMessage);
+          "Có lỗi khi phân tích kết quả, vui lòng thử lại.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -122,113 +102,104 @@ const HollandTestPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-900">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-xl font-bold text-slate-600 animate-pulse">
-            Đang nạp bộ câu hỏi...
-          </p>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-slate-600 font-medium">Đang nạp bộ câu hỏi Holland...</p>
         </div>
       </div>
     );
   }
 
-  const safeIndex = Math.min(currentIndex, questions.length - 1);
-  const currentQuestion = questions[safeIndex];
-  const isStarted = questions.length > 0;
-  const isAllAnswered = answeredCount === totalQuestions;
+  if (!questions.length) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="bg-white p-10 rounded-2xl text-center shadow-sm">
+          <h2 className="text-xl font-bold text-slate-700">Không tìm thấy bộ câu hỏi</h2>
+          <p className="text-slate-500 mt-2">Vui lòng quay lại sau.</p>
+          <button
+            onClick={() => navigate("/tests")}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 md:px-6 pt-32 pb-20 text-slate-900 flex flex-col">
-      <div className="mx-auto w-full max-w-4xl flex-grow flex flex-col">
-        {!isStarted ? (
-          <div className="text-center bg-white p-12 rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100">
-            <h1 className="text-4xl font-black text-slate-900">
-              Không tìm thấy bộ câu hỏi
-            </h1>
-            <p className="text-slate-500 mt-4">
-              Vui lòng quay lại sau hoặc liên hệ quản trị viên.
-            </p>
+    <div className="min-h-screen bg-slate-100 pt-24 pb-10 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Progress */}
+        <div className="mb-5">
+          <div className="flex justify-between text-sm font-semibold text-slate-600 mb-2">
+            <span>Câu hỏi {safeIndex + 1} / {totalQuestions}</span>
+            <span className="text-orange-500">{Math.round(progress)}% hoàn thành</span>
           </div>
-        ) : (
-          <>
-            <div className="mb-12">
-              <div className="mb-4 flex items-center justify-between text-sm font-bold uppercase tracking-widest text-slate-400">
-                <span>
-                  Đã trả lời: {answeredCount} / {totalQuestions}
-                </span>
-                <span className="text-blue-600">
-                  {Math.min(100, Math.round(progress))}%
-                </span>
-              </div>
-              <div className="h-3 overflow-hidden rounded-full bg-slate-200 shadow-inner">
-                <div
-                  style={{ width: `${Math.min(100, progress)}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-500 ease-out shadow-lg shadow-blue-200"
-                ></div>
-              </div>
-            </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              style={{ width: `${progress}%` }}
+              className="h-full bg-orange-400 rounded-full transition-all duration-500"
+            />
+          </div>
+        </div>
 
-            <div className="flex-grow flex flex-col justify-center mb-12">
-              <div className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
-                <div className="text-center mb-16">
-                  <span className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-6">
-                    Câu hỏi {currentIndex + 1}
-                  </span>
-                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-                    {currentQuestion?.content}
-                  </h2>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+        <div className="flex gap-5 items-start">
+          {/* Left: question + answers + nav buttons */}
+          <div className="flex-1 min-w-0 space-y-4">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+              <p className="text-lg font-semibold text-slate-800 leading-relaxed mb-6">
+                {currentQuestion?.content}
+              </p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">
+                Mức độ phù hợp với bạn:
+              </p>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+                  HOÀN TOÀN<br />KHÔNG
+                </span>
+                <div className="flex gap-3 justify-center flex-1">
                   {LIKERT_OPTIONS.map((option) => {
-                    const isSelected =
-                      answers[currentQuestion._id]?.score === option.value;
+                    const isSelected = answers[currentQuestion?._id]?.score === option.value;
                     return (
                       <button
                         key={option.value}
                         onClick={() => handleSelect(option.value)}
-                        className={`group relative rounded-3xl py-6 px-2 transition-all duration-300 border-2 
-                        ${
-                          isSelected
-                            ? "bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-200 scale-105"
-                            : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200 hover:shadow-lg hover:shadow-slate-100"
-                        }
-                      `}
+                        className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg font-bold transition-all duration-200
+                          ${
+                            isSelected
+                              ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-110"
+                              : "bg-white border-slate-300 text-slate-700 hover:border-blue-400 hover:shadow-md"
+                          }`}
                       >
-                        <div
-                          className={`text-2xl font-black mb-2 ${isSelected ? "text-white" : "text-slate-900 group-hover:text-blue-600"}`}
-                        >
-                          {option.value}
-                        </div>
-                        <div
-                          className={`text-[10px] font-bold uppercase tracking-tighter ${isSelected ? "text-blue-100" : "text-slate-400"}`}
-                        >
-                          {option.label}
-                        </div>
+                        {option.value}
                       </button>
                     );
                   })}
                 </div>
+                <span className="text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+                  BẮT<br />CHÍNH XÁC
+                </span>
               </div>
             </div>
 
             {error && (
-              <div className="mb-8 rounded-2xl border border-red-100 bg-red-50 p-4 text-center text-red-600 font-bold animate-shake">
+              <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-center text-red-600 text-sm font-medium">
                 {error}
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-8">
+            <div className="flex justify-between items-center">
               <button
-                onClick={handleBack}
-                disabled={currentIndex === 0}
-                className="px-6 md:px-8 py-4 rounded-full bg-white text-slate-600 font-bold border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm md:text-base"
+                onClick={() =>
+                  safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests")
+                }
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -240,26 +211,26 @@ const HollandTestPage = () => {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                Câu trước
+                {safeIndex === 0 ? "Quay lại" : "Câu trước"}
               </button>
 
-              {isAllAnswered || currentIndex === totalQuestions - 1 ? (
+              {isAllAnswered || safeIndex === totalQuestions - 1 ? (
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="px-8 md:px-10 py-4 rounded-full bg-blue-600 text-white font-black text-base md:text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
+                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
                 >
-                  {submitting ? "Đang phân tích..." : "Xem Kết Quả"}
+                  {submitting ? "Đang phân tích..." : "Nộp bài"}
                 </button>
               ) : (
                 <button
-                  onClick={() => setCurrentIndex((curr) => curr + 1)}
-                  className="px-6 md:px-8 py-4 rounded-full bg-white text-blue-600 font-bold border border-blue-100 hover:bg-blue-50 transition-all flex items-center gap-2 text-sm md:text-base"
+                  onClick={() => setCurrentIndex((i) => i + 1)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all shadow-md"
                 >
-                  Bỏ qua
+                  Tiếp theo
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-4 w-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -274,8 +245,65 @@ const HollandTestPage = () => {
                 </button>
               )}
             </div>
-          </>
-        )}
+          </div>
+
+          {/* Right sidebar */}
+          <div className="w-56 shrink-0 space-y-4">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">
+                📋 Bảng điều hướng
+              </h3>
+              <div className="grid grid-cols-5 gap-1.5">
+                {questions.map((q, idx) => {
+                  const isCurrent = idx === safeIndex;
+                  const isDone = !!answers[q._id];
+                  return (
+                    <button
+                      key={q._id}
+                      onClick={() => setCurrentIndex(idx)}
+                      title={`Câu ${idx + 1}`}
+                      className={`h-8 w-full rounded text-xs font-bold transition-all
+                        ${
+                          isCurrent
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : isDone
+                              ? "bg-orange-400 text-white"
+                              : "bg-white border border-slate-200 text-slate-500 hover:border-blue-300"
+                        }`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 space-y-1.5 text-xs text-slate-500 border-t pt-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-blue-600 shrink-0" />
+                  <span>Đang làm</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded bg-orange-400 shrink-0" />
+                  <span>Đã làm</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded border border-slate-300 shrink-0" />
+                  <span>Chưa làm</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">
+                🔔 Hướng dẫn
+              </h3>
+              <ol className="text-xs text-slate-500 space-y-2 list-decimal list-inside leading-relaxed">
+                <li>Đọc kỹ từng câu hỏi và chọn mức độ phù hợp từ 1 đến 5.</li>
+                <li>Không có câu trả lời đúng hay sai, chỉ có câu phù hợp với bạn nhất.</li>
+                <li>Thời gian hoàn thành dự kiến: 5 - 10 phút.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

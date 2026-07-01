@@ -1,6 +1,12 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
+// Phải khớp với PLAN_DURATIONS ở payment.controller.js / admin.controller.js
+const PLAN_DURATIONS_MS = {
+  PAID: 30 * 24 * 60 * 60 * 1000,
+  PREMIUM: 90 * 24 * 60 * 60 * 1000,
+};
+
 // Middleware to check/refresh subscription plan status
 const checkSubscription = async (req, res, next) => {
   try {
@@ -19,18 +25,29 @@ const checkSubscription = async (req, res, next) => {
       });
     }
 
-    // Check if the plan has expired
-    if (user.subscriptionPlan !== "FREE" && user.subscriptionExpiry && new Date() > user.subscriptionExpiry) {
-      user.subscriptionPlan = "FREE";
-      user.subscriptionExpiry = null;
-      await user.save();
-      console.log(`[Subscription] Reset expired plan to FREE for user: ${user.email}`);
+    if (user.subscriptionPlan !== "FREE") {
+      if (user.subscriptionExpiry && new Date() > user.subscriptionExpiry) {
+        // Plan has expired
+        user.subscriptionPlan = "FREE";
+        user.subscriptionExpiry = null;
+        await user.save();
+        console.log(`[Subscription] Reset expired plan to FREE for user: ${user.email}`);
+      } else if (!user.subscriptionExpiry) {
+        // Dữ liệu thiếu ngày hết hạn (tài khoản cũ trước khi có tracking đầy đủ) —
+        // tự cấp lại 1 chu kỳ đầy đủ để không bị mất quyền lợi gói đang trả phí.
+        const duration = PLAN_DURATIONS_MS[user.subscriptionPlan];
+        if (duration) {
+          user.subscriptionExpiry = new Date(Date.now() + duration);
+          await user.save();
+          console.log(`[Subscription] Backfilled missing expiry for user: ${user.email}`);
+        }
+      }
     }
 
     // Attach latest plan to req.user
     req.user.subscriptionPlan = user.subscriptionPlan;
     req.user.subscriptionExpiry = user.subscriptionExpiry;
-    
+
     next();
   } catch (error) {
     return res.status(500).json({
@@ -69,11 +86,18 @@ const getPlanFromRequest = async (req) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id);
       if (user) {
-        // Handle expiration
-        if (user.subscriptionPlan !== "FREE" && user.subscriptionExpiry && new Date() > user.subscriptionExpiry) {
-          user.subscriptionPlan = "FREE";
-          user.subscriptionExpiry = null;
-          await user.save();
+        if (user.subscriptionPlan !== "FREE") {
+          if (user.subscriptionExpiry && new Date() > user.subscriptionExpiry) {
+            user.subscriptionPlan = "FREE";
+            user.subscriptionExpiry = null;
+            await user.save();
+          } else if (!user.subscriptionExpiry) {
+            const duration = PLAN_DURATIONS_MS[user.subscriptionPlan];
+            if (duration) {
+              user.subscriptionExpiry = new Date(Date.now() + duration);
+              await user.save();
+            }
+          }
         }
         return user.subscriptionPlan;
       }

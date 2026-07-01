@@ -43,14 +43,29 @@ const PricingPage = () => {
     user?.subscriptionCycleDays ||
     PLAN_CYCLE_DAYS[user?.subscriptionPlan] ||
     null;
+  // Ngày bắt đầu chu kỳ hiện tại = ngày hết hạn - độ dài chu kỳ (30/90 ngày)
+  const periodStart =
+    user?.subscriptionExpiry && cycleDays
+      ? new Date(
+          new Date(user.subscriptionExpiry).getTime() - cycleDays * 86400000,
+        )
+      : null;
   const remainingPercent =
     cycleDays && daysRemaining !== null
       ? Math.min(100, Math.max(0, (daysRemaining / cycleDays) * 100))
       : 0;
+  const elapsedPercent = 100 - remainingPercent;
   const isExpiringSoon = daysRemaining !== null && daysRemaining <= 3;
   // Hiện banner khi đang có gói trả phí, kể cả trường hợp thiếu dữ liệu ngày hết hạn
   // (dữ liệu cũ/nhập tay) — lúc đó chỉ ẩn phần đếm ngày thay vì ẩn cả banner.
   const showSubscriptionBanner = hasActivePlan;
+
+  const formatShortDate = (d) =>
+    new Date(d).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 
   const plans = [
     {
@@ -133,7 +148,7 @@ const PricingPage = () => {
       {showSubscriptionBanner && (
         <div className="max-w-3xl mx-auto mb-12">
           <div
-            className={`rounded-2xl border p-5 flex items-center gap-4 shadow-sm ${
+            className={`rounded-2xl border p-5 shadow-sm ${
               isExpiringSoon
                 ? "bg-amber-50 border-amber-200"
                 : user.subscriptionPlan === "PREMIUM"
@@ -141,19 +156,19 @@ const PricingPage = () => {
                   : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
             }`}
           >
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-                isExpiringSoon
-                  ? "bg-amber-100"
-                  : user.subscriptionPlan === "PREMIUM"
-                    ? "bg-purple-100"
-                    : "bg-blue-100"
-              }`}
-            >
-              {user.subscriptionPlan === "PREMIUM" ? "⭐" : "✔️"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-3 mb-1.5">
+            <div className="flex items-center gap-4 mb-4">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+                  isExpiringSoon
+                    ? "bg-amber-100"
+                    : user.subscriptionPlan === "PREMIUM"
+                      ? "bg-purple-100"
+                      : "bg-blue-100"
+                }`}
+              >
+                {user.subscriptionPlan === "PREMIUM" ? "⭐" : "✔️"}
+              </div>
+              <div className="flex-1 min-w-0">
                 <p
                   className={`text-sm font-black ${
                     isExpiringSoon
@@ -169,20 +184,33 @@ const PricingPage = () => {
                     : "TIÊU CHUẨN"}{" "}
                   đang hoạt động
                 </p>
-                {daysRemaining !== null && (
-                  <span
-                    className={`text-xs font-bold shrink-0 ${
-                      isExpiringSoon ? "text-amber-600" : "text-slate-500"
-                    }`}
-                  >
-                    Còn {daysRemaining} ngày
-                  </span>
+                {isExpiringSoon && (
+                  <p className="text-xs text-amber-600 font-semibold">
+                    Gia hạn sớm để không bị gián đoạn trải nghiệm
+                  </p>
                 )}
               </div>
               {daysRemaining !== null && (
-                <div className="h-1.5 bg-white/70 rounded-full overflow-hidden mb-1.5">
+                <span
+                  className={`text-xs font-black px-3 py-1.5 rounded-full shrink-0 ${
+                    isExpiringSoon
+                      ? "bg-amber-100 text-amber-700"
+                      : user.subscriptionPlan === "PREMIUM"
+                        ? "bg-purple-100 text-purple-700"
+                        : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  Còn {daysRemaining} ngày
+                </span>
+              )}
+            </div>
+
+            {/* Date range timeline */}
+            {periodStart && user?.subscriptionExpiry ? (
+              <div>
+                <div className="h-2 bg-white/70 rounded-full overflow-hidden relative">
                   <div
-                    style={{ width: `${remainingPercent}%` }}
+                    style={{ width: `${elapsedPercent}%` }}
                     className={`h-full rounded-full transition-all duration-500 ${
                       isExpiringSoon
                         ? "bg-amber-400"
@@ -191,16 +219,31 @@ const PricingPage = () => {
                           : "bg-blue-400"
                     }`}
                   />
+                  <div
+                    style={{ left: `${elapsedPercent}%` }}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow ${
+                      isExpiringSoon
+                        ? "bg-amber-500"
+                        : user.subscriptionPlan === "PREMIUM"
+                          ? "bg-purple-500"
+                          : "bg-blue-500"
+                    }`}
+                  />
                 </div>
-              )}
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[11px] font-bold text-slate-400">
+                    Bắt đầu: {formatShortDate(periodStart)}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400">
+                    Hết hạn: {formatShortDate(user.subscriptionExpiry)}
+                  </span>
+                </div>
+              </div>
+            ) : (
               <p className="text-xs text-slate-500">
-                {user?.subscriptionExpiry
-                  ? `Hết hạn ngày ${new Date(user.subscriptionExpiry).toLocaleDateString("vi-VN")}`
-                  : "Đang cập nhật ngày hết hạn..."}
-                {isExpiringSoon &&
-                  " · Gia hạn sớm để không bị gián đoạn trải nghiệm"}
+                Đang cập nhật ngày bắt đầu/kết thúc...
               </p>
-            </div>
+            )}
           </div>
         </div>
       )}

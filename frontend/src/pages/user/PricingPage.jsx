@@ -21,7 +21,9 @@ const PricingPage = () => {
           window.dispatchEvent(new Event("userUpdate"));
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Không thể lấy thông tin gói mới nhất:", err);
+      });
   }, []);
 
   const hasActivePlan =
@@ -38,14 +40,17 @@ const PricingPage = () => {
           )
         : null;
   const cycleDays =
-    user?.subscriptionCycleDays || PLAN_CYCLE_DAYS[user?.subscriptionPlan] || null;
+    user?.subscriptionCycleDays ||
+    PLAN_CYCLE_DAYS[user?.subscriptionPlan] ||
+    null;
   const remainingPercent =
     cycleDays && daysRemaining !== null
       ? Math.min(100, Math.max(0, (daysRemaining / cycleDays) * 100))
       : 0;
   const isExpiringSoon = daysRemaining !== null && daysRemaining <= 3;
-  const showSubscriptionBanner =
-    hasActivePlan && daysRemaining !== null && user?.subscriptionExpiry;
+  // Hiện banner khi đang có gói trả phí, kể cả trường hợp thiếu dữ liệu ngày hết hạn
+  // (dữ liệu cũ/nhập tay) — lúc đó chỉ ẩn phần đếm ngày thay vì ẩn cả banner.
+  const showSubscriptionBanner = hasActivePlan;
 
   const plans = [
     {
@@ -158,32 +163,40 @@ const PricingPage = () => {
                         : "text-blue-700"
                   }`}
                 >
-                  Gói {user.subscriptionPlan === "PREMIUM" ? "CAO CẤP" : "TIÊU CHUẨN"}{" "}
+                  Gói{" "}
+                  {user.subscriptionPlan === "PREMIUM"
+                    ? "CAO CẤP"
+                    : "TIÊU CHUẨN"}{" "}
                   đang hoạt động
                 </p>
-                <span
-                  className={`text-xs font-bold shrink-0 ${
-                    isExpiringSoon ? "text-amber-600" : "text-slate-500"
-                  }`}
-                >
-                  Còn {daysRemaining} ngày
-                </span>
+                {daysRemaining !== null && (
+                  <span
+                    className={`text-xs font-bold shrink-0 ${
+                      isExpiringSoon ? "text-amber-600" : "text-slate-500"
+                    }`}
+                  >
+                    Còn {daysRemaining} ngày
+                  </span>
+                )}
               </div>
-              <div className="h-1.5 bg-white/70 rounded-full overflow-hidden mb-1.5">
-                <div
-                  style={{ width: `${remainingPercent}%` }}
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    isExpiringSoon
-                      ? "bg-amber-400"
-                      : user.subscriptionPlan === "PREMIUM"
-                        ? "bg-purple-400"
-                        : "bg-blue-400"
-                  }`}
-                />
-              </div>
+              {daysRemaining !== null && (
+                <div className="h-1.5 bg-white/70 rounded-full overflow-hidden mb-1.5">
+                  <div
+                    style={{ width: `${remainingPercent}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      isExpiringSoon
+                        ? "bg-amber-400"
+                        : user.subscriptionPlan === "PREMIUM"
+                          ? "bg-purple-400"
+                          : "bg-blue-400"
+                    }`}
+                  />
+                </div>
+              )}
               <p className="text-xs text-slate-500">
-                Hết hạn ngày{" "}
-                {new Date(user.subscriptionExpiry).toLocaleDateString("vi-VN")}
+                {user?.subscriptionExpiry
+                  ? `Hết hạn ngày ${new Date(user.subscriptionExpiry).toLocaleDateString("vi-VN")}`
+                  : "Đang cập nhật ngày hết hạn..."}
                 {isExpiringSoon &&
                   " · Gia hạn sớm để không bị gián đoạn trải nghiệm"}
               </p>
@@ -198,7 +211,7 @@ const PricingPage = () => {
           Chọn gói dịch vụ phù hợp cho tương lai của bạn
         </h1>
         <p className="text-slate-500 text-lg">
-          EduPath AI đồng hành cùng học sinh Việt Nam với công cụ AI thông minh
+          caZup AI đồng hành cùng học sinh Việt Nam với công cụ AI thông minh
           nhất để định hướng học tập và sự nghiệp bền vững.
         </p>
       </div>

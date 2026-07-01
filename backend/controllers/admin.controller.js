@@ -3,6 +3,12 @@ const Payment = require("../models/payment.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
 
+// Phải khớp với PLAN_DURATIONS ở payment.controller.js
+const PLAN_DURATIONS = {
+  PAID: 30 * 24 * 60 * 60 * 1000, // 30 days
+  PREMIUM: 90 * 24 * 60 * 60 * 1000, // 90 days
+};
+
 // Lấy thống kê tổng quan cho Admin
 exports.getAdminStats = async (req, res) => {
   try {
@@ -334,10 +340,20 @@ exports.updatePaymentStatus = async (req, res) => {
 
     // Nếu cập nhật thành công, cập nhật gói cước cho user
     if (status === "SUCCESS") {
-      await User.findByIdAndUpdate(payment.user, {
-        subscriptionPlan: payment.planType,
-        subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      });
+      const duration = PLAN_DURATIONS[payment.planType];
+      if (duration) {
+        const user = await User.findById(payment.user);
+        if (user) {
+          const now = new Date();
+          const baseDate =
+            user.subscriptionExpiry && new Date(user.subscriptionExpiry) > now
+              ? new Date(user.subscriptionExpiry)
+              : now;
+          user.subscriptionPlan = payment.planType;
+          user.subscriptionExpiry = new Date(baseDate.getTime() + duration);
+          await user.save();
+        }
+      }
     }
 
     res.status(200).json({

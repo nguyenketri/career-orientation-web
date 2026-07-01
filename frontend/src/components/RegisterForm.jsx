@@ -139,16 +139,7 @@ const RegisterForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-8 shadow-xl">
-      {/* Heading */}
-      <div className="mb-8 text-center">
-        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-blue-600">
-          Tạo tài khoản
-        </p>
-
-        <h2 className="text-4xl font-bold text-slate-900">Đăng ký</h2>
-      </div>
-
+    <div className="w-full">
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
@@ -213,7 +204,7 @@ const RegisterForm = () => {
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="text-sm text-blue-600 hover:text-blue-500"
+          className="text-sm text-orange-600 hover:text-orange-500"
         >
           {showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
         </button>
@@ -229,7 +220,7 @@ const RegisterForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
         </button>
@@ -244,8 +235,9 @@ const RegisterForm = () => {
         </div>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex w-full justify-center overflow-hidden">
         <GoogleLogin
+          width="280"
           onSuccess={handleGoogleSuccess}
           onError={() => setError("Đăng nhập Google thất bại")}
         />
@@ -256,7 +248,7 @@ const RegisterForm = () => {
         Bạn đã có tài khoản?{" "}
         <Link
           to="/login"
-          className="font-semibold text-blue-600 hover:text-blue-500"
+          className="font-semibold text-orange-600 hover:text-orange-500"
         >
           Đăng nhập
         </Link>

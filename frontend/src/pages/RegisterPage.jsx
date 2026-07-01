@@ -1,18 +1,11 @@
+import AuthLayout from "../layouts/AuthLayout";
 import RegisterForm from "../components/RegisterForm";
 
 const RegisterPage = () => {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-blue-50 px-6">
-      {/* Glow */}
-      <div className="absolute top-[-100px] h-[300px] w-[300px] rounded-full bg-blue-200/50 blur-3xl"></div>
-
-      <div className="absolute bottom-[-100px] right-0 h-[300px] w-[300px] rounded-full bg-purple-200/50 blur-3xl"></div>
-
-      {/* Form */}
-      <div className="relative z-10 w-full min-h-screen flex items-center justify-center">
-        <RegisterForm />
-      </div>
-    </div>
+    <AuthLayout>
+      <RegisterForm />
+    </AuthLayout>
   );
 };
 

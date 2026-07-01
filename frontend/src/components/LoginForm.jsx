@@ -75,16 +75,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-8 shadow-xl">
-      {/* Heading */}
-      <div className="mb-8 text-center">
-        <p className="mb-2 text-sm uppercase tracking-[0.3em] text-blue-600">
-          Chào mừng trở lại
-        </p>
-
-        <h2 className="text-4xl font-bold text-slate-900">Đăng nhập</h2>
-      </div>
-
+    <div className="w-full">
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email */}
@@ -145,7 +136,7 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white transition hover:scale-[1.02] hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
@@ -159,8 +150,9 @@ const LoginForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex w-full justify-center overflow-hidden">
           <GoogleLogin
+            width="280"
             onSuccess={async (credentialResponse) => {
               try {
                 setLoading(true);
@@ -210,7 +202,7 @@ const LoginForm = () => {
         Bạn chưa có tài khoản?{" "}
         <Link
           to="/register"
-          className="font-semibold text-blue-600 hover:text-blue-500"
+          className="font-semibold text-orange-600 hover:text-orange-500"
         >
           Đăng ký
         </Link>

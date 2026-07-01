@@ -5,11 +5,12 @@ const { exec } = require("child_process");
 const path = require("path");
 
 const seeds = [
-  "seed.universities.js",
-  "seed.majors.js", // Phải chạy sau universities vì cần lấy ID trường
   "seed.hollandQuestions.js",
   "seed.mbtiQuestions.js",
-  "seed.universityMajor.js",
+  // Bộ dữ liệu Trường + Ngành + UniversityMajor (upsert giữ _id, điểm chuẩn & học phí 2023/2024/2025).
+  // Thay thế các seed cũ (seed.universities/majors/universityMajor.js) vốn sinh dữ liệu ngẫu nhiên
+  // và deleteMany làm vỡ reference _id của các bài test đã lưu.
+  "seed.fullDataset.js",
 ];
 
 console.log("🚀 Bắt đầu quá trình nạp dữ liệu (seed)...");

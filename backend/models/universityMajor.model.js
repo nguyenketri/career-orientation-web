@@ -15,6 +15,10 @@ const universityMajorSchema = new mongoose.Schema(
       ref: "Major",
       required: true,
     },
+    // Thông tin xét tuyển năm gần nhất (dùng cho query recommend & hiển thị nhanh)
+    admissionScore: Number, // Điểm chuẩn năm mới nhất
+    subjectCombination: String, // Tổ hợp môn chính (VD: "A00")
+    tuitionFee: Number, // Học phí VNĐ/năm (đã chuẩn hóa)
     admissionHistory: [
       {
         year: Number,
@@ -22,7 +26,7 @@ const universityMajorSchema = new mongoose.Schema(
         tuitionFee: Number,
         subjectCombination: String,
       },
-    ], // Lịch sử điểm chuẩn, học phí qua các năm
+    ], // Lịch sử điểm chuẩn, học phí qua các năm (2023, 2024, 2025)
     // Soft delete
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },

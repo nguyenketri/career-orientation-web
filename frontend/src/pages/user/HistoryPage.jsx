@@ -3,8 +3,13 @@ import { getMyHollandResults } from "../../services/hollandResult.service";
 import { getMyMbtiResults } from "../../services/mbtiService";
 import { getScoreAnalysisHistory } from "../../services/recommendService";
 import { getPaymentHistory } from "../../services/paymentService";
-import { hollandMaps } from "../../utils/hollandMap";
 import { mbtiMaps } from "../../utils/mbtiMap";
+import {
+  formatHollandCode,
+  getPrimaryCareer,
+  getStrengths,
+  HOLLAND_META,
+} from "../../utils/hollandCareerMap";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -19,6 +24,7 @@ const HistoryPage = () => {
   const [payments, setPayments] = useState([]);
   const activeTab = searchParams.get("tab") || "holland";
   const [currentPage, setCurrentPage] = useState(1);
+  const [hollandVisible, setHollandVisible] = useState(3);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -120,17 +126,20 @@ const HistoryPage = () => {
         <div className="mb-16">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-black mb-2">
-                {activeTab === "academic"
-                  ? "Lịch sử Nhập điểm"
-                  : "Lịch sử kết quả"}
+              <h2 className="text-3xl md:text-4xl font-black mb-2">
+                {activeTab === "holland"
+                  ? "Lịch sử Hướng nghiệp Holland"
+                  : activeTab === "mbti"
+                    ? "Lịch sử Tính cách MBTI"
+                    : "Lịch sử Nhập điểm"}
               </h2>
-              {activeTab === "academic" && (
-                <p className="text-slate-500 text-sm max-w-md">
-                  Xem lại các lần nhập điểm trước đây và nhận các đề xuất cá
-                  nhân hóa dựa trên tổ hợp môn của bạn.
-                </p>
-              )}
+              <p className="text-slate-500 text-sm max-w-xl">
+                {activeTab === "holland"
+                  ? "Theo dõi sự thay đổi sở thích nghề nghiệp của bạn. Kết quả RIASEC giúp caZup AI tinh chỉnh lộ trình học tập cho bạn."
+                  : activeTab === "mbti"
+                    ? "Xem lại các kiểu tính cách MBTI qua từng lần test và mức độ nhất quán của bạn."
+                    : "Xem lại các lần nhập điểm trước đây và nhận các đề xuất cá nhân hóa dựa trên tổ hợp môn của bạn."}
+              </p>
             </div>
             {activeTab === "academic" && (
               <button
@@ -162,42 +171,216 @@ const HistoryPage = () => {
             ))}
           </div>
 
-          {activeTab === "holland" && hollandResults.length > 0 && (
-            <div className="mb-8 p-6 bg-blue-600 rounded-3xl text-white shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                  <h3 className="text-lg font-bold opacity-80 mb-1">
-                    Độ ổn định nghề nghiệp
-                  </h3>
-                  <div className="text-5xl font-black">{hollandStability}%</div>
-                </div>
-                <div className="flex-1 max-w-md">
-                  <p className="text-sm opacity-90 leading-relaxed">
-                    Dựa trên {hollandResults.length} lần test, nhóm mã phổ biến
-                    nhất của bạn là{" "}
-                    <span className="font-black underline">
-                      {hollandResults[0]?.mostFrequentTrait}
-                    </span>
-                    . Độ ổn định cao giúp bạn tự tin hơn trong việc chọn ngành
-                    học.
-                  </p>
-                </div>
-                <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
-                  <div className="text-xs font-bold uppercase opacity-70 mb-1 text-center">
-                    Xu hướng
+          {activeTab === "holland" &&
+            (hollandResults.length > 0 ? (
+              <div className="mb-4">
+                {/* Latest attempt + Stability */}
+                <div className="grid lg:grid-cols-3 gap-6 mb-10">
+                  <div className="lg:col-span-2 relative overflow-hidden bg-white rounded-3xl border border-slate-100 shadow-sm p-7">
+                    <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-gradient-to-br from-blue-100 to-teal-100 blur-2xl opacity-70" />
+                    <div className="relative z-10 max-w-xl">
+                      <span className="inline-block text-[10px] font-black tracking-wider uppercase text-orange-600 bg-orange-100 px-3 py-1 rounded-full mb-4">
+                        Lần gần nhất
+                      </span>
+                      <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-1">
+                        {formatHollandCode(hollandResults[0].topTypes)}
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-5">
+                        Hoàn thành ngày{" "}
+                        {new Date(
+                          hollandResults[0].createdAt,
+                        ).toLocaleDateString("vi-VN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {getStrengths(hollandResults[0].topTypes).map((s) => (
+                          <span
+                            key={s}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-full"
+                          >
+                            <span className="text-blue-500">✦</span> {s}
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() =>
+                          navigate(
+                            `/result-detail/holland/${hollandResults[0]._id}`,
+                            { state: { result: hollandResults[0] } },
+                          )
+                        }
+                        className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition"
+                      >
+                        Xem phân tích chuyên sâu
+                        <span className="text-base">→</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xl font-black text-center">
-                    {hollandStability > 70
-                      ? "Rất ổn định"
-                      : hollandStability > 40
-                        ? "Đang định hình"
-                        : "Cần khám phá thêm"}
+
+                  <div className="bg-slate-900 rounded-3xl p-7 text-white relative overflow-hidden">
+                    <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-blue-500/20 blur-3xl" />
+                    <div className="relative z-10">
+                      <h3 className="text-lg font-black mb-1">
+                        Độ ổn định sở thích
+                      </h3>
+                      <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                        Mức nhất quán của sở thích nghề nghiệp qua các lần test.
+                      </p>
+                      <div className="text-6xl font-black mb-5">
+                        {hollandStability}%
+                      </div>
+                      <div className="bg-white/10 rounded-xl p-4 text-xs leading-relaxed">
+                        Nhóm{" "}
+                        <span className="font-black text-blue-300">
+                          {HOLLAND_META[hollandResults[0].mostFrequentTrait]
+                            ?.short ||
+                            hollandResults[0].mostFrequentTrait ||
+                            "—"}
+                        </span>{" "}
+                        là sở thích chủ đạo trong{" "}
+                        <span className="font-black">
+                          {hollandResults[0].frequentCount || 1}/
+                          {hollandResults.length}
+                        </span>{" "}
+                        lần test gần đây.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Past attempts */}
+                <h3 className="text-xl font-black mb-4">Các lần làm trước</h3>
+                <div className="space-y-3">
+                  {hollandResults.slice(0, hollandVisible).map((r) => (
+                    <div
+                      key={r._id}
+                      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 hover:shadow-md transition"
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-bold text-slate-400 uppercase">
+                          {new Date(r.createdAt).toLocaleDateString("vi-VN", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <div className="font-black text-slate-900">
+                          {formatHollandCode(r.topTypes)}
+                        </div>
+                        {r.status && (
+                          <span
+                            className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              r.status === "Shift Detected"
+                                ? "bg-orange-100 text-orange-600"
+                                : "bg-teal-100 text-teal-600"
+                            }`}
+                          >
+                            {r.status === "Shift Detected"
+                              ? "Có thay đổi"
+                              : "Ổn định"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="md:text-right md:mr-2">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">
+                          Nghề gợi ý
+                        </div>
+                        <div className="font-bold text-slate-700 text-sm">
+                          {getPrimaryCareer(r.topTypes)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          navigate(`/result-detail/holland/${r._id}`, {
+                            state: { result: r },
+                          })
+                        }
+                        className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition whitespace-nowrap"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {hollandResults.length > hollandVisible && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={() => setHollandVisible((v) => v + 5)}
+                      className="text-blue-600 font-bold text-sm hover:underline"
+                    >
+                      Xem thêm kết quả cũ
+                    </button>
+                  </div>
+                )}
+
+                {/* Compare promo */}
+                <div className="mt-10 bg-blue-50 border border-blue-100 rounded-3xl p-7 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="max-w-lg">
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">
+                      So sánh mức độ phù hợp
+                    </h3>
+                    <p className="text-slate-600 text-sm mb-5">
+                      Gói caZup Premium cho phép so sánh điểm sở thích của bạn với
+                      sinh viên các trường top tại Việt Nam.
+                    </p>
+                    <button
+                      onClick={() => navigate("/pricing")}
+                      className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition shadow-lg shadow-orange-200"
+                    >
+                      Nâng cấp để so sánh
+                    </button>
+                  </div>
+                  <div className="hidden md:block w-64 bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                    <div className="text-xs font-bold text-slate-700 mb-3">
+                      Benchmarking
+                    </div>
+                    {[
+                      { c: "bg-orange-500", w: "w-full" },
+                      { c: "bg-blue-900", w: "w-4/5" },
+                      { c: "bg-teal-400", w: "w-11/12" },
+                    ].map((b, i) => (
+                      <div
+                        key={i}
+                        className="h-2.5 bg-slate-100 rounded-full mb-3 overflow-hidden"
+                      >
+                        <div className={`h-full ${b.c} ${b.w} rounded-full`} />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-16 text-center">
+                <p className="text-slate-500 font-medium mb-4">
+                  Bạn chưa có kết quả trắc nghiệm Holland nào.
+                </p>
+                <button
+                  onClick={() => navigate("/tests/holland")}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition"
+                >
+                  Làm bài test ngay
+                </button>
+              </div>
+            ))}
 
           {activeTab === "mbti" && mbtiResults.length > 0 && (
             <div className="mb-8 p-6 bg-indigo-600 rounded-3xl text-white shadow-xl relative overflow-hidden">
@@ -236,47 +419,6 @@ const HistoryPage = () => {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activeTab === "holland" &&
-              hollandResults.map((r) => (
-                <div
-                  key={r._id}
-                  className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="px-3 py-1 bg-teal-50 text-teal-600 text-xs font-bold rounded-full w-fit">
-                        {hollandMaps[r.hollandType]?.name || r.hollandType}
-                      </span>
-                      {r.status && (
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-wider ${r.status === "Shift Detected" ? "text-orange-500" : "text-slate-400"}`}
-                        >
-                          {r.status === "Shift Detected"
-                            ? "⚠ Có sự thay đổi"
-                            : "✓ Ổn định"}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-400">
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">
-                    Kiểu {r.hollandType}
-                  </h3>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                    {hollandMaps[r.hollandType]?.desc ||
-                      "Không có mô tả chi tiết."}
-                  </p>
-                  <button
-                    onClick={() => navigate(`/result-detail/holland/${r._id}`)}
-                    className="text-blue-600 text-sm font-bold hover:underline"
-                  >
-                    Chi tiết →
-                  </button>
-                </div>
-              ))}
-
             {activeTab === "mbti" &&
               mbtiResults.map((r) => (
                 <div

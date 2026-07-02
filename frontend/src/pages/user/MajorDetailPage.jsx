@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getUniversityMajorById } from "../../services/universityService";
@@ -26,13 +26,20 @@ const fmtTuition = (fee) => {
 const AVATAR = (name) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Uni")}&background=random&size=200`;
 
-// Ảnh minh họa dự phòng (khi trường chưa có album ảnh thực tế)
-const STOCK_GALLERY = [
-  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=60",
-  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=60",
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=60",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=60",
-];
+// Ảnh minh họa ổn định cho album (khi trường chưa có ảnh thực tế) — dùng picsum theo seed
+const stockGallery = (seed) =>
+  [1, 2, 3, 4].map(
+    (n) =>
+      `https://picsum.photos/seed/${encodeURIComponent(String(seed || "cazup"))}-${n}/500/500`,
+  );
+
+// Gradient nền hero theo loại trường (không phụ thuộc ảnh ngoài => luôn hiển thị)
+const heroGradient = (type) =>
+  type === "International"
+    ? "from-emerald-500 via-teal-700 to-slate-900"
+    : type === "Private"
+      ? "from-orange-500 via-rose-700 to-slate-900"
+      : "from-blue-600 via-indigo-800 to-slate-900";
 
 // Mã ngành: dùng code có sẵn, nếu không thì sinh mã ổn định từ tên + id
 const getMajorCode = (major, umId = "") => {
@@ -129,6 +136,7 @@ const MajorDetailPage = () => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [toast, setToast] = useState("");
+  const brochureRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -183,6 +191,30 @@ const MajorDetailPage = () => {
     }
   };
 
+  // Tạo & tải brochure (hồ sơ ngành học) dạng PDF từ DOM ẩn -> giữ nguyên tiếng Việt
+  const handleBrochure = async () => {
+    if (!brochureRef.current) return;
+    try {
+      setToast("Đang tạo brochure...");
+      const html2pdf = (await import("html2pdf.js")).default;
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `caZup-Brochure-${(detail.major?.name || "nganh").replace(/\s+/g, "_")}.pdf`,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(brochureRef.current)
+        .save();
+      setToast("");
+    } catch (err) {
+      console.error(err);
+      setToast("Không tạo được brochure, vui lòng thử lại.");
+      setTimeout(() => setToast(""), 2600);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -206,7 +238,10 @@ const MajorDetailPage = () => {
   }
 
   const { university: uni, major, compatibility, otherUniversities } = detail;
-  const gallery = uni.gallery?.length ? uni.gallery : STOCK_GALLERY;
+  const coverPhoto = uni.gallery?.length ? uni.gallery[0] : null;
+  const gallery = uni.gallery?.length
+    ? uni.gallery
+    : stockGallery(uni._id || uni.name);
   const highlights = getHighlights(major);
   const careers = getCareers(major);
   const curriculum = getCurriculum(major);
@@ -229,13 +264,35 @@ const MajorDetailPage = () => {
 
       {/* ===== HERO ===== */}
       <div className="relative h-[300px] md:h-[380px] w-full overflow-hidden">
-        <img
-          src={gallery[0]}
-          alt={uni.name}
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => (e.target.src = STOCK_GALLERY[0])}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-slate-900/20" />
+        {coverPhoto ? (
+          <>
+            <img
+              src={coverPhoto}
+              alt={uni.name}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-slate-900/30" />
+          </>
+        ) : (
+          <div
+            className={`absolute inset-0 bg-gradient-to-br ${heroGradient(uni.type)}`}
+          >
+            <div className="absolute -top-20 -right-10 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-24 left-1/4 w-96 h-96 bg-black/20 rounded-full blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
+          </div>
+        )}
+
+        {/* Logo trường (nhận diện thương hiệu) */}
+        <div className="hidden lg:flex absolute right-8 top-8 w-28 h-28 rounded-3xl bg-white shadow-2xl items-center justify-center p-3">
+          <img
+            src={uni.image || AVATAR(uni.name)}
+            alt={uni.name}
+            className="max-w-full max-h-full object-contain"
+            onError={(e) => (e.target.src = AVATAR(uni.name))}
+          />
+        </div>
+
         <div className="absolute inset-0 flex items-end">
           <div className="mx-auto max-w-7xl w-full px-4 md:px-8 pb-8">
             <button
@@ -422,9 +479,7 @@ const MajorDetailPage = () => {
                         src={src}
                         alt={`${uni.name} ${i + 1}`}
                         className="w-full h-full object-cover hover:scale-105 transition duration-500"
-                        onError={(e) =>
-                          (e.target.src = STOCK_GALLERY[i % STOCK_GALLERY.length])
-                        }
+                        onError={(e) => (e.target.src = AVATAR(uni.name))}
                       />
                     </div>
                   ))}
@@ -729,7 +784,7 @@ const MajorDetailPage = () => {
                   SO SÁNH
                 </button>
                 <button
-                  onClick={() => showToast("Brochure đang được cập nhật.")}
+                  onClick={handleBrochure}
                   className="py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition flex flex-col items-center gap-1 text-xs"
                 >
                   <svg
@@ -849,6 +904,224 @@ const MajorDetailPage = () => {
               </div>
             </div>
           </aside>
+        </div>
+      </div>
+
+      {/* ===== Brochure ẩn dùng để xuất PDF (giữ tiếng Việt vì render từ DOM) ===== */}
+      <div style={{ position: "fixed", left: "-10000px", top: 0 }} aria-hidden="true">
+        <div
+          ref={brochureRef}
+          style={{
+            width: "760px",
+            fontFamily: "Arial, Helvetica, sans-serif",
+            color: "#0f172a",
+            background: "#ffffff",
+          }}
+        >
+          <div style={{ background: "#0f172a", padding: "26px 36px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontSize: "26px", fontWeight: 800, color: "#ffffff" }}>
+                caZup
+              </div>
+              <div
+                style={{
+                  fontSize: "12px",
+                  letterSpacing: "2px",
+                  color: "#f97316",
+                  fontWeight: 700,
+                }}
+              >
+                HỒ SƠ NGÀNH HỌC
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: "30px 36px" }}>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#f97316",
+                fontWeight: 700,
+                textTransform: "uppercase",
+              }}
+            >
+              {typeLabel(uni.type)} · {uni.location}
+            </div>
+            <div style={{ fontSize: "22px", fontWeight: 800, margin: "4px 0 2px" }}>
+              {uni.name}
+            </div>
+            <div style={{ fontSize: "13px", color: "#64748b" }}>{uni.address}</div>
+
+            <div
+              style={{
+                marginTop: "22px",
+                paddingTop: "20px",
+                borderTop: "2px solid #f1f5f9",
+              }}
+            >
+              <div style={{ fontSize: "26px", fontWeight: 800 }}>{major.name}</div>
+              {major.englishName && (
+                <div
+                  style={{ fontSize: "14px", color: "#64748b", fontStyle: "italic" }}
+                >
+                  {major.englishName}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", marginTop: "18px" }}>
+              {[
+                { l: "Điểm chuẩn", v: detail.admissionScore ?? "—", c: "#f97316" },
+                { l: "Học phí / năm", v: fmtTuition(detail.tuitionFee), c: "#0f172a" },
+                {
+                  l: "Tổ hợp",
+                  v:
+                    (major.subjectCombinations || []).join(", ") ||
+                    detail.subjectCombination ||
+                    "—",
+                  c: "#2563eb",
+                },
+              ].map((s) => (
+                <div
+                  key={s.l}
+                  style={{
+                    flex: 1,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "12px 14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      color: "#94a3b8",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {s.l}
+                  </div>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: s.c }}>
+                    {s.v}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "24px",
+                marginTop: "16px",
+                fontSize: "13px",
+                color: "#334155",
+              }}
+            >
+              <div>
+                <b>Mã ngành:</b> {getMajorCode(major, String(detail._id))}
+              </div>
+              <div>
+                <b>Thời gian:</b> {getDuration(major, uni)}
+              </div>
+              <div>
+                <b>Khai giảng:</b> {getIntakes(major)}
+              </div>
+            </div>
+
+            <div style={{ marginTop: "22px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Giới thiệu ngành học
+              </div>
+              <div style={{ fontSize: "13px", lineHeight: 1.6, color: "#334155" }}>
+                {major.description || `Ngành ${major.name} tại ${uni.name}.`}
+              </div>
+            </div>
+
+            <div style={{ marginTop: "18px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Điểm nổi bật
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                {highlights.slice(0, 4).map((h, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                      color: "#334155",
+                      marginBottom: "3px",
+                    }}
+                  >
+                    <b>{h.title}:</b> {h.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div style={{ marginTop: "18px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: "6px",
+                }}
+              >
+                Cơ hội nghề nghiệp
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                {careers.map((c, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                      color: "#334155",
+                      marginBottom: "3px",
+                    }}
+                  >
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              padding: "14px 36px",
+              fontSize: "11px",
+              color: "#94a3b8",
+              display: "flex",
+              justifyContent: "space-between",
+              borderTop: "1px solid #e2e8f0",
+            }}
+          >
+            <span>Tạo bởi caZup · cazup.io.vn</span>
+            <span>{uni.website || ""}</span>
+          </div>
         </div>
       </div>
     </div>

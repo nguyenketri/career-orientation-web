@@ -2,6 +2,25 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axiosClient from "../../api/axios";
 
+/* Học phí năm gần nhất -> hiển thị 1 con số VNĐ/năm, không bịa range */
+const getAnnualTuition = (item) => {
+  let fee = item?.tuitionFee;
+  if (!fee && item?.admissionHistory?.length) {
+    const sorted = [...item.admissionHistory]
+      .filter((h) => h.tuitionFee)
+      .sort((a, b) => b.year - a.year);
+    fee = sorted[0]?.tuitionFee;
+  }
+  return fee || null;
+};
+const fmtTuition = (item) => {
+  const fee = getAnnualTuition(item);
+  if (!fee) return "N/A";
+  const m = fee / 1000000;
+  const s = Number.isInteger(m) ? `${m}` : m.toFixed(1);
+  return `${s} triệu VNĐ/năm`;
+};
+
 const PublicComparisonPage = () => {
   const [searchParams] = useSearchParams();
   const [selectedMajors, setSelectedMajors] = useState([]);
@@ -135,18 +154,7 @@ const PublicComparisonPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-bold text-slate-500">Học phí:</span>
-                      <span>
-                        {(() => {
-                          const history = item.admissionHistory || [];
-                          const fees = history
-                            .filter((h) => h.tuitionFee)
-                            .map((h) => h.tuitionFee);
-                          if (fees.length === 0) return "N/A";
-                          const avg =
-                            fees.reduce((a, b) => a + b, 0) / fees.length;
-                          return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu/năm`;
-                        })()}
-                      </span>
+                      <span>{fmtTuition(item)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-bold text-slate-500">
@@ -266,16 +274,7 @@ const PublicComparisonPage = () => {
                         className="p-4 border-l border-slate-200"
                       >
                         <p className="text-xs font-bold text-slate-900 text-center">
-                          {(() => {
-                            const history = item.admissionHistory || [];
-                            const fees = history
-                              .filter((h) => h.tuitionFee)
-                              .map((h) => h.tuitionFee);
-                            if (fees.length === 0) return "N/A";
-                            const avg =
-                              fees.reduce((a, b) => a + b, 0) / fees.length;
-                            return `${Math.floor(avg / 1000000)} - ${Math.floor(avg / 1000000) + 6} triệu VND/năm`;
-                          })()}
+                          {fmtTuition(item)}
                         </p>
                       </td>
                     ))}

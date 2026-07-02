@@ -10,6 +10,7 @@ import {
   getStrengths,
   HOLLAND_META,
 } from "../../utils/hollandCareerMap";
+import { getNickname, getViName } from "../../utils/mbtiCareerMap";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -25,6 +26,7 @@ const HistoryPage = () => {
   const activeTab = searchParams.get("tab") || "holland";
   const [currentPage, setCurrentPage] = useState(1);
   const [hollandVisible, setHollandVisible] = useState(3);
+  const [mbtiVisible, setMbtiVisible] = useState(4);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -141,12 +143,23 @@ const HistoryPage = () => {
                     : "Xem lại các lần nhập điểm trước đây và nhận các đề xuất cá nhân hóa dựa trên tổ hợp môn của bạn."}
               </p>
             </div>
-            {activeTab === "academic" && (
+            {activeTab === "academic" ? (
               <button
                 onClick={() => navigate("/recommend")}
                 className="w-full md:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
               >
                 <span className="text-xl">+</span> Nhập điểm mới
+              </button>
+            ) : (
+              <button
+                onClick={() =>
+                  navigate(
+                    activeTab === "mbti" ? "/tests/mbti" : "/tests/holland",
+                  )
+                }
+                className="w-full md:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/30"
+              >
+                <span className="text-xl">+</span> Làm lại bài test
               </button>
             )}
           </div>
@@ -382,81 +395,204 @@ const HistoryPage = () => {
               </div>
             ))}
 
-          {activeTab === "mbti" && mbtiResults.length > 0 && (
-            <div className="mb-8 p-6 bg-indigo-600 rounded-3xl text-white shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                  <h3 className="text-lg font-bold opacity-80 mb-1">
-                    Độ ổn định tính cách
-                  </h3>
-                  <div className="text-5xl font-black">{mbtiStability}%</div>
-                </div>
-                <div className="flex-1 max-w-md">
-                  <p className="text-sm opacity-90 leading-relaxed">
-                    Tính cách của bạn có xu hướng ổn định ở kiểu{" "}
-                    <span className="font-black underline">
-                      {mbtiResults[0]?.mostFrequentTrait}
-                    </span>
-                    . Sự nhất quán trong kết quả phản ánh sự thấu hiểu bản thân
-                    sâu sắc.
-                  </p>
-                </div>
-                <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
-                  <div className="text-xs font-bold uppercase opacity-70 mb-1 text-center">
-                    Trạng thái
+          {activeTab === "mbti" &&
+            (mbtiResults.length > 0 ? (
+              <div className="mb-4">
+                {/* Latest insight + Progress tracker */}
+                <div className="grid lg:grid-cols-3 gap-6 mb-10">
+                  <div className="lg:col-span-2 bg-slate-900 rounded-3xl p-7 text-white relative overflow-hidden">
+                    <div className="absolute -right-16 -top-16 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
+                    <div className="relative z-10 max-w-xl">
+                      <span className="inline-block text-[10px] font-black tracking-wider uppercase text-emerald-400 mb-3">
+                        Insight mới nhất
+                      </span>
+                      <h3 className="text-2xl md:text-3xl font-black mb-3">
+                        {mbtiStability >= 60
+                          ? "Sự nhất quán là thế mạnh của bạn."
+                          : "Bạn đang khám phá bản thân."}
+                      </h3>
+                      <p className="text-sm text-slate-300 leading-relaxed mb-6">
+                        Trong {mbtiResults.length} lần test gần đây, nhóm{" "}
+                        <span className="font-black text-white">
+                          {getViName(mbtiResults[0].mostFrequentTrait) ||
+                            mbtiResults[0].mostFrequentTrait}
+                        </span>{" "}
+                        xuất hiện{" "}
+                        <span className="font-black text-white">
+                          {mbtiResults[0].frequentCount || 1}/
+                          {mbtiResults.length}
+                        </span>{" "}
+                        lần (độ ổn định {mbtiStability}%) — cho thấy bạn ngày càng
+                        hiểu rõ bản thân.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex">
+                          {(mbtiResults[0].mbtiType || "")
+                            .split("")
+                            .map((ltr, i) => (
+                              <div
+                                key={i}
+                                className={`w-9 h-9 -ml-2 first:ml-0 rounded-full flex items-center justify-center text-xs font-black border-2 border-slate-900 ${
+                                  [
+                                    "bg-blue-500",
+                                    "bg-orange-500",
+                                    "bg-emerald-500",
+                                    "bg-slate-500",
+                                  ][i] || "bg-slate-500"
+                                }`}
+                              >
+                                {ltr}
+                              </div>
+                            ))}
+                        </div>
+                        <span className="text-sm text-slate-400 font-medium">
+                          Kiểu mới nhất:{" "}
+                          <b className="text-white">{mbtiResults[0].mbtiType}</b>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xl font-black text-center">
-                    {mbtiStability > 70
-                      ? "Nhất quán"
-                      : mbtiStability > 40
-                        ? "Linh hoạt"
-                        : "Đang thay đổi"}
+
+                  <div className="bg-blue-50 rounded-3xl p-7 border border-blue-100">
+                    <h3 className="text-lg font-black mb-1">Tiến trình</h3>
+                    <p className="text-sm text-slate-500 mb-6">
+                      Bạn đã hoàn thành {mbtiResults.length} lần đánh giá.
+                    </p>
+                    <div className="flex items-end gap-3 h-32">
+                      {[...mbtiResults]
+                        .slice(0, 5)
+                        .reverse()
+                        .map((_, i, arr) => (
+                          <div
+                            key={i}
+                            className={`flex-1 rounded-t-lg ${
+                              i === arr.length - 1
+                                ? "bg-orange-500"
+                                : "bg-slate-300"
+                            }`}
+                            style={{
+                              height: `${45 + (i / Math.max(arr.length - 1, 1)) * 55}%`,
+                            }}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* All results */}
+                <h3 className="text-xl font-black mb-4">Tất cả kết quả</h3>
+                <div className="space-y-3">
+                  {mbtiResults.slice(0, mbtiVisible).map((r, idx) => (
+                    <div
+                      key={r._id}
+                      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 hover:shadow-md transition"
+                    >
+                      <div
+                        className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
+                          idx === 0
+                            ? "bg-slate-900 text-white"
+                            : "bg-blue-50 text-slate-700"
+                        }`}
+                      >
+                        <span className="font-black text-sm">{r.mbtiType}</span>
+                        <span className="text-[8px] font-bold uppercase opacity-70 leading-none mt-0.5">
+                          {getNickname(r.mbtiType)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase">
+                            {new Date(r.createdAt).toLocaleDateString("vi-VN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+                          {idx === 0 && (
+                            <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              Mới nhất
+                            </span>
+                          )}
+                          {r.status === "Shift Detected" && idx !== 0 && (
+                            <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                              Có thay đổi
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-black text-slate-900">
+                          {getViName(r.mbtiType)}
+                        </h4>
+                        <p className="text-sm text-slate-500 line-clamp-2">
+                          {mbtiMaps[r.mbtiType]?.desc}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          navigate(`/result-detail/mbti/${r._id}`, {
+                            state: { result: r },
+                          })
+                        }
+                        className="text-slate-900 text-sm font-bold hover:underline flex items-center gap-1 whitespace-nowrap"
+                      >
+                        Xem chi tiết →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {mbtiResults.length > mbtiVisible && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={() => setMbtiVisible((v) => v + 5)}
+                      className="text-blue-600 font-bold text-sm hover:underline"
+                    >
+                      Xem thêm kết quả cũ
+                    </button>
+                  </div>
+                )}
+
+                {/* Deeper analysis promo */}
+                <div className="mt-10 bg-blue-50 border border-blue-100 rounded-3xl p-7 md:p-8 flex flex-col md:flex-row items-center gap-8">
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">
+                      Muốn phân tích sâu hơn?
+                    </h3>
+                    <p className="text-slate-600 text-sm mb-5">
+                      caZup AI Mentor có thể đối chiếu lịch sử test của bạn với
+                      yêu cầu của từng trường để tìm ngành học phù hợp nhất.
+                    </p>
+                    <button
+                      onClick={() => navigate("/mentor")}
+                      className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition"
+                    >
+                      Trò chuyện với AI Mentor
+                    </button>
+                  </div>
+                  <div className="w-full md:w-72 h-44 rounded-2xl overflow-hidden flex-shrink-0">
+                    <img
+                      src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=70"
+                      alt="AI Mentor"
+                      className="w-full h-full object-cover"
+                      onError={(e) => (e.target.style.display = "none")}
+                    />
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-16 text-center">
+                <p className="text-slate-500 font-medium mb-4">
+                  Bạn chưa có kết quả trắc nghiệm MBTI nào.
+                </p>
+                <button
+                  onClick={() => navigate("/tests/mbti")}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition"
+                >
+                  Làm bài test ngay
+                </button>
+              </div>
+            ))}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activeTab === "mbti" &&
-              mbtiResults.map((r) => (
-                <div
-                  key={r._id}
-                  className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full w-fit">
-                        {mbtiMaps[r.mbtiType]?.name || r.mbtiType}
-                      </span>
-                      {r.status && (
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-wider ${r.status === "Shift Detected" ? "text-orange-500" : "text-slate-400"}`}
-                        >
-                          {r.status === "Shift Detected"
-                            ? "⚠ Có sự thay đổi"
-                            : "✓ Ổn định"}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-400">
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">Kiểu {r.mbtiType}</h3>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                    {mbtiMaps[r.mbtiType]?.desc || "Không có mô tả chi tiết."}
-                  </p>
-                  <button
-                    onClick={() => navigate(`/result-detail/mbti/${r._id}`)}
-                    className="text-blue-600 text-sm font-bold hover:underline"
-                  >
-                    Chi tiết →
-                  </button>
-                </div>
-              ))}
-
             {activeTab === "academic" && (
               <div className="col-span-full bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                 {/* Desktop Table View */}

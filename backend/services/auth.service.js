@@ -44,7 +44,7 @@ const loginUser = async (data) => {
 
   // check user tồn tại
   const user = await User.findOne({ email });
-  if (!user) {
+  if (!user || user.isDeleted) {
     throw new Error("User not found");
   }
 

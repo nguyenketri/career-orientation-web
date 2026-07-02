@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema(
       enum: ["ACTIVE", "INACTIVE"],
       default: "ACTIVE",
     },
+    // Soft delete (giống University/Major) — admin "xóa" tài khoản chỉ ẩn đi,
+    // không xóa vĩnh viễn dữ liệu để có thể khôi phục khi cần.
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
     careerPath: {
       hollandType: {
         type: String,

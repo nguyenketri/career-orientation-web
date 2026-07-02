@@ -19,7 +19,7 @@ const authMiddleware = async (req, res, next) => {
 
     // Bảo mật nâng cao: Kiểm tra xem user còn tồn tại trong DB không
     const user = await User.findById(decoded.id);
-    if (!user) {
+    if (!user || user.isDeleted) {
       return res.status(401).json({
         status: "error",
         message: "Unauthorized - User no longer exists",
@@ -60,7 +60,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
 
-    if (!user) {
+    if (!user || user.isDeleted) {
       req.user = null;
       return next();
     }

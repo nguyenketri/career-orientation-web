@@ -17,8 +17,11 @@ router.get("/monthly-revenue", adminController.getMonthlyRevenue);
 
 // Quản lý người dùng
 router.get("/users", adminController.getAllUsers);
+router.post("/users", adminController.createUser);
 router.put("/users/role", adminController.updateUserRole);
+router.put("/users/:userId", adminController.updateUser);
 router.patch("/users/:userId/status", adminController.toggleUserStatus);
+router.delete("/users/:userId", adminController.deleteUser);
 
 // Quản lý thanh toán
 router.get("/payments", adminController.getAllPayments);

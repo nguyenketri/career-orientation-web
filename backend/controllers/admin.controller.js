@@ -1,7 +1,9 @@
+const bcrypt = require("bcrypt");
 const User = require("../models/user.model");
 const Payment = require("../models/payment.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
+const Major = require("../models/major.model");
 const { createNotification } = require("../services/notification.service");
 
 // Phải khớp với PLAN_DURATIONS ở payment.controller.js
@@ -11,10 +13,21 @@ const PLAN_DURATIONS = {
 };
 const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
-// Lấy thống kê tổng quan cho Admin
+// % tăng trưởng so với kỳ trước — null khi không có dữ liệu kỳ trước để so sánh
+// (tránh chia cho 0 / hiển thị số ảo)
+const growthPct = (current, previous) => {
+  if (!previous) return current > 0 ? 100 : null;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+};
+
+// Lấy thống kê tổng quan cho Admin — số liệu thật + % tăng trưởng theo tháng
 exports.getAdminStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
+    const now = new Date();
+    const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const totalUsers = await User.countDocuments({ isDeleted: { $ne: true } });
     const totalPayments = await Payment.countDocuments();
     const successfulPayments = await Payment.countDocuments({
       status: "SUCCESS",
@@ -28,16 +41,74 @@ exports.getAdminStats = async (req, res) => {
     const totalHollandTests = await HollandResult.countDocuments();
     const totalMbtiTests = await MbtiResult.countDocuments();
 
-    // Note: recentUsers is now handled by paginated getAllUsers,
-    // but we keep a small set here for the initial dashboard load if needed.
-    const recentUsers = await User.find()
-      .select("name email subscriptionPlan createdAt")
-      .sort({ createdAt: -1 })
-      .limit(5);
-
     const totalSubscriptions = await User.countDocuments({
+      isDeleted: { $ne: true },
       subscriptionPlan: { $ne: "FREE" },
     });
+
+    // --- Người dùng mới: tháng này vs tháng trước ---
+    const newUsersThisMonth = await User.countDocuments({
+      isDeleted: { $ne: true },
+      createdAt: { $gte: startThisMonth },
+    });
+    const newUsersLastMonth = await User.countDocuments({
+      isDeleted: { $ne: true },
+      createdAt: { $gte: startLastMonth, $lt: startThisMonth },
+    });
+
+    // --- Doanh thu: tháng này vs tháng trước ---
+    const [revThisMonthAgg] = await Payment.aggregate([
+      { $match: { status: "SUCCESS", createdAt: { $gte: startThisMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const [revLastMonthAgg] = await Payment.aggregate([
+      {
+        $match: {
+          status: "SUCCESS",
+          createdAt: { $gte: startLastMonth, $lt: startThisMonth },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const revenueThisMonth = revThisMonthAgg?.total || 0;
+    const revenueLastMonth = revLastMonthAgg?.total || 0;
+
+    // --- Test MBTI hoàn thành: tháng này vs tháng trước ---
+    const mbtiThisMonth = await MbtiResult.countDocuments({
+      createdAt: { $gte: startThisMonth },
+    });
+    const mbtiLastMonth = await MbtiResult.countDocuments({
+      createdAt: { $gte: startLastMonth, $lt: startThisMonth },
+    });
+
+    // --- Ngành học được gợi ý nhiều nhất (từ kết quả Holland + MBTI thật) ---
+    const [hollandTop, mbtiTop] = await Promise.all([
+      HollandResult.aggregate([
+        { $unwind: "$recommendedMajors" },
+        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
+      ]),
+      MbtiResult.aggregate([
+        { $unwind: "$recommendedMajors" },
+        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const combinedCounts = {};
+    [...hollandTop, ...mbtiTop].forEach((x) => {
+      const key = x._id.toString();
+      combinedCounts[key] = (combinedCounts[key] || 0) + x.count;
+    });
+    const rankedMajorIds = Object.entries(combinedCounts).sort(
+      (a, b) => b[1] - a[1],
+    );
+    const topMajors = await Major.find({
+      _id: { $in: rankedMajorIds.slice(0, 3).map(([id]) => id) },
+    })
+      .select("name")
+      .lean();
+    const topMajorsRanked = rankedMajorIds.slice(0, 3).map(([id, count]) => ({
+      name: topMajors.find((m) => m._id.toString() === id)?.name || "—",
+      count,
+    }));
 
     res.status(200).json({
       status: "success",
@@ -48,7 +119,17 @@ exports.getAdminStats = async (req, res) => {
         totalRevenue: revenue.length > 0 ? revenue[0].total : 0,
         totalTests: totalHollandTests + totalMbtiTests,
         totalSubscriptions,
-        recentUsers,
+        newUsersThisMonth,
+        newUsersLastMonth,
+        newUsersGrowthPct: growthPct(newUsersThisMonth, newUsersLastMonth),
+        revenueThisMonth,
+        revenueLastMonth,
+        revenueGrowthPct: growthPct(revenueThisMonth, revenueLastMonth),
+        mbtiThisMonth,
+        mbtiLastMonth,
+        mbtiTotal: totalMbtiTests,
+        mbtiGrowthPct: growthPct(mbtiThisMonth, mbtiLastMonth),
+        topMajors: topMajorsRanked,
       },
     });
   } catch (error) {
@@ -59,15 +140,25 @@ exports.getAdminStats = async (req, res) => {
   }
 };
 
-// Lấy danh sách tất cả người dùng (có phân trang)
+// Escape ký tự đặc biệt regex để tránh lỗi/khai thác khi search bằng chuỗi user nhập
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Lấy danh sách tất cả người dùng (có phân trang, tìm kiếm theo tên/email)
 exports.getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
 
-    const total = await User.countDocuments();
-    const users = await User.find()
+    const filter = { isDeleted: { $ne: true } };
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+    }
+
+    const total = await User.countDocuments(filter);
+    const users = await User.find(filter)
       .select("-password")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -167,6 +258,161 @@ exports.toggleUserStatus = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Error toggling user status: " + error.message,
+    });
+  }
+};
+
+// Tạo tài khoản mới trực tiếp bởi Admin
+exports.createUser = async (req, res) => {
+  try {
+    const { name, email, password, role, subscriptionPlan } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng nhập đầy đủ tên, email và mật khẩu.",
+      });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({
+        status: "error",
+        message: "Mật khẩu phải có ít nhất 6 ký tự.",
+      });
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email đã được sử dụng.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: ["user", "admin"].includes(role) ? role : "user",
+      subscriptionPlan: ["FREE", "PAID", "PREMIUM"].includes(subscriptionPlan)
+        ? subscriptionPlan
+        : "FREE",
+    });
+
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.status(201).json({
+      status: "success",
+      message: "Tạo tài khoản thành công",
+      data: userData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error creating user: " + error.message,
+    });
+  }
+};
+
+// Cập nhật thông tin tài khoản (tên, vai trò, gói dịch vụ) bởi Admin
+exports.updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, role, subscriptionPlan, subscriptionDays } = req.body;
+
+    const user = await User.findOne({ _id: userId, isDeleted: { $ne: true } });
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    if (name) user.name = name;
+    if (role && ["user", "admin"].includes(role)) user.role = role;
+
+    const planChanged =
+      subscriptionPlan &&
+      ["FREE", "PAID", "PREMIUM"].includes(subscriptionPlan) &&
+      subscriptionPlan !== user.subscriptionPlan;
+
+    if (planChanged) {
+      user.subscriptionPlan = subscriptionPlan;
+      if (subscriptionPlan === "FREE") {
+        user.subscriptionExpiry = null;
+      } else {
+        const days = Number(subscriptionDays) > 0 ? Number(subscriptionDays) : 30;
+        user.subscriptionExpiry = new Date(
+          Date.now() + days * 24 * 60 * 60 * 1000,
+        );
+      }
+    }
+
+    await user.save();
+
+    if (planChanged) {
+      await createNotification({
+        userId: user._id,
+        type: "PAYMENT_SUCCESS",
+        title: "Gói dịch vụ đã được cập nhật",
+        message:
+          subscriptionPlan === "FREE"
+            ? "Quản trị viên đã chuyển tài khoản của bạn về gói CƠ BẢN (FREE)."
+            : `Quản trị viên đã kích hoạt gói ${PLAN_LABEL[subscriptionPlan] || subscriptionPlan} cho tài khoản của bạn.`,
+        link: "/pricing",
+      });
+    }
+
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.status(200).json({
+      status: "success",
+      message: "Cập nhật tài khoản thành công",
+      data: userData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error updating user: " + error.message,
+    });
+  }
+};
+
+// Xóa (mềm) tài khoản — ẩn khỏi danh sách quản lý, có thể khôi phục sau này,
+// không xóa vĩnh viễn dữ liệu liên quan (lịch sử test, thanh toán...).
+exports.deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (String(req.user.id) === String(userId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Bạn không thể tự xóa tài khoản của chính mình.",
+      });
+    }
+
+    const user = await User.findOne({ _id: userId, isDeleted: { $ne: true } });
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    await user.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Đã xóa tài khoản",
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error deleting user: " + error.message,
     });
   }
 };

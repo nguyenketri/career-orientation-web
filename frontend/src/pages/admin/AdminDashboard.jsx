@@ -1,536 +1,856 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../../api/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAdminReport } from "../../context/AdminReportContext";
+
+const MONTHS = [
+  "T1", "T2", "T3", "T4", "T5", "T6",
+  "T7", "T8", "T9", "T10", "T11", "T12",
+];
+
+const PLAN_BADGE = {
+  FREE: "bg-slate-100 text-slate-600",
+  PAID: "bg-blue-100 text-blue-600",
+  PREMIUM: "bg-orange-100 text-orange-600",
+};
+
+const TOP_MAJOR_COLORS = ["bg-orange-500", "bg-teal-400", "bg-slate-400"];
+
+const fmtVND = (n) => `${Number(n || 0).toLocaleString("vi-VN")} VND`;
+const fmtDate = (d) =>
+  d && !isNaN(new Date(d).getTime())
+    ? new Date(d).toLocaleDateString("vi-VN")
+    : "—";
+const fmtPct = (n) =>
+  n === null || n === undefined ? "Mới" : `${n > 0 ? "+" : ""}${n}%`;
+
+// Escape 1 ô CSV: bọc trong dấu ngoặc kép, nhân đôi dấu " bên trong
+const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+const emptyUserForm = {
+  name: "",
+  email: "",
+  password: "",
+  role: "user",
+  subscriptionPlan: "FREE",
+  subscriptionDays: 30,
+};
 
 const AdminDashboard = () => {
+  const openReport = useAdminReport();
+
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [recentUsers, setRecentUsers] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportData, setReportData] = useState(null);
-  const [reportLoading, setReportLoading] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(true);
+
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [monthlyRevenueData, setMonthlyRevenueData] = useState([]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await axiosClient.get("/admin/stats");
-        setStats(res.data.data);
-      } catch (err) {
-        console.error("Error fetching stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const fetchMonthlyRevenue = async () => {
-      try {
-        const res = await axiosClient.get("/admin/monthly-revenue");
-        setMonthlyRevenueData(res.data.data);
-      } catch (err) {
-        console.error("Error fetching monthly revenue:", err);
-      }
-    };
-    fetchMonthlyRevenue();
-  }, []);
+  const [toast, setToast] = useState("");
+  const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    const fetchRecentUsers = async () => {
-      try {
-        const res = await axiosClient.get(
-          `/admin/users?page=${currentPage}&limit=5`,
-        );
-        setRecentUsers(res.data.data.users);
-        setTotalPages(res.data.data.pages);
-      } catch (err) {
-        console.error("Error fetching recent users:", err);
-      }
-    };
-    fetchRecentUsers();
-  }, [currentPage]);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyUserForm);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
 
-  const handleGenerateReport = async () => {
-    console.log("[Frontend] Generating report...");
-    setReportLoading(true);
-    setIsReportModalOpen(true);
+  const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState(emptyUserForm);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const showToast = (m) => {
+    setToast(m);
+    setTimeout(() => setToast(""), 2600);
+  };
+
+  // Hàm THUẦN dùng lại được cả trong effect lẫn trong các handler (create/edit/delete...)
+  const fetchStats = async () => {
+    setLoadingStats(true);
     try {
-      const res = await axiosClient.get("/admin/report");
-      console.log("[Frontend] Report data received:", res.data);
-      setReportData(res.data.data);
+      const res = await axiosClient.get("/admin/stats");
+      setStats(res.data.data);
     } catch (err) {
-      console.error("[Frontend] Error fetching report:", err);
+      console.error("Error fetching stats:", err);
     } finally {
-      setReportLoading(false);
+      setLoadingStats(false);
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-full text-slate-600">
-        Đang tải...
-      </div>
-    );
+  const fetchMonthlyRevenue = async () => {
+    try {
+      const res = await axiosClient.get("/admin/monthly-revenue");
+      setMonthlyRevenueData(res.data.data);
+    } catch (err) {
+      console.error("Error fetching monthly revenue:", err);
+    }
+  };
+
+  const fetchUsers = async (page, search) => {
+    setLoadingUsers(true);
+    try {
+      const res = await axiosClient.get("/admin/users", {
+        params: { page, limit: 10, search: search || undefined },
+      });
+      setUsers(res.data.data.users);
+      setTotalPages(res.data.data.pages || 1);
+      setTotalUsersCount(res.data.data.total || 0);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      await Promise.all([fetchStats(), fetchMonthlyRevenue()]);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await fetchUsers(currentPage, searchTerm);
+    })();
+  }, [currentPage, searchTerm]);
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const refreshAll = () => {
+    fetchStats();
+    fetchUsers(currentPage, searchTerm);
+  };
+
+  // ===== Xuất Excel (CSV) — toàn bộ user khớp bộ lọc hiện tại =====
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await axiosClient.get("/admin/users", {
+        params: { page: 1, limit: 10000, search: searchTerm || undefined },
+      });
+      const all = res.data.data.users || [];
+      const header = [
+        "Tên người dùng",
+        "Email",
+        "Số điện thoại",
+        "Ngày đăng ký",
+        "Vai trò",
+        "Gói dịch vụ",
+        "Trạng thái",
+      ];
+      const rows = all.map((u) => [
+        u.name,
+        u.email,
+        u.phone || "",
+        fmtDate(u.createdAt),
+        u.role,
+        u.subscriptionPlan || "FREE",
+        u.status === "ACTIVE" ? "Hoạt động" : "Đã khóa",
+      ]);
+      const csv =
+        "﻿" +
+        [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `caZup-danh-sach-tai-khoan-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      showToast("Không thể xuất dữ liệu, vui lòng thử lại.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ===== Tạo tài khoản mới =====
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    setCreateError("");
+    setCreateSubmitting(true);
+    try {
+      await axiosClient.post("/admin/users", createForm);
+      setCreateModalOpen(false);
+      setCreateForm(emptyUserForm);
+      showToast("Đã tạo tài khoản mới.");
+      refreshAll();
+    } catch (err) {
+      setCreateError(
+        err.response?.data?.message || "Không thể tạo tài khoản.",
+      );
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  // ===== Sửa tài khoản =====
+  const openEdit = (user) => {
+    setEditUser(user);
+    setEditForm({
+      name: user.name,
+      role: user.role,
+      subscriptionPlan: user.subscriptionPlan || "FREE",
+      subscriptionDays: 30,
+    });
+    setEditError("");
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditError("");
+    setEditSubmitting(true);
+    try {
+      await axiosClient.put(`/admin/users/${editUser._id}`, editForm);
+      setEditUser(null);
+      showToast("Đã cập nhật tài khoản.");
+      refreshAll();
+    } catch (err) {
+      setEditError(
+        err.response?.data?.message || "Không thể cập nhật tài khoản.",
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  // ===== Khóa / Mở khóa =====
+  const handleToggleStatus = async (user) => {
+    try {
+      await axiosClient.patch(`/admin/users/${user._id}/status`);
+      showToast(
+        user.status === "ACTIVE"
+          ? "Đã khóa tài khoản."
+          : "Đã mở khóa tài khoản.",
+      );
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      showToast("Không thể cập nhật trạng thái.");
+    }
+  };
+
+  // ===== Xóa (mềm) =====
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+    setDeleteSubmitting(true);
+    try {
+      await axiosClient.delete(`/admin/users/${deletingUser._id}`);
+      setDeletingUser(null);
+      showToast("Đã xóa tài khoản.");
+      refreshAll();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Không thể xóa tài khoản.");
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
 
   const statCards = [
     {
       name: "Người dùng mới",
-      value: stats?.totalUsers || 0,
-      trend: "Thực tế",
-      icon: "👥",
+      value: stats?.newUsersThisMonth ?? 0,
+      trend: fmtPct(stats?.newUsersGrowthPct),
+      up: (stats?.newUsersGrowthPct ?? 0) >= 0,
+      icon: "👤",
       color: "bg-blue-100",
-      textColor: "text-blue-600",
     },
     {
-      name: "Doanh thu tổng",
-      value: `${(stats?.totalRevenue || 0).toLocaleString()}đ`,
-      trend: "Thực tế",
-      icon: "📊",
+      name: "Doanh thu tháng",
+      value: fmtVND(stats?.revenueThisMonth),
+      trend: fmtPct(stats?.revenueGrowthPct),
+      up: (stats?.revenueGrowthPct ?? 0) >= 0,
+      icon: "💰",
       color: "bg-orange-100",
-      textColor: "text-orange-600",
     },
     {
-      name: "Số người đăng ký",
-      value: stats?.totalSubscriptions || 0,
-      trend: "Thực tế",
-      icon: "💼",
+      name: "Ngành hot nhất",
+      value: stats?.topMajors?.[0]?.name || "—",
+      trend: "Ổn định",
+      neutral: true,
+      icon: "🎓",
+      color: "bg-blue-100",
+    },
+    {
+      name: "Test MBTI hoàn thành",
+      value: stats?.mbtiTotal ?? 0,
+      trend: fmtPct(stats?.mbtiGrowthPct),
+      up: (stats?.mbtiGrowthPct ?? 0) >= 0,
+      icon: "🧠",
       color: "bg-teal-100",
-      textColor: "text-teal-600",
-    },
-    {
-      name: "Test được làm",
-      value: stats?.totalTests || 0,
-      trend: "Thực tế",
-      icon: "📝",
-      color: "bg-purple-100",
-      textColor: "text-purple-600",
     },
   ];
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-3xl font-black text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Xem tổng quan hệ thống quản lý
-        </p>
-      </motion.div>
+  const maxMajorCount = Math.max(
+    ...(stats?.topMajors || []).map((m) => m.count),
+    1,
+  );
 
-      {/* Stats Grid */}
+  const chartMonths = MONTHS.filter(
+    (m) => selectedMonth === "All" || m === selectedMonth,
+  );
+  const maxRevenue = Math.max(...monthlyRevenueData.map((m) => m.amount), 1);
+
+  return (
+    <div className="space-y-6">
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      {/* Stat Cards */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
       >
         {statCards.map((card) => (
           <div
             key={card.name}
-            className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+            className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`${card.color} p-3 rounded-lg text-xl`}>
+              <div className={`${card.color} p-2.5 rounded-xl text-lg`}>
                 {card.icon}
               </div>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <span
+                className={`text-xs font-bold px-2 py-1 rounded-full ${
+                  card.neutral
+                    ? "bg-slate-100 text-slate-500"
+                    : card.up
+                      ? "bg-green-50 text-green-600"
+                      : "bg-red-50 text-red-500"
+                }`}
+              >
                 {card.trend}
               </span>
             </div>
-            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mb-1">
+            <p className="text-slate-500 text-xs font-medium mb-1">
               {card.name}
             </p>
-            <h3 className="text-2xl font-black text-slate-900">{card.value}</h3>
+            <h3 className="text-xl font-black text-slate-900 truncate">
+              {loadingStats ? "…" : card.value}
+            </h3>
           </div>
         ))}
       </motion.div>
 
-      {/* Charts & Activities */}
+      {/* Chart + Top Majors */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.05 }}
         className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
-        {/* Revenue Chart */}
+        {/* Revenue chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="font-bold text-slate-900">Doanh thu theo tháng</h3>
-              <p className="text-2xl font-black text-orange-600 mt-1">
-                {selectedMonth === "All"
-                  ? `${monthlyRevenueData.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}đ`
-                  : `${(monthlyRevenueData.find((m) => m.month === selectedMonth)?.amount || 0).toLocaleString()}đ`}
-              </p>
-            </div>
+            <h3 className="font-bold text-slate-900">Xu hướng Doanh thu</h3>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-1 outline-none focus:ring-2 focus:ring-orange-500 transition"
+              className="text-xs font-bold bg-slate-100 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-200 transition"
             >
-              <option value="All">Tất cả các tháng</option>
-              {[
-                "T1",
-                "T2",
-                "T3",
-                "T4",
-                "T5",
-                "T6",
-                "T7",
-                "T8",
-                "T9",
-                "T10",
-                "T11",
-                "T12",
-              ].map((m) => (
+              <option value="All">Năm nay</option>
+              {MONTHS.map((m) => (
                 <option key={m} value={m}>
-                  {m}
+                  {m === "T" + (new Date().getMonth() + 1) ? "Tháng này" : m}
                 </option>
               ))}
             </select>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-end justify-between h-40 gap-2">
-              {[
-                "T1",
-                "T2",
-                "T3",
-                "T4",
-                "T5",
-                "T6",
-                "T7",
-                "T8",
-                "T9",
-                "T10",
-                "T11",
-                "T12",
-              ]
-                .filter((m) => selectedMonth === "All" || m === selectedMonth)
-                .map((month) => {
-                  const monthData = monthlyRevenueData.find(
-                    (m) => m.month === month,
-                  );
-                  const amount = monthData ? monthData.amount : 0;
-                  const maxAmount = Math.max(
-                    ...monthlyRevenueData.map((m) => m.amount),
-                    1,
-                  );
-                  const heightPercentage = (amount / maxAmount) * 100;
-
-                  return (
+          <div className="flex items-end justify-between h-64 gap-3">
+            {chartMonths.map((month) => {
+              const monthData = monthlyRevenueData.find((m) => m.month === month);
+              const amount = monthData ? monthData.amount : 0;
+              const heightPct = Math.max((amount / maxRevenue) * 100, 3);
+              const isCurrentMonth = month === "T" + (new Date().getMonth() + 1);
+              return (
+                <div key={month} className="flex-1 flex flex-col items-center gap-2 h-full">
+                  <div className="w-full flex-1 flex items-end justify-center">
                     <div
-                      key={month}
-                      className="flex-1 flex flex-col items-center gap-2"
-                    >
-                      <div className="w-full h-32 flex items-end justify-center">
-                        <div
-                          className={`w-full rounded-t-lg transition-all duration-500 ${
-                            amount > 0 ? "bg-slate-900" : "bg-slate-200"
-                          }`}
-                          style={{
-                            height: `${heightPercentage}%`,
-                            minHeight: "4px",
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-500">{month}</span>
-                    </div>
-                  );
-                })}
-            </div>
+                      title={fmtVND(amount)}
+                      className={`w-full max-w-[42px] rounded-t-lg transition-all duration-500 ${
+                        isCurrentMonth ? "bg-[#0f172a]" : "bg-blue-100"
+                      }`}
+                      style={{ height: `${heightPct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-400 font-medium">{month}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-[#0f172a] text-white p-6 rounded-2xl shadow-lg">
-          <h3 className="font-bold text-lg mb-4">Tính năng nhanh</h3>
-          <div className="space-y-3">
+        {/* Top Majors */}
+        <div className="bg-[#0f172a] text-white p-6 rounded-2xl shadow-lg flex flex-col">
+          <h3 className="font-bold text-lg mb-5">Top Ngành Học</h3>
+          <div className="space-y-5 flex-1">
+            {(stats?.topMajors || []).map((m, i) => (
+              <div key={m.name} className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold shrink-0">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold truncate mb-1.5">{m.name}</p>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${TOP_MAJOR_COLORS[i] || "bg-slate-400"}`}
+                      style={{ width: `${Math.max((m.count / maxMajorCount) * 100, 10)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(!stats?.topMajors || stats.topMajors.length === 0) && (
+              <p className="text-sm text-white/40">Chưa có dữ liệu gợi ý ngành.</p>
+            )}
+          </div>
+          <button
+            onClick={openReport}
+            className="mt-5 flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-orange-300 transition"
+          >
+            Xem tất cả báo cáo
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Quản lý Tài khoản */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6">
+          <div>
+            <h3 className="text-lg font-black text-slate-900">Quản lý Tài khoản</h3>
+            <p className="text-sm text-slate-500">
+              Danh sách {totalUsersCount.toLocaleString("vi-VN")} người dùng đang hoạt động
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Tìm theo tên, email..."
+              className="hidden md:block px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition w-56"
+            />
             <button
-              onClick={handleGenerateReport}
-              className="w-full bg-orange-500 py-3 rounded-xl font-bold text-sm hover:bg-orange-600 transition"
+              onClick={handleExportExcel}
+              disabled={exporting}
+              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition disabled:opacity-50"
             >
-              Generate Report
+              {exporting ? "Đang xuất..." : "Xuất Excel"}
+            </button>
+            <button
+              onClick={() => {
+                setCreateForm(emptyUserForm);
+                setCreateError("");
+                setCreateModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition"
+            >
+              <span>+</span> Thêm mới
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left">
+            <thead>
+              <tr className="bg-slate-50 border-y border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                <th className="px-6 py-3">Tên người dùng</th>
+                <th className="px-6 py-3">Email / Số điện thoại</th>
+                <th className="px-6 py-3">Ngày đăng ký</th>
+                <th className="px-6 py-3">Gói dịch vụ</th>
+                <th className="px-6 py-3 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loadingUsers ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                    Không tìm thấy người dùng nào.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user._id} className="hover:bg-slate-50/60 transition">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                          {user.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            user.name?.charAt(0)?.toUpperCase() || "U"
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 truncate">{user.name}</p>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              user.status === "ACTIVE"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            {user.status === "ACTIVE" ? "Hoạt động" : "Đã khóa"}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-slate-700">{user.email}</p>
+                      <p className="text-xs text-slate-400">
+                        {user.phone || "Chưa cập nhật SĐT"}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {fmtDate(user.createdAt)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          PLAN_BADGE[user.subscriptionPlan] || PLAN_BADGE.FREE
+                        }`}
+                      >
+                        {user.subscriptionPlan || "FREE"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => openEdit(user)}
+                          title="Sửa tài khoản"
+                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          title={user.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
+                          className={`p-2 rounded-lg transition ${
+                            user.status === "ACTIVE"
+                              ? "text-amber-600 hover:bg-amber-50"
+                              : "text-green-600 hover:bg-green-50"
+                          }`}
+                        >
+                          {user.status === "ACTIVE" ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM8 11V7a4 4 0 118 0" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setDeletingUser(user)}
+                          title="Xóa tài khoản"
+                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-slate-100">
+          <p className="text-xs text-slate-500">
+            Hiển thị {users.length > 0 ? (currentPage - 1) * 10 + 1 : 0} -{" "}
+            {(currentPage - 1) * 10 + users.length} của{" "}
+            {totalUsersCount.toLocaleString("vi-VN")}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition"
+            >
+              ‹
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`w-8 h-8 rounded-lg text-sm font-bold transition ${
+                  currentPage === p
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition"
+            >
+              ›
             </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Recent Users */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-bold text-slate-900">
-            Người dùng mới nhất
-          </h3>
-        </div>
-        <div className="space-y-3">
-          {recentUsers.map((user, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-lg transition"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
-                  {user.name?.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900 truncate">
-                    {user.name}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right shrink-0 ml-4">
-                <span
-                  className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    user.subscriptionPlan === "PREMIUM"
-                      ? "bg-purple-100 text-purple-600"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {user.subscriptionPlan}
-                </span>
-                <p className="text-xs text-slate-400 mt-1">
-                  {user.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString("vi-VN")
-                    : ""}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Trước
-          </button>
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
-                  currentPage === i + 1
-                    ? "bg-orange-500 text-white"
-                    : "hover:bg-slate-100 text-slate-600"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Sau
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Report Modal */}
+      {/* ===== Modal: Thêm mới ===== */}
       <AnimatePresence>
-        {isReportModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:bg-white print:backdrop-blur-none print:p-0 print:static print:block">
+        {createModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.form
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onSubmit={handleCreateSubmit}
+              className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-7 space-y-4"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-black text-slate-900">Thêm tài khoản mới</h2>
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {createError && (
+                <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-2">
+                  {createError}
+                </p>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-500">Tên người dùng</label>
+                <input
+                  required
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500">Email</label>
+                <input
+                  required
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500">Mật khẩu tạm thời</label>
+                <input
+                  required
+                  type="text"
+                  minLength={6}
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-500">Vai trò</label>
+                  <select
+                    value={createForm.role}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500">Gói dịch vụ</label>
+                  <select
+                    value={createForm.subscriptionPlan}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  >
+                    <option value="FREE">FREE</option>
+                    <option value="PAID">PAID</option>
+                    <option value="PREMIUM">PREMIUM</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={createSubmitting}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition disabled:opacity-50"
+              >
+                {createSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
+              </button>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Modal: Sửa tài khoản ===== */}
+      <AnimatePresence>
+        {editUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.form
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onSubmit={handleEditSubmit}
+              className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-7 space-y-4"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-black text-slate-900">Sửa tài khoản</h2>
+                <button
+                  type="button"
+                  onClick={() => setEditUser(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 -mt-2">{editUser.email}</p>
+
+              {editError && (
+                <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-2">
+                  {editError}
+                </p>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-500">Tên người dùng</label>
+                <input
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-500">Vai trò</label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500">Gói dịch vụ</label>
+                  <select
+                    value={editForm.subscriptionPlan}
+                    onChange={(e) => setEditForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  >
+                    <option value="FREE">FREE</option>
+                    <option value="PAID">PAID</option>
+                    <option value="PREMIUM">PREMIUM</option>
+                  </select>
+                </div>
+              </div>
+              {editForm.subscriptionPlan !== "FREE" && (
+                <div>
+                  <label className="text-xs font-bold text-slate-500">
+                    Số ngày hiệu lực (kể từ hôm nay)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editForm.subscriptionDays}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, subscriptionDays: e.target.value }))
+                    }
+                    className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={editSubmitting}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition disabled:opacity-50"
+              >
+                {editSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+              </button>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Confirm: Xóa tài khoản ===== */}
+      <AnimatePresence>
+        {deletingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl print:shadow-none print:max-h-none print:overflow-visible print:rounded-none"
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 space-y-4 text-center"
             >
-              <div className="p-8 print:p-0">
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900">
-                      Báo cáo hệ thống chi tiết
-                    </h2>
-                    <p className="text-slate-500 text-sm">
-                      Dữ liệu tổng hợp tính đến{" "}
-                      {new Date().toLocaleDateString("vi-VN")}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {reportLoading ? (
-                  <div className="py-20 text-center text-slate-500">
-                    Đang tạo báo cáo...
-                  </div>
-                ) : reportData ? (
-                  <div className="space-y-8">
-                    {/* Summary Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-blue-50 p-6 rounded-2xl">
-                        <p className="text-blue-600 text-xs font-bold uppercase mb-1">
-                          Tổng người dùng
-                        </p>
-                        <h4 className="text-2xl font-black text-blue-900">
-                          {reportData.summary.totalUsers}
-                        </h4>
-                      </div>
-                      <div className="bg-orange-50 p-6 rounded-2xl">
-                        <p className="text-orange-600 text-xs font-bold uppercase mb-1">
-                          Tổng doanh thu
-                        </p>
-                        <h4 className="text-2xl font-black text-orange-900">
-                          {reportData.summary.totalRevenue.toLocaleString()}đ
-                        </h4>
-                      </div>
-                      <div className="bg-purple-50 p-6 rounded-2xl">
-                        <p className="text-purple-600 text-xs font-bold uppercase mb-1">
-                          Tổng lượt test
-                        </p>
-                        <h4 className="text-2xl font-black text-purple-900">
-                          {reportData.summary.totalTests}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {/* Plan Distribution */}
-                      <div className="bg-slate-50 p-6 rounded-2xl">
-                        <h3 className="font-bold text-slate-900 mb-4">
-                          Phân bổ gói cước
-                        </h3>
-                        <div className="space-y-3">
-                          {reportData.planDistribution.map((item) => (
-                            <div
-                              key={item._id}
-                              className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm"
-                            >
-                              <span className="font-medium text-slate-700">
-                                {item._id || "FREE"}
-                              </span>
-                              <span className="font-bold text-slate-900">
-                                {item.count}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Test Distribution */}
-                      <div className="bg-slate-50 p-6 rounded-2xl">
-                        <h3 className="font-bold text-slate-900 mb-4">
-                          Phân bổ loại Test
-                        </h3>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
-                            <span className="font-medium text-slate-700">
-                              Holland Test
-                            </span>
-                            <span className="font-bold text-slate-900">
-                              {reportData.testDistribution.holland}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
-                            <span className="font-medium text-slate-700">
-                              MBTI Test
-                            </span>
-                            <span className="font-bold text-slate-900">
-                              {reportData.testDistribution.mbti}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Revenue Trend */}
-                    <div className="bg-slate-50 p-6 rounded-2xl">
-                      <h3 className="font-bold text-slate-900 mb-4">
-                        Xu hướng doanh thu (6 tháng)
-                      </h3>
-                      <div className="space-y-2">
-                        {reportData.revenueTrend.map((item) => (
-                          <div
-                            key={item._id}
-                            className="flex items-center gap-4"
-                          >
-                            <span className="text-xs font-medium text-slate-500 w-16">
-                              {item._id}
-                            </span>
-                            <div className="flex-1 h-4 bg-slate-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-orange-500"
-                                style={{
-                                  width: `${
-                                    reportData.revenueTrend.length > 0
-                                      ? (item.amount /
-                                          Math.max(
-                                            ...reportData.revenueTrend.map(
-                                              (r) => r.amount,
-                                            ),
-                                            1,
-                                          )) *
-                                        100
-                                      : 0
-                                  }%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-xs font-bold text-slate-900">
-                              {item.amount.toLocaleString()}đ
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-4 print:hidden">
-                      <button
-                        onClick={() => window.print()}
-                        className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition"
-                      >
-                        In báo cáo
-                      </button>
-                      <button
-                        onClick={() => setIsReportModalOpen(false)}
-                        className="px-6 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300 transition"
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-20 text-center space-y-4">
-                    <p className="text-red-500 font-medium">
-                      Không thể tải dữ liệu báo cáo.
-                    </p>
-                    <button
-                      onClick={handleGenerateReport}
-                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm hover:bg-slate-200 transition"
-                    >
-                      Thử lại
-                    </button>
-                  </div>
-                )}
+              <div className="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center text-2xl">
+                🗑️
+              </div>
+              <h2 className="text-lg font-black text-slate-900">
+                Xóa tài khoản "{deletingUser.name}"?
+              </h2>
+              <p className="text-sm text-slate-500">
+                Tài khoản sẽ bị ẩn khỏi hệ thống và không thể đăng nhập. Dữ liệu vẫn được lưu trữ và có thể khôi phục bởi quản trị viên hệ thống.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setDeletingUser(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deleteSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition disabled:opacity-50"
+                >
+                  {deleteSubmitting ? "Đang xóa..." : "Xóa tài khoản"}
+                </button>
               </div>
             </motion.div>
           </div>

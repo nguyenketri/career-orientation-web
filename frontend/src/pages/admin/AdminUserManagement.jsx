@@ -1,26 +1,29 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { getAuthHeader } from "../../utils/auth";
 import { motion } from "framer-motion";
 
 const AdminUserManagement = () => {
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsersCount, setTotalUsersCount] = useState(0);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-  const fetchUsers = useCallback(async (page = 1) => {
+  // Tìm kiếm thật trên toàn bộ dữ liệu (query lên backend), không chỉ lọc
+  // trong 10 kết quả của trang hiện tại.
+  const fetchUsers = async (page, search) => {
+    setLoading(true);
     try {
-      const res = await axios.get(
-        `${API_URL}/admin/users?page=${page}&limit=10`,
-        {
-          headers: getAuthHeader(),
-        },
-      );
+      const res = await axios.get(`${API_URL}/admin/users`, {
+        headers: getAuthHeader(),
+        params: { page, limit: 10, search: search || undefined },
+      });
       setUsers(res.data.data.users);
       setTotalPages(res.data.data.pages);
       setTotalUsersCount(res.data.data.total);
@@ -29,14 +32,18 @@ const AdminUserManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    const loadUsers = async () => {
-      await fetchUsers(currentPage);
-    };
-    loadUsers();
-  }, [currentPage, fetchUsers]);
+    (async () => {
+      await fetchUsers(currentPage, searchTerm);
+    })();
+  }, [currentPage, searchTerm]);
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   const handleUpdateRole = async (userId, currentRole) => {
     const newRole = currentRole === "admin" ? "user" : "admin";
@@ -53,7 +60,7 @@ const AdminUserManagement = () => {
         { userId, role: newRole },
         { headers: getAuthHeader() },
       );
-      fetchUsers(currentPage);
+      fetchUsers(currentPage, searchTerm);
     } catch {
       alert("Lỗi khi cập nhật vai trò");
     }
@@ -66,7 +73,7 @@ const AdminUserManagement = () => {
         {},
         { headers: getAuthHeader() },
       );
-      fetchUsers(currentPage);
+      fetchUsers(currentPage, searchTerm);
     } catch {
       alert("Lỗi khi cập nhật trạng thái");
     }
@@ -79,11 +86,6 @@ const AdminUserManagement = () => {
       </div>
     );
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
 
   return (
     <motion.div
@@ -103,17 +105,17 @@ const AdminUserManagement = () => {
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
         <input
           type="text"
-          placeholder="🔍 Tìm kiếm user (trên trang hiện tại)..."
+          placeholder="🔍 Tìm kiếm theo tên, email..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {/* Users List - Mobile (Cards) */}
       <div className="grid grid-cols-1 gap-4 lg:hidden">
-        {filteredUsers.length > 0 ? (
-          filteredUsers.map((user) => (
+        {users.length > 0 ? (
+          users.map((user) => (
             <div
               key={user._id}
               className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4"
@@ -213,8 +215,8 @@ const AdminUserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+              {users.length > 0 ? (
+                users.map((user) => (
                   <tr
                     key={user._id}
                     className="hover:bg-slate-50 transition-colors"

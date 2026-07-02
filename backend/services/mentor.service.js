@@ -1,6 +1,8 @@
 const Groq = require("groq-sdk");
 const ChatHistory = require("../models/chatHistory.model");
 const User = require("../models/user.model");
+const MbtiResult = require("../models/mbtiResult.model");
+const HollandResult = require("../models/hollandResult.model");
 
 // Hãy chắc chắn bạn đã tạo file .env ở thư mục gốc chứa GROQ_API_KEY hợp lệ
 const apiKey = process.env.GROQ_API_KEY;
@@ -13,43 +15,10 @@ if (!apiKey) {
 
 const groq = new Groq({ apiKey });
 
-// Daily question limits by plan
-const DAILY_LIMITS = {
-  FREE: 7,
-  PAID: 50,
-  PREMIUM: Infinity,
-};
-
-// Helper to check daily usage
-const checkDailyQuota = async (userId) => {
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  const plan = user.subscriptionPlan || "FREE";
-  const limit = DAILY_LIMITS[plan];
-
-  // Count messages sent by this user today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const sessionCount = await ChatHistory.countDocuments({
-    user: userId,
-    createdAt: { $gte: today },
-  });
-
-  // Each chat session has at least 1 message (user's first message)
-  const estimatedDailyMessages = sessionCount;
-
-  if (estimatedDailyMessages >= limit) {
-    throw new Error(
-      `Daily question limit reached for ${plan} plan (${limit}/day). Try again tomorrow or upgrade your plan.`,
-    );
-  }
-
-  return { plan, limit, used: estimatedDailyMessages };
-};
+// Lưu ý: Quota (số câu hỏi/ngày) đã được kiểm tra & cộng dồn ở tầng controller
+// thông qua quotaService.checkQuota/incrementQuota (nguồn giới hạn duy nhất,
+// khớp với QUOTA_LIMITS và trang Pricing). Không kiểm tra lại quota ở đây để
+// tránh 2 hệ thống đếm khác nhau gây chặn nhầm.
 
 const getChatSession = async (userId, sessionId) => {
   let session = await ChatHistory.findOne({ user: userId, sessionId });
@@ -65,10 +34,6 @@ const getChatSession = async (userId, sessionId) => {
 
 const sendChatMessage = async (userId, sessionId, message, imageBase64 = null) => {
   try {
-    // Check daily quota before processing
-    const quota = await checkDailyQuota(userId);
-    console.log(`[Mentor] User ${userId} quota status:`, quota);
-
     const user = await User.findById(userId);
     const plan = user.subscriptionPlan || "FREE";
 
@@ -86,11 +51,18 @@ Nhiệm vụ của bạn:
 4. Phản hồi thân thiện, chuyên nghiệp, dùng emoji phù hợp.
 5. Ngôn ngữ: Tiếng Việt.`;
 
-    if (plan === "PREMIUM" && user.careerPath) {
-      const { hollandType, mbtiType } = user.careerPath;
+    if (plan === "PREMIUM") {
+      // Lấy kết quả trắc nghiệm MỚI NHẤT từ MbtiResult/HollandResult (nguồn dữ
+      // liệu thật) thay vì User.careerPath — trường này không bao giờ được ghi
+      // nên trước đây luôn hiển thị "Chưa làm trắc nghiệm" dù user đã test.
+      const [mbtiResult, hollandResult] = await Promise.all([
+        MbtiResult.findOne({ user: userId }).sort({ createdAt: -1 }),
+        HollandResult.findOne({ user: userId }).sort({ createdAt: -1 }),
+      ]);
+
       systemInstruction += `\n\nThông tin người dùng (Dành riêng cho gói Premium):
-- Loại hình Holland: ${hollandType || "Chưa làm trắc nghiệm"}
-- Nhóm tính cách MBTI: ${mbtiType || "Chưa làm trắc nghiệm"}
+- Loại hình Holland: ${hollandResult?.hollandType || "Chưa làm trắc nghiệm"}
+- Nhóm tính cách MBTI: ${mbtiResult?.mbtiType || "Chưa làm trắc nghiệm"}
 Hãy sử dụng thông tin này để đưa ra lời khuyên cá nhân hóa nhất cho họ.`;
     }
 

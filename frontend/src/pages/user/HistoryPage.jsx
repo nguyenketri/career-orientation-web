@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getMyHollandResults } from "../../services/hollandResult.service";
 import { getMyMbtiResults } from "../../services/mbtiService";
 import { getScoreAnalysisHistory } from "../../services/recommendService";
-import { getPaymentHistory } from "../../services/paymentService";
 import { mbtiMaps } from "../../utils/mbtiMap";
 import {
   formatHollandCode,
@@ -46,7 +45,6 @@ const HistoryPage = () => {
   const [hollandStability, setHollandStability] = useState(0);
   const [mbtiStability, setMbtiStability] = useState(0);
   const [academicResults, setAcademicResults] = useState([]);
-  const [payments, setPayments] = useState([]);
   const activeTab = searchParams.get("tab") || "holland";
   const [hollandVisible, setHollandVisible] = useState(3);
   const [mbtiVisible, setMbtiVisible] = useState(4);
@@ -54,20 +52,17 @@ const HistoryPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [hollandRes, mbtiRes, academicRes, paymentRes] =
-          await Promise.all([
-            getMyHollandResults().catch(() => ({ data: { data: [] } })),
-            getMyMbtiResults().catch(() => ({ data: { data: [] } })),
-            getScoreAnalysisHistory().catch(() => ({ data: { data: [] } })),
-            getPaymentHistory().catch(() => ({ data: { data: [] } })),
-          ]);
+        const [hollandRes, mbtiRes, academicRes] = await Promise.all([
+          getMyHollandResults().catch(() => ({ data: { data: [] } })),
+          getMyMbtiResults().catch(() => ({ data: { data: [] } })),
+          getScoreAnalysisHistory().catch(() => ({ data: { data: [] } })),
+        ]);
 
         setHollandResults(hollandRes.data?.data || hollandRes.data || []);
         setHollandStability(hollandRes.data?.stabilityScore || 0);
         setMbtiResults(mbtiRes.data?.data || mbtiRes.data || []);
         setMbtiStability(mbtiRes.data?.stabilityScore || 0);
         setAcademicResults(academicRes.data?.data || academicRes.data || []);
-        setPayments(paymentRes.data?.data || paymentRes.data || []);
       } catch (err) {
         console.error("Error fetching history:", err);
       }
@@ -75,69 +70,6 @@ const HistoryPage = () => {
 
     fetchData();
   }, []);
-
-  const handleExportPDF = async () => {
-    if (!payments || payments.length === 0) {
-      alert("Không có dữ liệu thanh toán để xuất PDF.");
-      return;
-    }
-
-    try {
-      alert("Đã nhấn nút Xuất PDF. Đang tải thư viện...");
-
-      // Dynamic imports to avoid initialization crashes and handle errors better
-      const { jsPDF } = await import("jspdf");
-      const autoTableModule = await import("jspdf-autotable");
-      const autoTable = autoTableModule.default;
-
-      const doc = new jsPDF();
-
-      // Add Title
-      doc.setFontSize(18);
-      doc.text("LICH SU THANH TOAN", 14, 20);
-
-      // Prepare Table Data
-      const tableColumn = [
-        "Ma giao dich",
-        "Goi dich vu",
-        "Ngay giao dich",
-        "So tien",
-        "Trang thai",
-      ];
-
-      const tableRows = payments.map((p) => [
-        String(p.transactionCode || p.transactionId || `#${p._id?.slice(-5)}`),
-        String(p.planType || p.planName || p.plan || "N/A"),
-        p.createdAt && !isNaN(new Date(p.createdAt).getTime())
-          ? new Date(p.createdAt).toLocaleDateString("vi-VN")
-          : "N/A",
-        String(`${p.amount?.toLocaleString() || 0}d`),
-        p.status === "SUCCESS" || p.status === "completed"
-          ? "Thanh cong"
-          : p.status === "PENDING"
-            ? "Dang cho"
-            : "That bai",
-      ]);
-
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 30,
-        theme: "grid",
-        headStyles: { fillColor: [79, 70, 229] },
-        styles: { font: "helvetica", textColor: [0, 0, 0] },
-      });
-
-      doc.save("lich-su-thanh-toan.pdf");
-      alert("Xuất PDF thành công!");
-    } catch (error) {
-      console.error("PDF Export Error:", error);
-      alert(
-        "Có lỗi xảy ra khi xuất PDF: " +
-          (error.message || "Lỗi không xác định"),
-      );
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 px-6 pt-10 pb-20">
@@ -758,100 +690,6 @@ const HistoryPage = () => {
                 </button>
               </div>
             ))}
-        </div>
-
-        {/* Payment History */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-xl font-black">Lịch sử thanh toán</h3>
-              <p className="text-slate-500 text-sm">
-                Quản lý các giao dịch và hóa đơn của bạn.
-              </p>
-            </div>
-            <button
-              onClick={handleExportPDF}
-              className="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-100 transition shadow-sm"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Xuất PDF
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-slate-400 border-b">
-                  <th className="pb-4 font-medium">Mã giao dịch</th>
-                  <th className="pb-4 font-medium">Gói dịch vụ</th>
-                  <th className="pb-4 font-medium">Ngày giao dịch</th>
-                  <th className="pb-4 font-medium">Số tiền</th>
-                  <th className="pb-4 font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="text-slate-700">
-                {payments.length > 0 ? (
-                  payments.map((p, i) => (
-                    <tr key={p._id || i} className="border-b last:border-0">
-                      <td className="py-4 font-medium">
-                        {p.transactionCode ||
-                          p.transactionId ||
-                          `#${p._id?.slice(-5)}`}
-                      </td>
-                      <td className="py-4 font-bold">
-                        {p.planType || p.planName || p.plan || "N/A"}
-                      </td>
-                      <td className="py-4">
-                        {p.createdAt && !isNaN(new Date(p.createdAt).getTime())
-                          ? new Date(p.createdAt).toLocaleDateString("vi-VN")
-                          : "N/A"}
-                      </td>
-                      <td className="py-4">{p.amount?.toLocaleString()}đ</td>
-                      <td className="py-4">
-                        <span
-                          className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                            p.status === "SUCCESS" || p.status === "completed"
-                              ? "bg-green-50 text-green-600"
-                              : p.status === "PENDING"
-                                ? "bg-yellow-50 text-yellow-600"
-                                : "bg-red-50 text-red-600"
-                          }`}
-                        >
-                          {p.status === "SUCCESS" || p.status === "completed"
-                            ? "Thành công"
-                            : p.status === "PENDING"
-                              ? "Đang chờ"
-                              : p.status === "FAILED"
-                                ? "Thất bại"
-                                : p.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="py-8 text-center text-slate-400 italic"
-                    >
-                      Không có lịch sử giao dịch.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
       </motion.div>
     </div>

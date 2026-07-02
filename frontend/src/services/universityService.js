@@ -15,6 +15,12 @@ export const getUniversityById = async (id) => {
   return response.data;
 };
 
+// Chi tiết 1 ngành tại 1 trường (UniversityMajor id)
+export const getUniversityMajorById = async (id) => {
+  const response = await axiosClient.get(`/universities/majors/${id}`);
+  return response.data;
+};
+
 // Phân tích so sánh bằng AI (POST /comparison/analyze) — trả về { analysis }
 export const analyzeComparison = async (selectedMajors) => {
   const response = await axiosClient.post("/comparison/analyze", {

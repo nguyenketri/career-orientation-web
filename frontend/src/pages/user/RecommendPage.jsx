@@ -762,9 +762,7 @@ const RecommendPage = () => {
 
                           <div className="flex justify-end mt-auto pt-3">
                             <button
-                              onClick={() =>
-                                navigate(`/university/${item.university._id}`)
-                              }
+                              onClick={() => navigate(`/major/${item._id}`)}
                               className="text-blue-600 text-sm font-bold hover:underline flex items-center gap-1"
                             >
                               Chi tiết <span className="text-lg">›</span>

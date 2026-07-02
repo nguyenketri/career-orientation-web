@@ -16,7 +16,9 @@ const universitySchema = new mongoose.Schema(
       required: true,
     }, // Loại trường
     website: { type: String }, // URL website
+    description: { type: String, default: "" }, // Mô tả ngắn / tagline hiển thị ở trang chi tiết
     facilities: { type: [String], default: [] }, // Cơ sở vật chất
+    gallery: { type: [String], default: [] }, // Hình ảnh thực tế (album)
     rating: { type: Number, default: 0 }, // Đánh giá trung bình
     reviewCount: { type: Number, default: 0 }, // Số lượng đánh giá
     // Soft delete fields

@@ -17,6 +17,7 @@ import HollandTestPage from "../pages/user/HollandTestPage";
 import MbtiTestPage from "../pages/user/MbtiTestPage";
 import RecommendPage from "../pages/user/RecommendPage";
 import UniversityDetailPage from "../pages/user/UniversityDetailPage";
+import MajorDetailPage from "../pages/user/MajorDetailPage";
 import { RecommendationProvider } from "../context/RecommendationContext";
 import HistoryPage from "../pages/user/HistoryPage";
 import ResultDetailPage from "../pages/user/ResultDetailPage";
@@ -68,6 +69,7 @@ const AppRoutes = () => {
           />
           <Route path="/recommend" element={<RecommendPage />} />
           <Route path="/university/:id" element={<UniversityDetailPage />} />
+          <Route path="/major/:id" element={<MajorDetailPage />} />
           <Route path="/test-result" element={<TestResultPage />} />
           <Route
             path="/result-detail/:type/:id"

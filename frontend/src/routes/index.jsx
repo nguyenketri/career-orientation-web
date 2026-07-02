@@ -37,13 +37,16 @@ import AdminPaymentManagement from "../pages/admin/AdminPaymentManagement";
 import AdminMajorUniversityManagement from "../pages/admin/AdminMajorUniversityManagement";
 import AdminQuestionManagement from "../pages/admin/AdminQuestionManagement";
 
-// Các trang có giao diện toàn màn hình riêng (vd: AI Mentor kiểu chat app)
-// sẽ ẩn Navbar/Footer công khai để trải nghiệm không bị chia cắt.
+// Các trang có giao diện toàn màn hình riêng (AI Mentor kiểu chat app, và toàn
+// bộ trang /admin/* vì AdminLayout đã tự có sidebar + header riêng) sẽ ẩn
+// Navbar/Footer công khai để tránh bị chồng 2 lớp header.
 const IMMERSIVE_ROUTES = ["/mentor"];
 
 const AppLayout = () => {
   const location = useLocation();
-  const isImmersive = IMMERSIVE_ROUTES.includes(location.pathname);
+  const isImmersive =
+    IMMERSIVE_ROUTES.includes(location.pathname) ||
+    location.pathname.startsWith("/admin");
 
   return (
     <>

@@ -3,7 +3,6 @@ const User = require("../models/user.model");
 const Payment = require("../models/payment.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
-const Major = require("../models/major.model");
 const { createNotification } = require("../services/notification.service");
 
 // Phải khớp với PLAN_DURATIONS ở payment.controller.js
@@ -13,19 +12,11 @@ const PLAN_DURATIONS = {
 };
 const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
-// % tăng trưởng so với kỳ trước — null khi không có dữ liệu kỳ trước để so sánh
-// (tránh chia cho 0 / hiển thị số ảo)
-const growthPct = (current, previous) => {
-  if (!previous) return current > 0 ? 100 : null;
-  return Math.round(((current - previous) / previous) * 1000) / 10;
-};
-
-// Lấy thống kê tổng quan cho Admin — số liệu thật + % tăng trưởng theo tháng
+// Lấy thống kê tổng quan cho Admin
 exports.getAdminStats = async (req, res) => {
   try {
     const now = new Date();
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     const totalUsers = await User.countDocuments({ isDeleted: { $ne: true } });
     const totalPayments = await Payment.countDocuments();
@@ -46,97 +37,11 @@ exports.getAdminStats = async (req, res) => {
       subscriptionPlan: { $ne: "FREE" },
     });
 
-    // --- Người dùng mới: tháng này vs tháng trước ---
+    // Người dùng mới trong tháng này (dùng cho thẻ "Người dùng mới")
     const newUsersThisMonth = await User.countDocuments({
       isDeleted: { $ne: true },
       createdAt: { $gte: startThisMonth },
     });
-    const newUsersLastMonth = await User.countDocuments({
-      isDeleted: { $ne: true },
-      createdAt: { $gte: startLastMonth, $lt: startThisMonth },
-    });
-
-    // --- Doanh thu: tháng này vs tháng trước ---
-    const [revThisMonthAgg] = await Payment.aggregate([
-      { $match: { status: "SUCCESS", createdAt: { $gte: startThisMonth } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const [revLastMonthAgg] = await Payment.aggregate([
-      {
-        $match: {
-          status: "SUCCESS",
-          createdAt: { $gte: startLastMonth, $lt: startThisMonth },
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const revenueThisMonth = revThisMonthAgg?.total || 0;
-    const revenueLastMonth = revLastMonthAgg?.total || 0;
-
-    // --- Test MBTI hoàn thành: tháng này vs tháng trước ---
-    const mbtiThisMonth = await MbtiResult.countDocuments({
-      createdAt: { $gte: startThisMonth },
-    });
-    const mbtiLastMonth = await MbtiResult.countDocuments({
-      createdAt: { $gte: startLastMonth, $lt: startThisMonth },
-    });
-
-    // --- Ngành học được gợi ý nhiều nhất — MỌI THỜI ĐIỂM (từ Holland + MBTI thật) ---
-    const [hollandTop, mbtiTop] = await Promise.all([
-      HollandResult.aggregate([
-        { $unwind: "$recommendedMajors" },
-        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
-      ]),
-      MbtiResult.aggregate([
-        { $unwind: "$recommendedMajors" },
-        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
-      ]),
-    ]);
-    const combinedCounts = {};
-    [...hollandTop, ...mbtiTop].forEach((x) => {
-      const key = x._id.toString();
-      combinedCounts[key] = (combinedCounts[key] || 0) + x.count;
-    });
-
-    // --- Ngành "hot" THÁNG NÀY — chỉ số khác biệt với Top Ngành Học (mọi thời điểm) ---
-    const [hollandTopMonth, mbtiTopMonth] = await Promise.all([
-      HollandResult.aggregate([
-        { $match: { createdAt: { $gte: startThisMonth } } },
-        { $unwind: "$recommendedMajors" },
-        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
-      ]),
-      MbtiResult.aggregate([
-        { $match: { createdAt: { $gte: startThisMonth } } },
-        { $unwind: "$recommendedMajors" },
-        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
-      ]),
-    ]);
-    const monthCounts = {};
-    [...hollandTopMonth, ...mbtiTopMonth].forEach((x) => {
-      const key = x._id.toString();
-      monthCounts[key] = (monthCounts[key] || 0) + x.count;
-    });
-    const rankedMonthIds = Object.entries(monthCounts).sort(
-      (a, b) => b[1] - a[1],
-    );
-    let topMajorThisMonth = null;
-    if (rankedMonthIds.length > 0) {
-      const [hotId, hotCount] = rankedMonthIds[0];
-      const hotMajor = await Major.findById(hotId).select("name").lean();
-      topMajorThisMonth = { name: hotMajor?.name || "—", count: hotCount };
-    }
-    const rankedMajorIds = Object.entries(combinedCounts).sort(
-      (a, b) => b[1] - a[1],
-    );
-    const topMajors = await Major.find({
-      _id: { $in: rankedMajorIds.slice(0, 3).map(([id]) => id) },
-    })
-      .select("name")
-      .lean();
-    const topMajorsRanked = rankedMajorIds.slice(0, 3).map(([id, count]) => ({
-      name: topMajors.find((m) => m._id.toString() === id)?.name || "—",
-      count,
-    }));
 
     res.status(200).json({
       status: "success",
@@ -148,17 +53,8 @@ exports.getAdminStats = async (req, res) => {
         totalTests: totalHollandTests + totalMbtiTests,
         totalSubscriptions,
         newUsersThisMonth,
-        newUsersLastMonth,
-        newUsersGrowthPct: growthPct(newUsersThisMonth, newUsersLastMonth),
-        revenueThisMonth,
-        revenueLastMonth,
-        revenueGrowthPct: growthPct(revenueThisMonth, revenueLastMonth),
-        mbtiThisMonth,
-        mbtiLastMonth,
+        hollandTotal: totalHollandTests,
         mbtiTotal: totalMbtiTests,
-        mbtiGrowthPct: growthPct(mbtiThisMonth, mbtiLastMonth),
-        topMajors: topMajorsRanked,
-        topMajorThisMonth,
       },
     });
   } catch (error) {

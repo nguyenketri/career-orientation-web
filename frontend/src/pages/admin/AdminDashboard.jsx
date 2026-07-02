@@ -14,8 +14,6 @@ const PLAN_BADGE = {
   PREMIUM: "bg-orange-100 text-orange-600",
 };
 
-const TOP_MAJOR_COLORS = ["bg-orange-500", "bg-teal-400", "bg-slate-400"];
-
 const fmtVND = (n) => `${Number(n || 0).toLocaleString("vi-VN")} VND`;
 const fmtDate = (d) =>
   d && !isNaN(new Date(d).getTime())
@@ -52,6 +50,7 @@ const AdminDashboard = () => {
 
   const [toast, setToast] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [hoveredMonth, setHoveredMonth] = useState(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyUserForm);
@@ -257,6 +256,11 @@ const AdminDashboard = () => {
     }
   };
 
+  const yearRevenue = monthlyRevenueData.reduce(
+    (sum, m) => sum + (m.amount || 0),
+    0,
+  );
+
   const statCards = [
     {
       name: "Người dùng mới (tháng này)",
@@ -265,15 +269,15 @@ const AdminDashboard = () => {
       color: "bg-blue-100",
     },
     {
-      name: "Doanh thu tháng này",
-      value: fmtVND(stats?.revenueThisMonth),
+      name: "Doanh thu cả năm",
+      value: fmtVND(yearRevenue),
       icon: "💰",
       color: "bg-orange-100",
     },
     {
-      name: "Ngành hot nhất (tháng này)",
-      value: stats?.topMajorThisMonth?.name || "Chưa có dữ liệu",
-      icon: "🎓",
+      name: "Test Holland hoàn thành",
+      value: stats?.hollandTotal ?? 0,
+      icon: "🧭",
       color: "bg-blue-100",
     },
     {
@@ -283,11 +287,6 @@ const AdminDashboard = () => {
       color: "bg-teal-100",
     },
   ];
-
-  const maxMajorCount = Math.max(
-    ...(stats?.topMajors || []).map((m) => m.count),
-    1,
-  );
 
   const chartMonths = MONTHS.filter(
     (m) => selectedMonth === "All" || m === selectedMonth,
@@ -357,12 +356,22 @@ const AdminDashboard = () => {
               const heightPct = Math.max((amount / maxRevenue) * 100, 3);
               const isCurrentMonth = month === "T" + (new Date().getMonth() + 1);
               return (
-                <div key={month} className="flex-1 flex flex-col items-center gap-2 h-full">
+                <div
+                  key={month}
+                  className="relative flex-1 flex flex-col items-center gap-2 h-full"
+                  onMouseEnter={() => setHoveredMonth(month)}
+                  onMouseLeave={() => setHoveredMonth(null)}
+                >
+                  {hoveredMonth === month && (
+                    <div className="absolute -top-2 -translate-y-full bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10">
+                      {fmtVND(amount)}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+                    </div>
+                  )}
                   <div className="w-full flex-1 flex items-end justify-center">
                     <div
-                      title={fmtVND(amount)}
-                      className={`w-full max-w-[42px] rounded-t-lg transition-all duration-500 ${
-                        isCurrentMonth ? "bg-[#0f172a]" : "bg-blue-100"
+                      className={`w-full max-w-[42px] rounded-t-lg transition-all duration-500 cursor-pointer ${
+                        isCurrentMonth ? "bg-[#0f172a]" : "bg-blue-100 hover:bg-blue-200"
                       }`}
                       style={{ height: `${heightPct}%` }}
                     />
@@ -374,33 +383,20 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Top Majors */}
-        <div className="bg-[#0f172a] text-white p-6 rounded-2xl shadow-lg flex flex-col">
-          <h3 className="font-bold text-lg mb-5">Top Ngành Học</h3>
-          <div className="space-y-5 flex-1">
-            {(stats?.topMajors || []).map((m, i) => (
-              <div key={m.name} className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold shrink-0">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold truncate mb-1.5">{m.name}</p>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${TOP_MAJOR_COLORS[i] || "bg-slate-400"}`}
-                      style={{ width: `${Math.max((m.count / maxMajorCount) * 100, 10)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            {(!stats?.topMajors || stats.topMajors.length === 0) && (
-              <p className="text-sm text-white/40">Chưa có dữ liệu gợi ý ngành.</p>
-            )}
+        {/* CTA Báo cáo chi tiết */}
+        <div className="bg-[#0f172a] text-white p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-2xl">
+            📊
+          </div>
+          <div>
+            <h3 className="font-bold text-lg mb-1">Báo cáo hệ thống</h3>
+            <p className="text-sm text-white/50 leading-relaxed">
+              Xem chi tiết phân bổ gói cước, loại test và xu hướng doanh thu 6 tháng gần nhất.
+            </p>
           </div>
           <button
             onClick={openReport}
-            className="mt-5 flex items-center gap-2 text-sm font-bold text-orange-400 hover:text-orange-300 transition"
+            className="mt-1 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-sm font-bold transition"
           >
             Xem tất cả báo cáo
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

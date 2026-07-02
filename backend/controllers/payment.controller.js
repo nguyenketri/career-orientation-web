@@ -2,6 +2,7 @@ const Payment = require("../models/payment.model");
 const User = require("../models/user.model");
 const payosService = require("../services/payos.service");
 const { createNotification } = require("../services/notification.service");
+const { sweepExpiredPayments } = require("../services/payment.service");
 
 const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
@@ -326,6 +327,13 @@ exports.getPaymentStatus = async (req, res) => {
       });
     }
 
+    // QR đã hết hạn mà vẫn còn PENDING nghĩa là payOS sẽ không bao giờ gửi webhook cho
+    // phiên này nữa — cập nhật ngay để FE không hiển thị "đang chờ" mãi mãi.
+    if (payment.status === "PENDING" && payment.expiresAt < new Date()) {
+      payment.status = "FAILED";
+      await payment.save();
+    }
+
     return res.status(200).json({
       status: "success",
       data: {
@@ -344,6 +352,8 @@ exports.getPaymentStatus = async (req, res) => {
 // Get payment history for current user
 exports.getPaymentHistory = async (req, res) => {
   try {
+    await sweepExpiredPayments({ user: req.user.id });
+
     const payments = await Payment.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .select("transactionCode amount planType status paymentMethod createdAt");

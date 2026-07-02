@@ -26,6 +26,7 @@ router.delete("/users/:userId", adminController.deleteUser);
 
 // Quản lý thanh toán
 router.get("/payments", adminController.getAllPayments);
+router.get("/payments/stats", adminController.getPaymentStats);
 router.put("/payments/status", adminController.updatePaymentStatus);
 
 module.exports = router;

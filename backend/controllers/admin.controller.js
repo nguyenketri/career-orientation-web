@@ -4,6 +4,7 @@ const Payment = require("../models/payment.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
 const { createNotification } = require("../services/notification.service");
+const { sweepExpiredPayments } = require("../services/payment.service");
 
 // Phải khớp với PLAN_DURATIONS ở payment.controller.js
 const PLAN_DURATIONS = {
@@ -414,16 +415,39 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// Lấy tất cả lịch sử thanh toán (có phân trang)
+// Lấy tất cả lịch sử thanh toán (có phân trang, tìm kiếm, lọc trạng thái/gói)
 exports.getAllPayments = async (req, res) => {
   try {
+    await sweepExpiredPayments();
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
+    const status = req.query.status || "";
+    const planType = req.query.planType || "";
 
-    const total = await Payment.countDocuments();
-    const payments = await Payment.find()
-      .populate("user", "name email")
+    const query = {};
+    if (status) query.status = status;
+    if (planType) query.planType = planType;
+
+    if (search) {
+      const escaped = escapeRegex(search);
+      const userMatches = await User.find({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { email: { $regex: escaped, $options: "i" } },
+        ],
+      }).select("_id");
+      query.$or = [
+        { transactionCode: { $regex: escaped, $options: "i" } },
+        { user: { $in: userMatches.map((u) => u._id) } },
+      ];
+    }
+
+    const total = await Payment.countDocuments(query);
+    const payments = await Payment.find(query)
+      .populate("user", "name email avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -434,7 +458,7 @@ exports.getAllPayments = async (req, res) => {
         payments,
         total,
         page,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / limit) || 1,
       },
     });
   } catch (error) {
@@ -442,6 +466,71 @@ exports.getAllPayments = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Error fetching payments: " + error.message,
+    });
+  }
+};
+
+// Thống kê tổng quan cho trang Quản lý Thanh toán (4 thẻ đầu trang)
+exports.getPaymentStats = async (req, res) => {
+  try {
+    await sweepExpiredPayments();
+
+    const now = new Date();
+    const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [
+      total,
+      successCount,
+      pendingCount,
+      failedCount,
+      revenueAgg,
+      thisMonthAgg,
+      lastMonthAgg,
+    ] = await Promise.all([
+      Payment.countDocuments({}),
+      Payment.countDocuments({ status: "SUCCESS" }),
+      Payment.countDocuments({ status: "PENDING" }),
+      Payment.countDocuments({ status: "FAILED" }),
+      Payment.aggregate([
+        { $match: { status: "SUCCESS" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Payment.aggregate([
+        { $match: { status: "SUCCESS", createdAt: { $gte: startThisMonth } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Payment.aggregate([
+        {
+          $match: {
+            status: "SUCCESS",
+            createdAt: { $gte: startLastMonth, $lt: startThisMonth },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].total : 0;
+    const thisMonthRevenue = thisMonthAgg.length > 0 ? thisMonthAgg[0].total : 0;
+    const lastMonthRevenue = lastMonthAgg.length > 0 ? lastMonthAgg[0].total : 0;
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        totalRevenue,
+        revenueGrowthPct: growthPct(thisMonthRevenue, lastMonthRevenue),
+        total,
+        successCount,
+        pendingCount,
+        failedCount,
+        failureRatePct: total > 0 ? Math.round((failedCount / total) * 1000) / 10 : 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error fetching payment stats: " + error.message,
     });
   }
 };

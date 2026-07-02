@@ -10,6 +10,9 @@ const {
 router.use(authMiddleware);
 router.use(adminMiddleware);
 
+// Thống kê tổng quan
+router.get("/stats", adminMajorController.getManagementStats);
+
 // University Routes
 router.get("/universities", adminMajorController.getUniversities);
 router.post("/universities", adminMajorController.createUniversity);

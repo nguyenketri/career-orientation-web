@@ -33,13 +33,34 @@ const stockGallery = (seed) =>
       `https://picsum.photos/seed/${encodeURIComponent(String(seed || "cazup"))}-${n}/500/500`,
   );
 
-// Gradient nền hero theo loại trường (không phụ thuộc ảnh ngoài => luôn hiển thị)
+// Lớp phủ màu theo loại trường (đặt trên ảnh bìa để chữ dễ đọc)
 const heroGradient = (type) =>
   type === "International"
-    ? "from-emerald-500 via-teal-700 to-slate-900"
+    ? "from-emerald-600/70 via-teal-800/60 to-slate-900/80"
     : type === "Private"
-      ? "from-orange-500 via-rose-700 to-slate-900"
-      : "from-blue-600 via-indigo-800 to-slate-900";
+      ? "from-orange-600/70 via-rose-800/60 to-slate-900/80"
+      : "from-blue-700/70 via-indigo-900/60 to-slate-900/80";
+
+// Bộ ảnh bìa campus (đã kiểm tra URL sống) — chọn cố định theo từng trường
+const COVER_POOL = [
+  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1592280771190-3e2e4d571952?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1519452575417-564c1401ecc0?auto=format&fit=crop&w=1600&q=70",
+];
+
+// Ảnh bìa của 1 trường: ưu tiên ảnh admin thêm (gallery), nếu không thì chọn ổn định theo id
+const coverForUni = (uni) => {
+  if (uni?.gallery?.length) return uni.gallery[0];
+  const seed = String(uni?._id || uni?.name || "cazup");
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return COVER_POOL[h % COVER_POOL.length];
+};
 
 // Mã ngành: dùng code có sẵn, nếu không thì sinh mã ổn định từ tên + id
 const getMajorCode = (major, umId = "") => {
@@ -238,7 +259,7 @@ const MajorDetailPage = () => {
   }
 
   const { university: uni, major, compatibility, otherUniversities } = detail;
-  const coverPhoto = uni.gallery?.length ? uni.gallery[0] : null;
+  const coverPhoto = coverForUni(uni);
   const gallery = uni.gallery?.length
     ? uni.gallery
     : stockGallery(uni._id || uni.name);
@@ -263,25 +284,22 @@ const MajorDetailPage = () => {
       )}
 
       {/* ===== HERO ===== */}
-      <div className="relative h-[300px] md:h-[380px] w-full overflow-hidden">
-        {coverPhoto ? (
-          <>
-            <img
-              src={coverPhoto}
-              alt={uni.name}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-slate-900/30" />
-          </>
-        ) : (
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${heroGradient(uni.type)}`}
-          >
-            <div className="absolute -top-20 -right-10 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 left-1/4 w-96 h-96 bg-black/20 rounded-full blur-3xl" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
-          </div>
-        )}
+      <div className="relative h-[300px] md:h-[380px] w-full overflow-hidden bg-slate-800">
+        {/* Ảnh bìa full-bleed */}
+        <img
+          src={coverPhoto}
+          alt={uni.name}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = `https://picsum.photos/seed/${encodeURIComponent(String(uni._id || uni.name))}/1600/600`;
+          }}
+        />
+        {/* Lớp phủ màu theo loại trường + tối dần lên trên để chữ dễ đọc */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${heroGradient(uni.type)}`}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
 
         {/* Logo trường (nhận diện thương hiệu) */}
         <div className="hidden lg:flex absolute right-8 top-8 w-28 h-28 rounded-3xl bg-white shadow-2xl items-center justify-center p-3">

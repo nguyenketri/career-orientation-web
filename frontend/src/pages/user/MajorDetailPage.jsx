@@ -33,28 +33,21 @@ const stockGallery = (seed) =>
       `https://picsum.photos/seed/${encodeURIComponent(String(seed || "cazup"))}-${n}/500/500`,
   );
 
-// Lớp phủ màu theo loại trường (đặt trên ảnh bìa để chữ dễ đọc)
-const heroGradient = (type) =>
-  type === "International"
-    ? "from-emerald-600/70 via-teal-800/60 to-slate-900/80"
-    : type === "Private"
-      ? "from-orange-600/70 via-rose-800/60 to-slate-900/80"
-      : "from-blue-700/70 via-indigo-900/60 to-slate-900/80";
-
-// Bộ ảnh bìa campus (đã kiểm tra URL sống) — chọn cố định theo từng trường
+// Bộ ảnh bìa campus (ảnh kiến trúc trường học, URL đã kiểm tra sống) — chọn cố định theo từng trường
 const COVER_POOL = [
-  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=70",
   "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=70",
-  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1568792923760-d70635a89fdc?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1607013407627-6ee814329547?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1580537659466-0a9bfa916a54?auto=format&fit=crop&w=1600&q=70",
   "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=1600&q=70",
   "https://images.unsplash.com/photo-1592280771190-3e2e4d571952?auto=format&fit=crop&w=1600&q=70",
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=70",
-  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1600&q=70",
-  "https://images.unsplash.com/photo-1519452575417-564c1401ecc0?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1600&q=70",
+  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=70",
 ];
 
-// Ảnh bìa của 1 trường: ưu tiên ảnh admin thêm (gallery), nếu không thì chọn ổn định theo id
+// Ảnh bìa của 1 trường: ưu tiên ảnh campus thật (coverImage / gallery), nếu không thì chọn ổn định theo id
 const coverForUni = (uni) => {
+  if (uni?.coverImage) return uni.coverImage;
   if (uni?.gallery?.length) return uni.gallery[0];
   const seed = String(uni?._id || uni?.name || "cazup");
   let h = 0;
@@ -295,11 +288,9 @@ const MajorDetailPage = () => {
             e.target.src = `https://picsum.photos/seed/${encodeURIComponent(String(uni._id || uni.name))}/1600/600`;
           }}
         />
-        {/* Lớp phủ màu theo loại trường + tối dần lên trên để chữ dễ đọc */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-br ${heroGradient(uni.type)}`}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
+        {/* Overlay tối nhẹ ở trái & dưới để chữ dễ đọc, vẫn giữ ảnh bìa sáng rõ */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/35 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-transparent to-transparent" />
 
         {/* Logo trường (nhận diện thương hiệu) */}
         <div className="hidden lg:flex absolute right-8 top-8 w-28 h-28 rounded-3xl bg-white shadow-2xl items-center justify-center p-3">
@@ -315,21 +306,8 @@ const MajorDetailPage = () => {
           <div className="mx-auto max-w-7xl w-full px-4 md:px-8 pb-8">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-white/80 hover:text-white transition mb-5 group text-sm font-bold"
+              className="inline-flex items-center mb-5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-sm font-semibold transition active:scale-95"
             >
-              <svg
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
               Quay lại kết quả
             </button>
 

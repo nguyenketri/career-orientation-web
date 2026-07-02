@@ -17,6 +17,7 @@ router.get("/monthly-revenue", adminController.getMonthlyRevenue);
 
 // Quản lý người dùng
 router.get("/users", adminController.getAllUsers);
+router.get("/users/stats", adminController.getUserManagementStats);
 router.post("/users", adminController.createUser);
 router.put("/users/role", adminController.updateUserRole);
 router.put("/users/:userId", adminController.updateUser);

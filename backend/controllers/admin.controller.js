@@ -68,18 +68,86 @@ exports.getAdminStats = async (req, res) => {
 // Escape ký tự đặc biệt regex để tránh lỗi/khai thác khi search bằng chuỗi user nhập
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Lấy danh sách tất cả người dùng (có phân trang, tìm kiếm theo tên/email)
+// % tăng trưởng so với kỳ trước — null khi không có dữ liệu kỳ trước để so sánh
+const growthPct = (current, previous) => {
+  if (!previous) return current > 0 ? 100 : null;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+};
+
+// Thống kê tổng quan cho trang Quản lý Người dùng (4 thẻ đầu trang)
+exports.getUserManagementStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const baseFilter = { isDeleted: { $ne: true } };
+
+    const [
+      total,
+      activeCount,
+      newThisWeek,
+      newLastWeek,
+      premiumCount,
+    ] = await Promise.all([
+      User.countDocuments(baseFilter),
+      User.countDocuments({ ...baseFilter, status: "ACTIVE" }),
+      User.countDocuments({ ...baseFilter, createdAt: { $gte: sevenDaysAgo } }),
+      User.countDocuments({
+        ...baseFilter,
+        createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo },
+      }),
+      User.countDocuments({ ...baseFilter, subscriptionPlan: "PREMIUM" }),
+    ]);
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        total,
+        activeCount,
+        activePct: total > 0 ? Math.round((activeCount / total) * 1000) / 10 : 0,
+        newThisWeek,
+        newLastWeek,
+        weekGrowthPct: growthPct(newThisWeek, newLastWeek),
+        premiumCount,
+        premiumPct: total > 0 ? Math.round((premiumCount / total) * 1000) / 10 : 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Error fetching user management stats: " + error.message,
+    });
+  }
+};
+
+// Lấy danh sách tất cả người dùng (có phân trang, tìm kiếm, lọc gói/trạng thái/ngày tham gia)
 exports.getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const search = (req.query.search || "").trim();
+    const { plan, status, joinedFrom, role } = req.query;
 
     const filter = { isDeleted: { $ne: true } };
     if (search) {
       const regex = new RegExp(escapeRegex(search), "i");
       filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+    }
+    if (plan && ["FREE", "PAID", "PREMIUM"].includes(plan)) {
+      filter.subscriptionPlan = plan;
+    }
+    if (status && ["ACTIVE", "INACTIVE"].includes(status)) {
+      filter.status = status;
+    }
+    if (role && ["user", "admin"].includes(role)) {
+      filter.role = role;
+    }
+    if (joinedFrom) {
+      const fromDate = new Date(joinedFrom);
+      if (!isNaN(fromDate.getTime())) {
+        filter.createdAt = { $gte: fromDate };
+      }
     }
 
     const total = await User.countDocuments(filter);

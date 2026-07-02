@@ -14,6 +14,30 @@ import { getNickname, getViName } from "../../utils/mbtiCareerMap";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+// Gom các lượt nhập điểm theo NGÀY (nhiều tổ hợp cùng ngày -> 1 mục)
+const groupAcademicByDay = (results) => {
+  const groups = {};
+  (results || []).forEach((r) => {
+    const d = new Date(r.createdAt);
+    const key = isNaN(d.getTime()) ? "unknown" : d.toISOString().slice(0, 10);
+    if (!groups[key]) groups[key] = { key, date: d, items: [] };
+    groups[key].items.push(r);
+  });
+  return Object.values(groups).sort((a, b) => b.date - a.date);
+};
+
+const scoreQuality = (s) =>
+  s >= 27 ? "XUẤT SẮC" : s >= 24 ? "GIỎI" : s >= 21 ? "KHÁ" : "TRUNG BÌNH";
+
+const typeLabelVi = (t) =>
+  t === "Public"
+    ? "Công lập"
+    : t === "Private"
+      ? "Dân lập"
+      : t === "International"
+        ? "Quốc tế"
+        : t || "Tất cả";
+
 const HistoryPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,10 +48,8 @@ const HistoryPage = () => {
   const [academicResults, setAcademicResults] = useState([]);
   const [payments, setPayments] = useState([]);
   const activeTab = searchParams.get("tab") || "holland";
-  const [currentPage, setCurrentPage] = useState(1);
   const [hollandVisible, setHollandVisible] = useState(3);
   const [mbtiVisible, setMbtiVisible] = useState(4);
-  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -592,124 +614,56 @@ const HistoryPage = () => {
               </div>
             ))}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activeTab === "academic" && (
-              <div className="col-span-full bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
-                        <th className="px-8 py-6 font-medium">
-                          Tổ hợp môn & Điểm
-                        </th>
-                        <th className="px-8 py-6 font-medium">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-300">📍</span> Khu vực
-                          </div>
-                        </th>
-                        <th className="px-8 py-6 font-medium">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-300">🏫</span> Loại
-                            trường
-                          </div>
-                        </th>
-                        <th className="px-8 py-6 font-medium">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-300">💳</span> Học phí
-                          </div>
-                        </th>
-                        <th className="px-8 py-6 font-medium">
-                          Ngày thực hiện
-                        </th>
-                        <th className="px-8 py-6 font-medium">Trạng thái</th>
-                        <th className="px-8 py-6 font-medium text-right">
-                          Thao tác
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {academicResults
-                        .slice(
-                          (currentPage - 1) * itemsPerPage,
-                          currentPage * itemsPerPage,
-                        )
-                        .map((r) => (
-                          <tr
+          {activeTab === "academic" &&
+            (academicResults.length > 0 ? (
+              <div className="space-y-8">
+                {groupAcademicByDay(academicResults).map((group) => (
+                  <div key={group.key}>
+                    {/* Date header — gom mọi lượt nhập trong cùng ngày */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900">
+                          {group.date.toLocaleDateString("vi-VN", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {group.items.length} lượt nhập điểm
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm divide-y divide-slate-50 overflow-hidden">
+                      {group.items.map((r) => {
+                        const combo = r.topCombinations?.[0];
+                        const sc = combo?.totalScore || 0;
+                        return (
+                          <div
                             key={r._id}
-                            className="group hover:bg-slate-50 transition-colors"
+                            className="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 hover:bg-slate-50/50 transition"
                           >
-                            <td className="px-8 py-6">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
-                                  <svg
-                                    className="w-5 h-5 text-teal-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                    />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <div className="font-black text-slate-900">
-                                    {r.topCombinations?.[0]?.combination}:{" "}
-                                    {r.topCombinations?.[0]?.totalScore}
-                                  </div>
-                                  <div className="text-[10px] font-black text-slate-400 uppercase">
-                                    {r.topCombinations?.[0]?.totalScore >= 27
-                                      ? "XUẤT SẮC"
-                                      : r.topCombinations?.[0]?.totalScore >= 24
-                                        ? "GIỎI"
-                                        : "KHÁ"}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-8 py-6 text-slate-600 font-medium">
-                              {r.filters?.location ? (
-                                r.filters.location
-                              ) : (
-                                <span className="text-slate-400 italic font-normal">
-                                  Toàn quốc
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-8 py-6 text-slate-600 font-medium">
-                              {r.filters?.type ? (
-                                r.filters.type === "Public" ? (
-                                  "Công lập"
-                                ) : r.filters.type === "Private" ? (
-                                  "Dân lập"
-                                ) : r.filters.type === "International" ? (
-                                  "Quốc tế"
-                                ) : (
-                                  r.filters.type
-                                )
-                              ) : (
-                                <span className="text-slate-400 italic font-normal">
-                                  Tất cả
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-8 py-6 text-slate-600 font-medium">
-                              {r.filters?.maxTuition ? (
-                                `<${(r.filters.maxTuition / 1000000).toFixed(0)}M`
-                              ) : (
-                                <span className="text-slate-400 italic font-normal">
-                                  Không giới hạn
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-8 py-6 text-slate-600 font-medium">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
                                 <svg
-                                  className="w-4 h-4 text-slate-400"
+                                  className="w-5 h-5"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -718,340 +672,92 @@ const HistoryPage = () => {
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth={2}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                                   />
                                 </svg>
-                                {new Date(r.createdAt).toLocaleDateString(
-                                  "vi-VN",
-                                  {
-                                    day: "2-digit",
-                                    month: "long",
-                                    year: "numeric",
-                                  },
-                                )}
                               </div>
-                            </td>
-                            <td className="px-8 py-6">
-                              <span
-                                className={`px-3 py-1 rounded-full text-[10px] font-bold ${r.isNew ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
-                              >
-                                {r.isNew ? "● Có đề xuất mới" : "● Đã xem"}
+                              <div>
+                                <div className="font-black text-slate-900">
+                                  {combo?.combination || "—"}: {sc}
+                                </div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase">
+                                  {scoreQuality(sc)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 rounded-md px-2 py-1">
+                                📍 {r.filters?.location || "Toàn quốc"}
                               </span>
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                              <div className="flex items-center justify-end gap-4">
-                                <button className="p-2 hover:bg-slate-100 rounded-full transition text-slate-400">
-                                  <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M8.684 13.342C8.886 13.171 9 13.103 9.178 13.053c.18-.05.348-.046.555.03c.206.074.41.176.569.314h.4c.22.164.347.483.347.743 0 .26-.127.579-.347.743h-.4c-.21.138-.369.24-.569.314-.207.074-.375.078-.555.03-.18-.05-.312-.122-.438-.25zM15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 11V3m0 0L9 6m3-3l3 3"
-                                    />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    navigate(`/recommendation-detail/${r._id}`)
-                                  }
-                                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition shadow-md shadow-blue-600/20"
-                                >
-                                  Xem lại gợi ý
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M14 5l7 7-7 7"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Card View */}
-                <div className="md:hidden divide-y divide-slate-50">
-                  {academicResults
-                    .slice(
-                      (currentPage - 1) * itemsPerPage,
-                      currentPage * itemsPerPage,
-                    )
-                    .map((r) => (
-                      <div key={r._id} className="p-6 space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
-                              <svg
-                                className="w-5 h-5 text-teal-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                />
-                              </svg>
+                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 rounded-md px-2 py-1">
+                                🏫 {typeLabelVi(r.filters?.type)}
+                              </span>
+                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 rounded-md px-2 py-1">
+                                💳{" "}
+                                {r.filters?.maxTuition
+                                  ? `≤ ${(r.filters.maxTuition / 1000000).toFixed(0)}M`
+                                  : "Không giới hạn"}
+                              </span>
                             </div>
-                            <div>
-                              <div className="font-black text-slate-900">
-                                {r.topCombinations?.[0]?.combination}:{" "}
-                                {r.topCombinations?.[0]?.totalScore}
-                              </div>
-                              <div className="text-[10px] font-black text-slate-400 uppercase">
-                                {r.topCombinations?.[0]?.totalScore >= 27
-                                  ? "XUẤT SẮC"
-                                  : r.topCombinations?.[0]?.totalScore >= 24
-                                    ? "GIỎI"
-                                    : "KHÁ"}
-                              </div>
-                              <div className="grid grid-cols-3 gap-2 mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
-                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                  <span className="text-slate-400">📍</span>
-                                  <span className="truncate">
-                                    {r.filters?.location || "Toàn quốc"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                  <span className="text-slate-400">🏫</span>
-                                  <span className="truncate">
-                                    {r.filters?.type
-                                      ? r.filters.type === "Public"
-                                        ? "Công lập"
-                                        : r.filters.type === "Private"
-                                          ? "Dân lập"
-                                          : r.filters.type === "International"
-                                            ? "Quốc tế"
-                                            : r.filters.type
-                                      : "Tất cả"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                  <span className="text-slate-400">💳</span>
-                                  <span className="truncate">
-                                    {r.filters?.maxTuition
-                                      ? `<${(r.filters.maxTuition / 1000000).toFixed(0)}M`
-                                      : "Không giới hạn"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-[10px] font-bold ${r.isNew ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
-                          >
-                            {r.isNew ? "● Mới" : "● Đã xem"}
-                          </span>
-                        </div>
 
-                        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {new Date(r.createdAt).toLocaleDateString("vi-VN", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </div>
-
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() =>
-                              navigate(`/recommendation-detail/${r._id}`)
-                            }
-                            className="w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-md shadow-blue-600/20"
-                          >
-                            Xem đề xuất
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                            <span
+                              className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${r.isNew ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"}`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M14 5l7 7-7 7"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-                {academicResults.length === 0 && (
-                  <div className="p-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg
-                        className="w-10 h-10 text-slate-300"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
+                              {r.isNew ? "● Có đề xuất mới" : "● Đã xem"}
+                            </span>
+
+                            <button
+                              onClick={() =>
+                                navigate(`/recommendation-detail/${r._id}`)
+                              }
+                              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition whitespace-nowrap"
+                            >
+                              Xem lại gợi ý
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-slate-400 font-medium">
-                      Chưa có lịch sử nhập điểm.
+                  </div>
+                ))}
+
+                {/* Tip card */}
+                <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 md:p-7 flex items-start gap-5">
+                  <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-2xl flex-shrink-0">
+                    💡
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 mb-1">
+                      Mẹo chọn trường thông minh
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-2">
+                      Bạn có thể nhập nhiều tổ hợp điểm khác nhau để so sánh tỉ lệ
+                      trúng tuyển giữa các khối thi. caZup sẽ tự động phân tích và
+                      đưa ra lộ trình tối ưu nhất.
                     </p>
+                    <button
+                      onClick={() => navigate("/recommend")}
+                      className="text-blue-600 text-sm font-bold hover:underline"
+                    >
+                      Nhập điểm & xem gợi ý ngay
+                    </button>
                   </div>
-                )}
-
-                {/* Pagination */}
-                {academicResults.length > itemsPerPage && (
-                  <div className="px-8 py-10 border-t border-slate-100 flex justify-center">
-                    <div className="bg-white px-8 py-4 rounded-full shadow-md border border-slate-100 flex items-center gap-6">
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) => Math.max(prev - 1, 1))
-                        }
-                        disabled={currentPage === 1}
-                        className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 19l-7-7 7-7"
-                          />
-                        </svg>
-                        Trước
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const totalPages = Math.ceil(
-                            academicResults.length / itemsPerPage,
-                          );
-                          const pages = [];
-
-                          if (totalPages <= 7) {
-                            for (let i = 1; i <= totalPages; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (currentPage > 3) pages.push("...");
-
-                            const start = Math.max(2, currentPage - 1);
-                            const end = Math.min(
-                              totalPages - 1,
-                              currentPage + 1,
-                            );
-
-                            for (let i = start; i <= end; i++) {
-                              if (!pages.includes(i)) pages.push(i);
-                            }
-
-                            if (currentPage < totalPages - 2) pages.push("...");
-                            pages.push(totalPages);
-                          }
-
-                          return pages.map((page, idx) =>
-                            page === "..." ? (
-                              <span
-                                key={`ellipsis-${idx}`}
-                                className="text-slate-400 font-medium px-1"
-                              >
-                                ...
-                              </span>
-                            ) : (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
-                                  currentPage === page
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/40 scale-110"
-                                    : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            ),
-                          );
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(
-                              prev + 1,
-                              Math.ceil(academicResults.length / itemsPerPage),
-                            ),
-                          )
-                        }
-                        disabled={
-                          currentPage ===
-                          Math.ceil(academicResults.length / itemsPerPage)
-                        }
-                        className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        Sau
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
-            )}
-          </div>
+            ) : (
+              <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-16 text-center">
+                <p className="text-slate-500 font-medium mb-4">
+                  Chưa có lịch sử nhập điểm.
+                </p>
+                <button
+                  onClick={() => navigate("/recommend")}
+                  className="px-6 py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition"
+                >
+                  Nhập điểm ngay
+                </button>
+              </div>
+            ))}
         </div>
 
         {/* Payment History */}

@@ -88,6 +88,7 @@ exports.getUserManagementStats = async (req, res) => {
       newThisWeek,
       newLastWeek,
       premiumCount,
+      paidCount,
     ] = await Promise.all([
       User.countDocuments(baseFilter),
       User.countDocuments({ ...baseFilter, status: "ACTIVE" }),
@@ -97,6 +98,7 @@ exports.getUserManagementStats = async (req, res) => {
         createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo },
       }),
       User.countDocuments({ ...baseFilter, subscriptionPlan: "PREMIUM" }),
+      User.countDocuments({ ...baseFilter, subscriptionPlan: "PAID" }),
     ]);
 
     res.status(200).json({
@@ -110,6 +112,8 @@ exports.getUserManagementStats = async (req, res) => {
         weekGrowthPct: growthPct(newThisWeek, newLastWeek),
         premiumCount,
         premiumPct: total > 0 ? Math.round((premiumCount / total) * 1000) / 10 : 0,
+        paidCount,
+        paidPct: total > 0 ? Math.round((paidCount / total) * 1000) / 10 : 0,
       },
     });
   } catch (error) {

@@ -280,6 +280,12 @@ const AdminUserManagement = () => {
       value: stats?.premiumCount ?? 0,
       sub: `${stats?.premiumPct ?? 0}% tỉ lệ chuyển đổi`,
       icon: "⭐",
+      secondary: {
+        name: "Gói Paid",
+        value: stats?.paidCount ?? 0,
+        sub: `${stats?.paidPct ?? 0}% tỉ lệ chuyển đổi`,
+        icon: "💎",
+      },
     },
   ];
 
@@ -359,6 +365,23 @@ const AdminUserManagement = () => {
               {loadingStats ? "…" : card.value.toLocaleString("vi-VN")}
             </h3>
             <p className="text-xs text-slate-400">{card.sub}</p>
+
+            {card.secondary && (
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <div className="flex items-start justify-between mb-2">
+                  <p className="text-slate-500 text-sm font-medium">
+                    {card.secondary.name}
+                  </p>
+                  <span className="text-lg bg-slate-50 rounded-lg p-1.5">
+                    {card.secondary.icon}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-1">
+                  {loadingStats ? "…" : card.secondary.value.toLocaleString("vi-VN")}
+                </h3>
+                <p className="text-xs text-slate-400">{card.secondary.sub}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>

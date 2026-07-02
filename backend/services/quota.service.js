@@ -75,6 +75,7 @@ const getQuota = async (userId, feature) => {
   }
 
   return {
+    plan,
     limit,
     used: count,
     remaining: limit === Infinity ? Infinity : limit - count,

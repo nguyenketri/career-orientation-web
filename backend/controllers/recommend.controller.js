@@ -148,9 +148,10 @@ exports.getRecommendQuota = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
+      const used = req.cookies?.guest_trial ? 1 : 0;
       return res.status(200).json({
         status: "success",
-        data: { limit: 1, remaining: req.cookies?.guest_trial ? 0 : 1 },
+        data: { plan: "GUEST", limit: 1, used, remaining: 1 - used },
       });
     }
     const quota = await quotaService.getQuota(userId, "recommendations");

@@ -31,9 +31,9 @@ const RecommendPage = () => {
     if (!getUser()) {
       const guestUsed = localStorage.getItem("guest_recommendation_used");
       if (guestUsed) {
-        setQuota({ used: 1, limit: 1, remaining: 0 });
+        setQuota({ plan: "GUEST", used: 1, limit: 1, remaining: 0 });
       } else {
-        setQuota({ used: 0, limit: 1, remaining: 1 });
+        setQuota({ plan: "GUEST", used: 0, limit: 1, remaining: 1 });
       }
       return;
     }
@@ -167,21 +167,61 @@ const RecommendPage = () => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Uni")}&background=random&size=400`;
   };
 
+  // Xác suất đậu dựa trên khoảng cách điểm user so với điểm chuẩn
+  const getProbability = (item) => {
+    const margin =
+      (item.userScoreForCombination ?? 0) - (item.admissionScore ?? 0);
+    if (margin >= 2) return { label: "Rất cao (>99%)", color: "text-green-600" };
+    if (margin >= 0) return { label: "Cao (95%)", color: "text-green-600" };
+    if (margin >= -2) return { label: "Trung bình (70%)", color: "text-orange-500" };
+    return { label: "Thử sức (55%)", color: "text-rose-500" };
+  };
+
+  const totalResults = result?.total ?? result?.totalResults ?? 0;
+  const remainingResults = Math.max(
+    totalResults - (result?.recommendations?.length || 0),
+    0,
+  );
+
+  const sortedCombinations = result?.combinations
+    ? [...result.combinations].sort((a, b) => b.score - a.score)
+    : [];
+
+  // Nhãn hiển thị lượt dùng theo gói dịch vụ
+  const renderQuotaBadge = () => {
+    if (!quota) return null;
+    const plan = quota.plan || (getUser() ? "FREE" : "GUEST");
+
+    if (quota.limit === Infinity || plan === "PREMIUM") {
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600">
+          <span>✨</span> Không giới hạn lượt (Premium)
+        </span>
+      );
+    }
+
+    const remaining = quota.remaining ?? 0;
+    const isGuest = plan === "GUEST";
+    return (
+      <span
+        className={`text-[11px] font-bold ${
+          remaining === 0 ? "text-rose-500" : "text-slate-400"
+        }`}
+      >
+        Còn{" "}
+        <span
+          className={remaining === 0 ? "text-rose-500" : "text-blue-600"}
+        >
+          {remaining}
+        </span>
+        /{quota.limit} lượt {isGuest ? "thử miễn phí" : "hôm nay"}
+      </span>
+    );
+  };
+
   return (
     <>
       <div className="min-h-screen bg-slate-50 px-4 md:px-8 pt-24 pb-20 text-slate-900">
-        {/* Disclaimer */}
-        <div className="mx-auto max-w-7xl mb-6">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 flex items-start gap-3">
-            <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs text-amber-700 leading-relaxed">
-              <span className="font-bold">Lưu ý:</span> Các gợi ý trường và ngành học từ caZup AI được tạo ra dựa trên điểm số và bộ lọc bạn cung cấp, chỉ mang tính chất tham khảo. Kết quả chưa được xác thực hoàn toàn và có thể không phản ánh đầy đủ thực tế tuyển sinh. Hãy tham khảo thêm từ nhà trường, thầy cô và các kênh thông tin chính thức.
-            </p>
-          </div>
-        </div>
-
         <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-72 flex-shrink-0">
@@ -263,17 +303,14 @@ const RecommendPage = () => {
                   }
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
-                <div className="flex justify-between w-full mt-8 px-4">
+                <div className="flex justify-between w-full mt-4 px-1">
                   {["10M", "50M", "100M", "150M", "200M+"].map((marker) => (
-                    <div
+                    <span
                       key={marker}
-                      className="flex flex-col items-center gap-4"
+                      className="text-[10px] font-medium text-slate-400 tracking-wider"
                     >
-                      <div className="w-px h-1 bg-slate-300"></div>
-                      <span className="text-[10px] font-normal text-slate-400 tracking-widest">
-                        {marker}
-                      </span>
-                    </div>
+                      {marker}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -333,7 +370,7 @@ const RecommendPage = () => {
           <main className="flex-1">
             {/* Score Input Section */}
             <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm mb-8">
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-black text-slate-900">
                     Phân tích tổ hợp điểm
@@ -343,6 +380,22 @@ const RecommendPage = () => {
                     nhất.
                   </p>
                 </div>
+                <span className="hidden sm:inline-flex items-center gap-1.5 shrink-0 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-[11px] font-bold text-green-600">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Dữ liệu 2023
+                </span>
               </div>
 
               <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
@@ -363,35 +416,49 @@ const RecommendPage = () => {
                 ))}
               </div>
 
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-slate-100">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pt-6 border-t border-slate-100">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold text-slate-500">
+                  <span className="text-sm font-bold text-slate-500 shrink-0">
                     Kết quả tổ hợp:
                   </span>
-                  <div className="flex gap-2">
-                    {result?.combinations?.map((combo) => (
+                  <div className="flex flex-wrap gap-2">
+                    {sortedCombinations.map((combo, i) => (
                       <div
                         key={combo.name}
-                        className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold"
+                        className={`flex flex-col items-center px-4 py-1.5 rounded-xl min-w-[62px] ${
+                          i === 0
+                            ? "bg-slate-900 shadow-md shadow-slate-200"
+                            : "bg-slate-100"
+                        }`}
                       >
-                        {combo.name}:{" "}
-                        <span className="text-blue-300">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider ${
+                            i === 0 ? "text-slate-400" : "text-slate-400"
+                          }`}
+                        >
+                          {combo.name}
+                        </span>
+                        <span
+                          className={`text-base font-black ${
+                            i === 0 ? "text-white" : "text-slate-900"
+                          }`}
+                        >
                           {combo.score.toFixed(1)}
                         </span>
                       </div>
                     ))}
                     {!result && (
-                      <span className="text-xs text-slate-400 italic">
+                      <span className="text-xs text-slate-400 italic self-center">
                         Nhập điểm để xem tổ hợp...
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-stretch md:items-end gap-2 w-full md:w-auto">
                   {!getUser() && (
-                    <p className="text-[10px] font-bold text-slate-500 text-center mb-1">
-                      Bạn có 1 lần thử miễn phí. Sau đó hãy đăng ký hoặc đăng
-                      nhập để thêm lượt.
+                    <p className="text-[10px] font-medium text-slate-500 text-center md:text-right max-w-[240px] md:self-end leading-relaxed">
+                      Bạn có <b>1 lượt</b> thử miễn phí. Đăng ký để mở khóa{" "}
+                      <b>3 lượt/ngày</b> (FREE) hoặc nhiều hơn.
                     </p>
                   )}
                   <button
@@ -399,7 +466,7 @@ const RecommendPage = () => {
                     className="w-full md:w-auto px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition shadow-lg shadow-orange-200 active:scale-95"
                   >
                     {loading ? (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         <svg
                           className="animate-spin h-4 w-4 text-white"
                           viewBox="0 0 24 24"
@@ -425,11 +492,9 @@ const RecommendPage = () => {
                       "Tìm kiếm ngay"
                     )}
                   </button>
-                  {quota && quota.limit !== Infinity && (
-                    <span className="text-[10px] font-bold text-slate-400">
-                      Còn {quota.remaining} lượt thử miễn phí hôm nay
-                    </span>
-                  )}
+                  <div className="text-center md:text-right">
+                    {renderQuotaBadge()}
+                  </div>
                 </div>
               </div>
               {error && (
@@ -444,8 +509,7 @@ const RecommendPage = () => {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-black text-slate-900">
                   Ngành học & Trường phù hợp{" "}
-                  {result &&
-                    `(${result.totalResults || result.recommendations?.length || 0} kết quả)`}
+                  {result && `(${totalResults} kết quả)`}
                 </h3>
                 <div className="flex bg-white border border-slate-200 rounded-lg p-1">
                   <button className="p-1.5 bg-slate-100 rounded-md text-slate-600">
@@ -471,7 +535,7 @@ const RecommendPage = () => {
 
               {result?.recommendations?.length > 0 ? (
                 <div
-                  className={`grid gap-4 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}
+                  className={`relative grid gap-4 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}
                 >
                   {loading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -501,111 +565,111 @@ const RecommendPage = () => {
                       </div>
                     </div>
                   )}
-                  {result.recommendations.map((item, idx) => (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      key={`${item._id}_${idx}`}
-                      className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col md:flex-row gap-6 hover:shadow-md transition group"
-                    >
-                      {/* University Image */}
-                      <div className="w-full md:w-48 h-32 rounded-xl overflow-hidden flex-shrink-0">
-                        <img
-                          src={
-                            item.university?.image ||
-                            getUniversityImage(item.university?.name)
-                          }
-                          alt={item.university?.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                          onError={(e) => {
-                            e.target.src = getUniversityImage(
-                              item.university?.name,
-                            );
-                          }}
-                        />
-                      </div>
+                  {result.recommendations.map((item, idx) => {
+                    const prob = getProbability(item);
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: (idx % 5) * 0.05 }}
+                        key={`${item._id}_${idx}`}
+                        className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col md:flex-row gap-5 hover:shadow-lg hover:border-slate-200 transition group"
+                      >
+                        {/* University Image */}
+                        <div className="w-full md:w-44 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                          <img
+                            src={
+                              item.university?.image ||
+                              getUniversityImage(item.university?.name)
+                            }
+                            alt={item.university?.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            onError={(e) => {
+                              e.target.src = getUniversityImage(
+                                item.university?.name,
+                              );
+                            }}
+                          />
+                        </div>
 
-                      {/* Content */}
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
-                                item.university?.type === "Public"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : item.university?.type === "Private"
-                                    ? "bg-orange-100 text-orange-600"
-                                    : "bg-purple-100 text-purple-600"
-                              }`}
-                            >
-                              {item.university?.type === "Public"
-                                ? "Công lập"
-                                : item.university?.type === "Private"
-                                  ? "Dân lập"
-                                  : "Quốc tế"}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                              {item.university?.location || "Việt Nam"}
-                            </span>
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span
+                                  className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
+                                    item.university?.type === "Public"
+                                      ? "bg-blue-100 text-blue-600"
+                                      : item.university?.type === "Private"
+                                        ? "bg-orange-100 text-orange-600"
+                                        : "bg-purple-100 text-purple-600"
+                                  }`}
+                                >
+                                  {item.university?.type === "Public"
+                                    ? "Công lập"
+                                    : item.university?.type === "Private"
+                                      ? "Dân lập"
+                                      : "Quốc tế"}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                  {item.university?.location || "Việt Nam"}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition">
+                                {item.university?.name}
+                              </h4>
+                              <p className="text-md font-bold text-slate-700">
+                                {item.major?.name}
+                              </p>
+                            </div>
+
+                            {/* Điểm chuẩn */}
+                            <div className="text-right flex-shrink-0">
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                                Điểm chuẩn 2023
+                              </span>
+                              <span className="block text-2xl font-black text-orange-500 leading-tight">
+                                {item.admissionScore}
+                              </span>
+                            </div>
                           </div>
-                          <h4 className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition">
-                            {item.university?.name}
-                          </h4>
-                          <p className="text-md font-bold text-slate-700 mb-3">
-                            {item.major?.name}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-sm text-slate-500 font-medium">
-                            <div className="flex items-center gap-1">
+
+                          <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-sm text-slate-500 font-medium mt-3">
+                            <div className="flex items-center gap-1.5">
                               <span>💰</span>
                               <span>
                                 {item.tuitionFee
-                                  ? `${(item.tuitionFee / 1000000).toFixed(0)} Triệu / năm`
+                                  ? `~${(item.tuitionFee / 1000000).toFixed(0)} Triệu / năm`
                                   : "Đang cập nhật"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5">
                               <span>🎯</span>
                               <span className="text-slate-900 font-bold">
-                                Xác suất đủ:
-                                <span
-                                  className={
-                                    item.level === "SAFE"
-                                      ? "text-green-600"
-                                      : "text-orange-600"
-                                  }
-                                >
-                                  {item.level === "SAFE"
-                                    ? " Cao (95%)"
-                                    : " Trung bình (70%)"}
+                                Xác suất đậu:
+                                <span className={prob.color}>
+                                  {" "}
+                                  {prob.label}
                                 </span>
                               </span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex justify-end mt-4">
-                          <button
-                            onClick={() =>
-                              navigate(`/university/${item.university._id}`)
-                            }
-                            className="text-blue-600 text-sm font-bold hover:underline flex items-center gap-1"
-                          >
-                            Chi tiết <span className="text-lg">›</span>
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* Score */}
-                      <div className="flex flex-col items-center justify-center px-4 border-l border-slate-100">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">
-                          Điểm chuẩn
-                        </span>
-                        <span className="text-2xl font-black text-slate-900">
-                          {item.admissionScore}
-                        </span>
-                      </div>
-                    </motion.div>
-                  ))}
+                          <div className="flex justify-end mt-auto pt-3">
+                            <button
+                              onClick={() =>
+                                navigate(`/university/${item.university._id}`)
+                              }
+                              className="text-blue-600 text-sm font-bold hover:underline flex items-center gap-1"
+                            >
+                              Chi tiết <span className="text-lg">›</span>
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               ) : (
                 !loading &&
@@ -623,12 +687,40 @@ const RecommendPage = () => {
                   <button
                     onClick={() => handleRecommend(true)}
                     disabled={loadingMore}
-                    className="px-8 py-3 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm disabled:opacity-50"
+                    className="px-8 py-3 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm disabled:opacity-50 flex items-center gap-2"
                   >
-                    {loadingMore ? "Đang tải..." : "Xem thêm kết quả ▾"}
+                    {loadingMore
+                      ? "Đang tải..."
+                      : `Xem thêm ${remainingResults} trường khác`}
+                    {!loadingMore && <span className="text-base">▾</span>}
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Disclaimer */}
+            <div className="mt-10 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-blue-500 shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                <span className="font-bold text-slate-700">Lưu ý:</span> Mọi kết
+                quả và gợi ý từ <span className="font-bold">caZup</span> đều dựa
+                trên dữ liệu phân tích và mang tính chất tham khảo khách quan.
+                Kết quả có thể không phản ánh đầy đủ thực tế tuyển sinh. Quyết
+                định cuối cùng nên dựa trên sự cân nhắc kỹ lưỡng của bạn, gia
+                đình và các chuyên gia tư vấn giáo dục.
+              </p>
             </div>
           </main>
         </div>

@@ -21,8 +21,6 @@ const fmtDate = (d) =>
   d && !isNaN(new Date(d).getTime())
     ? new Date(d).toLocaleDateString("vi-VN")
     : "—";
-const fmtPct = (n) =>
-  n === null || n === undefined ? "Mới" : `${n > 0 ? "+" : ""}${n}%`;
 
 // Escape 1 ô CSV: bọc trong dấu ngoặc kép, nhân đôi dấu " bên trong
 const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -261,34 +259,26 @@ const AdminDashboard = () => {
 
   const statCards = [
     {
-      name: "Người dùng mới",
+      name: "Người dùng mới (tháng này)",
       value: stats?.newUsersThisMonth ?? 0,
-      trend: fmtPct(stats?.newUsersGrowthPct),
-      up: (stats?.newUsersGrowthPct ?? 0) >= 0,
       icon: "👤",
       color: "bg-blue-100",
     },
     {
-      name: "Doanh thu tháng",
+      name: "Doanh thu tháng này",
       value: fmtVND(stats?.revenueThisMonth),
-      trend: fmtPct(stats?.revenueGrowthPct),
-      up: (stats?.revenueGrowthPct ?? 0) >= 0,
       icon: "💰",
       color: "bg-orange-100",
     },
     {
-      name: "Ngành hot nhất",
-      value: stats?.topMajors?.[0]?.name || "—",
-      trend: "Ổn định",
-      neutral: true,
+      name: "Ngành hot nhất (tháng này)",
+      value: stats?.topMajorThisMonth?.name || "Chưa có dữ liệu",
       icon: "🎓",
       color: "bg-blue-100",
     },
     {
       name: "Test MBTI hoàn thành",
       value: stats?.mbtiTotal ?? 0,
-      trend: fmtPct(stats?.mbtiGrowthPct),
-      up: (stats?.mbtiGrowthPct ?? 0) >= 0,
       icon: "🧠",
       color: "bg-teal-100",
     },
@@ -323,21 +313,8 @@ const AdminDashboard = () => {
             key={card.name}
             className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`${card.color} p-2.5 rounded-xl text-lg`}>
-                {card.icon}
-              </div>
-              <span
-                className={`text-xs font-bold px-2 py-1 rounded-full ${
-                  card.neutral
-                    ? "bg-slate-100 text-slate-500"
-                    : card.up
-                      ? "bg-green-50 text-green-600"
-                      : "bg-red-50 text-red-500"
-                }`}
-              >
-                {card.trend}
-              </span>
+            <div className={`${card.color} p-2.5 rounded-xl text-lg w-fit mb-4`}>
+              {card.icon}
             </div>
             <p className="text-slate-500 text-xs font-medium mb-1">
               {card.name}

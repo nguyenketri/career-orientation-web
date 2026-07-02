@@ -81,7 +81,7 @@ exports.getAdminStats = async (req, res) => {
       createdAt: { $gte: startLastMonth, $lt: startThisMonth },
     });
 
-    // --- Ngành học được gợi ý nhiều nhất (từ kết quả Holland + MBTI thật) ---
+    // --- Ngành học được gợi ý nhiều nhất — MỌI THỜI ĐIỂM (từ Holland + MBTI thật) ---
     const [hollandTop, mbtiTop] = await Promise.all([
       HollandResult.aggregate([
         { $unwind: "$recommendedMajors" },
@@ -97,6 +97,34 @@ exports.getAdminStats = async (req, res) => {
       const key = x._id.toString();
       combinedCounts[key] = (combinedCounts[key] || 0) + x.count;
     });
+
+    // --- Ngành "hot" THÁNG NÀY — chỉ số khác biệt với Top Ngành Học (mọi thời điểm) ---
+    const [hollandTopMonth, mbtiTopMonth] = await Promise.all([
+      HollandResult.aggregate([
+        { $match: { createdAt: { $gte: startThisMonth } } },
+        { $unwind: "$recommendedMajors" },
+        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
+      ]),
+      MbtiResult.aggregate([
+        { $match: { createdAt: { $gte: startThisMonth } } },
+        { $unwind: "$recommendedMajors" },
+        { $group: { _id: "$recommendedMajors", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const monthCounts = {};
+    [...hollandTopMonth, ...mbtiTopMonth].forEach((x) => {
+      const key = x._id.toString();
+      monthCounts[key] = (monthCounts[key] || 0) + x.count;
+    });
+    const rankedMonthIds = Object.entries(monthCounts).sort(
+      (a, b) => b[1] - a[1],
+    );
+    let topMajorThisMonth = null;
+    if (rankedMonthIds.length > 0) {
+      const [hotId, hotCount] = rankedMonthIds[0];
+      const hotMajor = await Major.findById(hotId).select("name").lean();
+      topMajorThisMonth = { name: hotMajor?.name || "—", count: hotCount };
+    }
     const rankedMajorIds = Object.entries(combinedCounts).sort(
       (a, b) => b[1] - a[1],
     );
@@ -130,6 +158,7 @@ exports.getAdminStats = async (req, res) => {
         mbtiTotal: totalMbtiTests,
         mbtiGrowthPct: growthPct(mbtiThisMonth, mbtiLastMonth),
         topMajors: topMajorsRanked,
+        topMajorThisMonth,
       },
     });
   } catch (error) {

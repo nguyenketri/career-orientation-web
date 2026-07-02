@@ -57,30 +57,77 @@ const calculateCombinations = (scores) => {
   return combinations.filter((c) => c.score > 0);
 };
 
+// Trả về danh sách năm có dữ liệu điểm chuẩn (giảm dần: mới nhất trước)
+const getAvailableYears = async () => {
+  const years = await UniversityMajor.distinct("admissionHistory.year", {
+    isDeleted: false,
+  });
+  return years.filter((y) => y != null).sort((a, b) => b - a);
+};
+
+// Lấy dữ liệu tuyển sinh của 1 ngành-trường theo năm được chọn.
+// year = "all" (hoặc null) => dùng năm mới nhất để hiển thị headline.
+const getAdmissionForYear = (item, year, latestYear) => {
+  const hist = Array.isArray(item.admissionHistory)
+    ? item.admissionHistory
+    : [];
+  const targetYear = year && year !== "all" ? Number(year) : latestYear;
+
+  const rec = hist.find((h) => Number(h.year) === Number(targetYear));
+  if (rec) {
+    return {
+      year: rec.year,
+      admissionScore: rec.admissionScore,
+      tuitionFee: rec.tuitionFee != null ? rec.tuitionFee : item.tuitionFee,
+      subjectCombination: rec.subjectCombination || item.subjectCombination,
+    };
+  }
+
+  // Fallback: bản ghi năm mới nhất trong lịch sử, rồi tới dữ liệu top-level
+  if (hist.length) {
+    const latest = [...hist].sort((a, b) => b.year - a.year)[0];
+    return {
+      year: latest.year,
+      admissionScore: latest.admissionScore,
+      tuitionFee:
+        latest.tuitionFee != null ? latest.tuitionFee : item.tuitionFee,
+      subjectCombination: latest.subjectCombination || item.subjectCombination,
+    };
+  }
+  return {
+    year: null,
+    admissionScore: item.admissionScore,
+    tuitionFee: item.tuitionFee,
+    subjectCombination: item.subjectCombination,
+  };
+};
+
 const recommendBySubjects = async (
   userId,
   scores,
   filters = {},
   pagination = {},
+  options = {},
 ) => {
   const combinations = calculateCombinations(scores);
   const { location, type, maxTuition } = filters;
   const { page = 1, limit = 5 } = pagination;
+  const { year = "all", saveHistory = false } = options;
 
-  console.log("\n--- Recommendation Request ---");
-  console.log("Filters:", { location, type, maxTuition });
-  console.log("Combinations:", combinations);
+  const availableYears = await getAvailableYears();
+  const latestYear = availableYears[0] || new Date().getFullYear();
+  const selectedYear = year && year !== "all" ? Number(year) : "all";
 
   // Sort descending by score
   combinations.sort((a, b) => b.score - a.score);
 
   let eligibleUniversityMajors = [];
 
-  // Lấy danh sách ngành của các trường mà điểm của học sinh (theo từng tổ hợp) có khả năng đỗ
+  // Lấy danh sách ngành của các trường mà điểm học sinh (theo từng tổ hợp) có
+  // khả năng đỗ. Lọc điểm chuẩn / học phí theo ĐÚNG năm đang chọn.
   for (const combo of combinations) {
     const um = await UniversityMajor.find({
       subjectCombination: combo.name,
-      admissionScore: { $lte: combo.score + 5 },
       isDeleted: false,
     })
       .populate({
@@ -93,63 +140,40 @@ const recommendBySubjects = async (
       })
       .populate("major");
 
-    // Filter out if university didn't match filters
-    const filteredUm = um.filter((item) => item.university !== null);
-    console.log(
-      `- Combo ${combo.name}: Found ${um.length} total, ${filteredUm.length} matched filters`,
+    // Bỏ qua nếu trường/ngành không khớp bộ lọc hoặc đã bị xóa
+    const filteredUm = um.filter(
+      (item) => item.university !== null && item.major !== null,
     );
 
-    // Filter by tuition fee
-    const finalUm = maxTuition
-      ? filteredUm.filter((item) => {
-          const itemObj = item.toObject();
+    for (const doc of filteredUm) {
+      const item = doc.toObject();
+      const admission = getAdmissionForYear(item, selectedYear, latestYear);
 
-          // Try to get tuition fee from top level or the most recent admission history
-          let fee = itemObj.tuitionFee;
-          if (
-            (fee === undefined || fee === null) &&
-            itemObj.admissionHistory?.length > 0
-          ) {
-            // Get the most recent year's tuition fee
-            const sortedHistory = [...itemObj.admissionHistory].sort(
-              (a, b) => b.year - a.year,
-            );
-            fee = sortedHistory[0].tuitionFee;
-          }
+      if (admission.admissionScore == null) continue;
 
-          const numericMaxTuition = Number(maxTuition);
-          const numericFee =
-            fee !== undefined && fee !== null ? Number(fee) : null;
+      // Lọc theo dải điểm (điểm chuẩn <= điểm user + 5) theo năm đang chọn
+      if (admission.admissionScore > combo.score + 5) continue;
 
-          // If fee is missing, we allow it (as per previous requirement)
-          if (numericFee === null) return true;
+      // Lọc theo học phí (dùng học phí của năm đang chọn)
+      if (maxTuition) {
+        const fee =
+          admission.tuitionFee != null ? admission.tuitionFee : item.tuitionFee;
+        if (fee != null && Number(fee) > Number(maxTuition)) continue;
+      }
 
-          const isAllowed = numericFee <= numericMaxTuition;
-
-          if (!isAllowed) {
-            console.log(
-              `[TuitionFilter] Filtering out Major ${itemObj._id}: Fee ${numericFee} > Max ${numericMaxTuition}`,
-            );
-          }
-          return isAllowed;
-        })
-      : filteredUm;
-
-    // Thêm thuộc tính để nhận dạng
-    const mapped = finalUm.map((item) => ({
-      ...item.toObject(),
-      matchCombination: combo.name,
-      userScoreForCombination: combo.score,
-      level: combo.score >= item.admissionScore ? "SAFE" : "CHALLENGE",
-    }));
-
-    eligibleUniversityMajors.push(...mapped);
+      eligibleUniversityMajors.push({
+        ...item,
+        matchCombination: combo.name,
+        userScoreForCombination: combo.score,
+        // Ghi đè điểm chuẩn & học phí về đúng năm đang chọn để hiển thị
+        displayYear: admission.year,
+        admissionScore: admission.admissionScore,
+        tuitionFee:
+          admission.tuitionFee != null ? admission.tuitionFee : item.tuitionFee,
+        level: combo.score >= admission.admissionScore ? "SAFE" : "CHALLENGE",
+      });
+    }
   }
-
-  // Sắp xếp theo điểm user giảm dần
-  eligibleUniversityMajors.sort(
-    (a, b) => b.userScoreForCombination - a.userScoreForCombination,
-  );
 
   // Loại bỏ trùng lặp (một ngành ở một trường có thể xuất hiện ở nhiều tổ hợp)
   const uniqueResults = [];
@@ -163,35 +187,38 @@ const recommendBySubjects = async (
     }
   }
 
+  // Sắp xếp theo điểm chuẩn giảm dần (trường top hiển thị trước)
+  uniqueResults.sort(
+    (a, b) => (b.admissionScore || 0) - (a.admissionScore || 0),
+  );
+
   let analysisRecord = null;
-  // Chỉ lưu lịch sử khi user đăng nhập VÀ đây là trang đầu tiên (tránh tạo trùng lặp khi load-more)
-  if (userId && page === 1) {
+  // Chỉ lưu lịch sử khi là lần tìm kiếm thật (không lưu khi đổi năm / xem thêm)
+  if (userId && page === 1 && saveHistory) {
     try {
       analysisRecord = await ScoreAnalysis.create({
         user: userId,
         subjectScores: scores,
-        filters: { location, type, maxTuition },
+        targetYear: selectedYear === "all" ? undefined : selectedYear,
+        filters: { location, type, maxTuition, year: selectedYear },
         topCombinations: combinations.map((c) => ({
           combination: c.name,
           totalScore: c.score,
         })),
         recommendedUniversityMajors: uniqueResults.map((e) => e._id),
       });
-      console.log("[Recommend] ScoreAnalysis saved:", analysisRecord._id);
     } catch (createErr) {
-      console.error("[Recommend] Failed to save ScoreAnalysis:", createErr.message, createErr.stack);
+      console.error(
+        "[Recommend] Failed to save ScoreAnalysis:",
+        createErr.message,
+      );
     }
   }
 
-  const processedResults = uniqueResults;
-
   // Pagination
-  const total = processedResults.length;
+  const total = uniqueResults.length;
   const startIndex = (page - 1) * limit;
-  const paginatedResults = processedResults.slice(
-    startIndex,
-    startIndex + limit,
-  );
+  const paginatedResults = uniqueResults.slice(startIndex, startIndex + limit);
 
   return {
     combinations,
@@ -201,6 +228,9 @@ const recommendBySubjects = async (
     totalPages: Math.ceil(total / limit),
     recommendations: paginatedResults,
     analysisId: analysisRecord ? analysisRecord._id : null,
+    availableYears,
+    latestYear,
+    selectedYear,
   };
 };
 
@@ -310,6 +340,7 @@ Hãy viết một cách chuyên nghiệp, truyền cảm hứng, chi tiết và 
 
 module.exports = {
   recommendBySubjects,
+  getAvailableYears,
   getScoreAnalysisHistory,
   getScoreAnalysisById,
   recommendByScore,

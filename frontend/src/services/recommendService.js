@@ -7,12 +7,27 @@ export const recommendByScore = async (score) => {
 };
 
 // recommend majors by subject combination scores
-export const recommendBySubjects = async (scores, filters, pagination) => {
+// year: "all" | 2023 | 2024 | 2025 ...  — countUsage=false khi chỉ đổi năm để xem (không trừ lượt)
+export const recommendBySubjects = async (
+  scores,
+  filters,
+  pagination,
+  year = "all",
+  countUsage = true,
+) => {
   const response = await axiosClient.post("/recommend/subjects", {
     scores,
     filters,
     pagination,
+    year,
+    countUsage,
   });
+  return response.data;
+};
+
+// get available admission years (for the year selector)
+export const getRecommendYears = async () => {
+  const response = await axiosClient.get("/recommend/years");
   return response.data;
 };
 

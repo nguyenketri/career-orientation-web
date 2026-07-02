@@ -7,6 +7,7 @@ const {
 
 const {
   recommendSubjects,
+  getYears,
   getAnalysisHistory,
   getAnalysisDetail,
   recommendScore,
@@ -16,6 +17,7 @@ const {
 
 // NEW:
 router.post("/subjects", optionalAuthMiddleware, recommendSubjects);
+router.get("/years", getYears);
 router.get("/history", authMiddleware, getAnalysisHistory);
 router.get("/history/:id", authMiddleware, getAnalysisDetail);
 

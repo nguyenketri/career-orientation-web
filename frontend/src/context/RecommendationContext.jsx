@@ -30,12 +30,15 @@ export const RecommendationProvider = ({ children }) => {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [result, setResult] = useState(null);
   const [pagination, setPagination] = useState(INITIAL_PAGINATION);
+  // Năm điểm chuẩn đang xem: "all" = tất cả các năm
+  const [selectedYear, setSelectedYear] = useState("all");
 
   const resetRecommendation = () => {
     setScores(INITIAL_SCORES);
     setFilters(INITIAL_FILTERS);
     setResult(null);
     setPagination(INITIAL_PAGINATION);
+    setSelectedYear("all");
   };
 
   useEffect(() => {
@@ -57,6 +60,8 @@ export const RecommendationProvider = ({ children }) => {
         setResult,
         pagination,
         setPagination,
+        selectedYear,
+        setSelectedYear,
         resetRecommendation,
       }}
     >

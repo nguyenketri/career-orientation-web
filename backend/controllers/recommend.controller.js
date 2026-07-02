@@ -1,5 +1,6 @@
 const {
   recommendBySubjects,
+  getAvailableYears,
   getScoreAnalysisHistory,
   getScoreAnalysisById,
   recommendByScore,
@@ -9,15 +10,18 @@ const quotaService = require("../services/quota.service");
 
 exports.recommendSubjects = async (req, res) => {
   try {
-    const { scores, filters, pagination } = req.body;
+    const { scores, filters, pagination, year, countUsage } = req.body;
     const userId = req.user?.id || null;
     const page = pagination?.page || 1;
-    console.log(`[Recommend] userId=${userId}, page=${page}`);
+    // Chỉ tính 1 lượt khi là tìm kiếm MỚI (trang đầu). Đổi năm để xem lại điểm
+    // (countUsage === false) hoặc bấm "Xem thêm" (page > 1) KHÔNG tính lượt.
+    const isCounting = page === 1 && countUsage !== false;
+    console.log(`[Recommend] userId=${userId}, page=${page}, year=${year}, counting=${isCounting}`);
 
-    // Guest logic: 1 free trial
+    // Guest logic: 1 free trial (chỉ chặn khi thực sự tính lượt)
     if (!userId) {
       const guestTrial = req.cookies?.guest_trial;
-      if (guestTrial) {
+      if (isCounting && guestTrial) {
         return res.status(403).json({
           status: "error",
           message:
@@ -25,7 +29,7 @@ exports.recommendSubjects = async (req, res) => {
           code: "QUOTA_EXCEEDED",
         });
       }
-    } else if (page === 1) {
+    } else if (isCounting) {
       const hasQuota = await quotaService.checkQuota(userId, "recommendations");
       if (!hasQuota) {
         return res.status(403).json({
@@ -42,14 +46,17 @@ exports.recommendSubjects = async (req, res) => {
       scores,
       filters,
       pagination,
+      { year, saveHistory: isCounting && !!userId },
     );
 
     if (!userId) {
-      res.cookie("guest_trial", "true", {
-        maxAge: 365 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-      });
-    } else if (page === 1) {
+      if (isCounting) {
+        res.cookie("guest_trial", "true", {
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+          httpOnly: true,
+        });
+      }
+    } else if (isCounting) {
       await quotaService.incrementQuota(userId, "recommendations");
     }
 
@@ -59,6 +66,19 @@ exports.recommendSubjects = async (req, res) => {
         ...result,
         totalResults: result.total,
       },
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// Danh sách năm có dữ liệu điểm chuẩn (dùng cho bộ chọn năm ở FE)
+exports.getYears = async (req, res) => {
+  try {
+    const availableYears = await getAvailableYears();
+    return res.status(200).json({
+      status: "success",
+      data: { availableYears, latestYear: availableYears[0] || null },
     });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });

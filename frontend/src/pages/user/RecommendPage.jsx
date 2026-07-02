@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   recommendBySubjects,
   getRecommendQuota,
+  getRecommendYears,
 } from "../../services/recommendService";
 import { getUser } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
@@ -18,12 +19,15 @@ const RecommendPage = () => {
     setFilters,
     pagination,
     setPagination,
+    selectedYear,
+    setSelectedYear,
   } = useRecommendation();
 
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [quota, setQuota] = useState(null);
+  const [availableYears, setAvailableYears] = useState([]);
   const navigate = useNavigate();
   const requestCountRef = useRef(0);
 
@@ -53,9 +57,30 @@ const RecommendPage = () => {
     return () => clearTimeout(timer);
   }, [fetchQuota]);
 
-  const handleRecommend = async (isLoadMore = false) => {
-    // Check guest quota
-    if (!getUser() && !isLoadMore) {
+  // Lấy danh sách năm có dữ liệu điểm chuẩn cho bộ chọn năm
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getRecommendYears();
+        if (res?.data?.availableYears?.length) {
+          setAvailableYears(res.data.availableYears);
+        }
+      } catch (err) {
+        console.error("Error fetching years:", err);
+      }
+    })();
+  }, []);
+
+  const handleRecommend = async (isLoadMore = false, overrides = {}) => {
+    // year & countUsage cho phép đổi năm mà KHÔNG trừ lượt (countUsage=false)
+    const year = overrides.year !== undefined ? overrides.year : selectedYear;
+    const willCount =
+      overrides.countUsage !== undefined ? overrides.countUsage : true;
+    // "Xem thêm" (load more) không bao giờ trừ lượt
+    const countUsage = isLoadMore ? false : willCount;
+
+    // Check guest quota (chỉ chặn khi thực sự trừ lượt)
+    if (!getUser() && !isLoadMore && countUsage) {
       const guestUsed = localStorage.getItem("guest_recommendation_used");
       if (guestUsed) {
         navigate("/login");
@@ -100,9 +125,15 @@ const RecommendPage = () => {
           maxTuition: filters.maxTuition * 1000000,
         },
         { ...pagination, page: currentPage },
+        year,
+        countUsage,
       );
 
       if (currentRequestId !== requestCountRef.current) return;
+
+      if (response.data?.availableYears?.length) {
+        setAvailableYears(response.data.availableYears);
+      }
 
       if (isLoadMore) {
         setResult((prev) => ({
@@ -118,8 +149,8 @@ const RecommendPage = () => {
         setPagination((prev) => ({ ...prev, page: 1 }));
       }
 
-      // Update quota after successful search
-      if (!getUser() && !isLoadMore) {
+      // Guest chỉ mất lượt khi là tìm kiếm thật (không mất khi đổi năm để xem)
+      if (!getUser() && !isLoadMore && countUsage) {
         localStorage.setItem("guest_recommendation_used", "true");
       }
       fetchQuota();
@@ -150,6 +181,20 @@ const RecommendPage = () => {
       setScores((prev) => ({ ...prev, [name]: value }));
     }
   };
+
+  // Đổi năm điểm chuẩn: nếu đã có kết quả thì tải lại theo năm mới nhưng KHÔNG trừ lượt
+  const handleYearChange = (newYear) => {
+    if (newYear === selectedYear) return;
+    setSelectedYear(newYear);
+    if (result) {
+      handleRecommend(false, { year: newYear, countUsage: false });
+    }
+  };
+
+  const yearOptions = [
+    { label: "Tất cả", value: "all" },
+    ...availableYears.map((y) => ({ label: String(y), value: y })),
+  ];
 
   const subjectInputs = [
     { name: "math", label: "TOÁN" },
@@ -182,6 +227,9 @@ const RecommendPage = () => {
     totalResults - (result?.recommendations?.length || 0),
     0,
   );
+
+  const latestYear =
+    result?.latestYear || availableYears[0] || new Date().getFullYear();
 
   const sortedCombinations = result?.combinations
     ? [...result.combinations].sort((a, b) => b.score - a.score)
@@ -370,7 +418,7 @@ const RecommendPage = () => {
           <main className="flex-1">
             {/* Score Input Section */}
             <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm mb-8">
-              <div className="flex justify-between items-start gap-4 mb-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-black text-slate-900">
                     Phân tích tổ hợp điểm
@@ -380,22 +428,44 @@ const RecommendPage = () => {
                     nhất.
                   </p>
                 </div>
-                <span className="hidden sm:inline-flex items-center gap-1.5 shrink-0 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-[11px] font-bold text-green-600">
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Dữ liệu 2023
-                </span>
+
+                {/* Bộ chọn năm điểm chuẩn — TÁCH RIÊNG khỏi bộ lọc, đổi năm KHÔNG mất lượt */}
+                <div className="shrink-0">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Năm điểm chuẩn
+                    <span className="normal-case font-medium text-green-500">
+                      · miễn phí đổi
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 bg-slate-100 rounded-full p-1">
+                    {yearOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleYearChange(opt.value)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition ${
+                          selectedYear === opt.value
+                            ? "bg-white text-blue-600 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 mb-8">
@@ -507,9 +577,20 @@ const RecommendPage = () => {
             {/* Results Section */}
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-black text-slate-900">
+                <h3 className="text-lg font-black text-slate-900 flex flex-wrap items-center gap-2">
                   Ngành học & Trường phù hợp{" "}
-                  {result && `(${totalResults} kết quả)`}
+                  {result && (
+                    <span className="font-bold text-slate-400">
+                      ({totalResults} kết quả)
+                    </span>
+                  )}
+                  {result && (
+                    <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-blue-600">
+                      {selectedYear === "all"
+                        ? "Tất cả các năm"
+                        : `Điểm chuẩn ${selectedYear}`}
+                    </span>
+                  )}
                 </h3>
                 <div className="flex bg-white border border-slate-200 rounded-lg p-1">
                   <button className="p-1.5 bg-slate-100 rounded-md text-slate-600">
@@ -627,7 +708,7 @@ const RecommendPage = () => {
                             {/* Điểm chuẩn */}
                             <div className="text-right flex-shrink-0">
                               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                                Điểm chuẩn 2023
+                                Điểm chuẩn {item.displayYear || latestYear}
                               </span>
                               <span className="block text-2xl font-black text-orange-500 leading-tight">
                                 {item.admissionScore}
@@ -655,6 +736,29 @@ const RecommendPage = () => {
                               </span>
                             </div>
                           </div>
+
+                          {/* Lịch sử điểm chuẩn các năm (chỉ hiện khi xem "Tất cả") */}
+                          {selectedYear === "all" &&
+                            item.admissionHistory?.length > 1 && (
+                              <div className="flex flex-wrap items-center gap-2 mt-3">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                  Qua các năm:
+                                </span>
+                                {[...item.admissionHistory]
+                                  .sort((a, b) => a.year - b.year)
+                                  .map((h) => (
+                                    <span
+                                      key={h.year}
+                                      className="text-[11px] font-medium text-slate-500 bg-slate-100 rounded-md px-2 py-0.5"
+                                    >
+                                      {h.year}:{" "}
+                                      <b className="text-slate-700">
+                                        {h.admissionScore}
+                                      </b>
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
 
                           <div className="flex justify-end mt-auto pt-3">
                             <button

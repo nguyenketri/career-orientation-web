@@ -15,6 +15,7 @@ const comparisonRoutes = require("./routes/comparison.routes");
 const pdfRoutes = require("./routes/pdf.routes");
 const universityRoutes = require("./routes/university.routes");
 const userRoutes = require("./routes/user.routes");
+const notificationRoutes = require("./routes/notification.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const adminRoutes = require("./routes/admin.routes");
 const adminMajorRoutes = require("./routes/adminMajor.routes");
@@ -51,6 +52,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/universities", universityRoutes);
 // ROUTER USERS
 app.use("/api/users", userRoutes);
+// ROUTER NOTIFICATIONS
+app.use("/api/notifications", notificationRoutes);
 // ROUTER ADMIN
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/majors", adminMajorRoutes);

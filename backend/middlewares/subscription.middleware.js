@@ -1,11 +1,13 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
+const { createNotification } = require("../services/notification.service");
 
 // Phải khớp với PLAN_DURATIONS ở payment.controller.js / admin.controller.js
 const PLAN_DURATIONS_MS = {
   PAID: 30 * 24 * 60 * 60 * 1000,
   PREMIUM: 90 * 24 * 60 * 60 * 1000,
 };
+const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
 // Middleware to check/refresh subscription plan status
 const checkSubscription = async (req, res, next) => {
@@ -28,9 +30,17 @@ const checkSubscription = async (req, res, next) => {
     if (user.subscriptionPlan !== "FREE") {
       if (user.subscriptionExpiry && new Date() > user.subscriptionExpiry) {
         // Plan has expired
+        const expiredPlan = user.subscriptionPlan;
         user.subscriptionPlan = "FREE";
         user.subscriptionExpiry = null;
         await user.save();
+        await createNotification({
+          userId: user._id,
+          type: "SUBSCRIPTION_EXPIRED",
+          title: "Gói dịch vụ đã hết hạn",
+          message: `Gói ${PLAN_LABEL[expiredPlan] || expiredPlan} của bạn đã hết hạn và được chuyển về gói CƠ BẢN (FREE). Nâng cấp lại để tiếp tục sử dụng đầy đủ tính năng.`,
+          link: "/pricing",
+        });
         console.log(`[Subscription] Reset expired plan to FREE for user: ${user.email}`);
       } else if (!user.subscriptionExpiry) {
         // Dữ liệu thiếu ngày hết hạn (tài khoản cũ trước khi có tracking đầy đủ) —

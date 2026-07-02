@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUser, logoutUser } from "../utils/auth";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -102,6 +103,9 @@ const Navbar = () => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Notifications */}
+          {user && <NotificationBell />}
+
           {/* User Profile / Auth */}
           {user ? (
             <div className="relative" ref={profileMenuRef}>

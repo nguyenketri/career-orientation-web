@@ -2,12 +2,14 @@ const User = require("../models/user.model");
 const Payment = require("../models/payment.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
+const { createNotification } = require("../services/notification.service");
 
 // Phải khớp với PLAN_DURATIONS ở payment.controller.js
 const PLAN_DURATIONS = {
   PAID: 30 * 24 * 60 * 60 * 1000, // 30 days
   PREMIUM: 90 * 24 * 60 * 60 * 1000, // 90 days
 };
+const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
 // Lấy thống kê tổng quan cho Admin
 exports.getAdminStats = async (req, res) => {
@@ -141,6 +143,20 @@ exports.toggleUserStatus = async (req, res) => {
     const newStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     user.status = newStatus;
     await user.save();
+
+    await createNotification({
+      userId: user._id,
+      type: "ACCOUNT_STATUS",
+      title:
+        newStatus === "ACTIVE"
+          ? "Tài khoản đã được kích hoạt lại"
+          : "Tài khoản đã bị vô hiệu hóa",
+      message:
+        newStatus === "ACTIVE"
+          ? "Tài khoản của bạn đã được quản trị viên kích hoạt lại. Chúc bạn tiếp tục trải nghiệm tốt trên caZup!"
+          : "Tài khoản của bạn đã bị quản trị viên vô hiệu hóa. Vui lòng liên hệ hỗ trợ nếu đây là nhầm lẫn.",
+      link: "/profile",
+    });
 
     res.status(200).json({
       status: "success",
@@ -349,9 +365,18 @@ exports.updatePaymentStatus = async (req, res) => {
             user.subscriptionExpiry && new Date(user.subscriptionExpiry) > now
               ? new Date(user.subscriptionExpiry)
               : now;
+          const newExpiry = new Date(baseDate.getTime() + duration);
           user.subscriptionPlan = payment.planType;
-          user.subscriptionExpiry = new Date(baseDate.getTime() + duration);
+          user.subscriptionExpiry = newExpiry;
           await user.save();
+
+          await createNotification({
+            userId: user._id,
+            type: "PAYMENT_SUCCESS",
+            title: "Thanh toán thành công 🎉",
+            message: `Gói ${PLAN_LABEL[payment.planType] || payment.planType} của bạn đã được kích hoạt đến hết ngày ${newExpiry.toLocaleDateString("vi-VN")}.`,
+            link: "/payment-history",
+          });
         }
       }
     }

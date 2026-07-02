@@ -1,6 +1,9 @@
 const Payment = require("../models/payment.model");
 const User = require("../models/user.model");
 const payosService = require("../services/payos.service");
+const { createNotification } = require("../services/notification.service");
+
+const PLAN_LABEL = { PAID: "TIÊU CHUẨN", PREMIUM: "CAO CẤP" };
 
 // Duration in milliseconds
 const PLAN_DURATIONS = {
@@ -181,6 +184,14 @@ const processPaymentSuccess = async (transactionCode, transferAmount) => {
   user.subscriptionPlan = payment.planType;
   user.subscriptionExpiry = newExpiry;
   await user.save();
+
+  await createNotification({
+    userId: user._id,
+    type: "PAYMENT_SUCCESS",
+    title: "Thanh toán thành công 🎉",
+    message: `Gói ${PLAN_LABEL[payment.planType] || payment.planType} của bạn đã được kích hoạt đến hết ngày ${newExpiry.toLocaleDateString("vi-VN")}.`,
+    link: "/payment-history",
+  });
 
   console.log(
     `[Payment] User ${user.email} successfully upgraded to ${payment.planType} until ${newExpiry.toISOString()}`,

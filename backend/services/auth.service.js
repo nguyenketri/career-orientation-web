@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const { OAuth2Client } = require("google-auth-library");
+const { createNotification } = require("./notification.service");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -23,6 +24,15 @@ const registerUser = async (data) => {
     name,
     email,
     password: hashedPassword,
+  });
+
+  await createNotification({
+    userId: user._id,
+    type: "WELCOME",
+    title: "Chào mừng bạn đến với caZup! 🎉",
+    message:
+      "Khám phá bài test Holland/MBTI để tìm ra ngành học phù hợp nhất với bạn.",
+    link: "/tests",
   });
 
   return user;
@@ -83,6 +93,14 @@ const googleLogin = async (idToken) => {
         googleId,
         avatar: picture,
         role: "user",
+      });
+      await createNotification({
+        userId: user._id,
+        type: "WELCOME",
+        title: "Chào mừng bạn đến với caZup! 🎉",
+        message:
+          "Khám phá bài test Holland/MBTI để tìm ra ngành học phù hợp nhất với bạn.",
+        link: "/tests",
       });
     } else if (!user.googleId) {
       // Update googleId if user exists but wasn't linked to Google

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import mascot from "../assets/Mascot1.png";
 
 const HeroSection = () => {
   return (
@@ -46,10 +45,13 @@ const HeroSection = () => {
         <div className="relative mx-auto max-w-md lg:max-w-none">
           <div className="rounded-[32px] border border-blue-100 bg-gradient-to-br from-blue-50 to-orange-50 p-10 shadow-2xl shadow-blue-100 md:p-14">
             <img
-              src={mascot}
-              alt="caZup - Trợ lý định hướng ngành học AI"
-              className="mx-auto h-auto max-h-80 w-full object-contain drop-shadow-xl"
+              src="/logoCazup.png"
+              alt="caZup - Nền tảng định hướng ngành học AI"
+              className="mx-auto h-auto max-h-72 w-full object-contain drop-shadow-xl"
             />
+            <p className="mt-4 text-center text-3xl font-black tracking-tight text-slate-900">
+              ca<span className="text-orange-500">Z</span>up
+            </p>
           </div>
 
           {/* Floating stat badge */}

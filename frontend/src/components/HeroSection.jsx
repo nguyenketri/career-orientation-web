@@ -7,6 +7,14 @@ const HeroSection = () => {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-orange-200/30 blur-3xl pointer-events-none" />
 
+      <div className="relative z-10 mx-auto mb-14 max-w-7xl md:mb-20">
+        <img
+          src="/banner.png"
+          alt="caZup - Giải pháp định hướng ngành học toàn diện"
+          className="w-full h-auto rounded-3xl shadow-xl shadow-blue-100/70"
+        />
+      </div>
+
       <div className="relative z-10 mx-auto grid max-w-7xl gap-16 lg:grid-cols-2 lg:items-center">
         {/* Text Content */}
         <div className="text-center lg:text-left">

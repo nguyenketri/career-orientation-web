@@ -16,11 +16,11 @@ const UpgradePrompt = ({
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
+    <div className="min-h-screen bg-black flex items-center justify-center px-4 sm:px-6">
       <div className="max-w-lg w-full text-center">
-        <div className="rounded-3xl border border-purple-500/20 bg-purple-500/5 p-12">
+        <div className="rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6 sm:p-12">
           <div className="text-6xl mb-6">🔒</div>
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
             Tính năng yêu cầu nâng cấp
           </h2>
           <p className="text-gray-400 mb-2 text-lg">

@@ -102,10 +102,10 @@ const TestsPage = () => {
         </div>
 
         {/* Test Selection */}
-        <div className="flex justify-center gap-4 mb-10">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-10 px-2">
           <button
             onClick={() => setActiveTest("holland")}
-            className={`px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2 ${
+            className={`px-5 sm:px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2 text-sm sm:text-base ${
               activeTest === "holland"
                 ? "bg-[#0f172a] text-white shadow-lg"
                 : "bg-white text-slate-600 border border-slate-200 hover:border-blue-300"
@@ -115,7 +115,7 @@ const TestsPage = () => {
           </button>
           <button
             onClick={() => setActiveTest("mbti")}
-            className={`px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2 ${
+            className={`px-5 sm:px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2 text-sm sm:text-base ${
               activeTest === "mbti"
                 ? "bg-[#0f172a] text-white shadow-lg"
                 : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300"

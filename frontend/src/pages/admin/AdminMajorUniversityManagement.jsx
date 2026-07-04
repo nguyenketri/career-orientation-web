@@ -887,7 +887,7 @@ const AdminMajorUniversityManagement = () => {
             Quản lý trường đại học, ngành học và mối liên kết tuyển sinh trong hệ thống
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -1014,7 +1014,7 @@ const AdminMajorUniversityManagement = () => {
                     setMapUniFilter(e.target.value);
                     setMapPage(1);
                   }}
-                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition max-w-[220px]"
+                  className="w-full lg:w-auto lg:max-w-[220px] px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
                 >
                   <option value="">Tất cả trường</option>
                   {allUniversities.map((u) => (
@@ -1032,7 +1032,7 @@ const AdminMajorUniversityManagement = () => {
                     setMapMajorFilter(e.target.value);
                     setMapPage(1);
                   }}
-                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition max-w-[220px]"
+                  className="w-full lg:w-auto lg:max-w-[220px] px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
                 >
                   <option value="">Tất cả ngành</option>
                   {allMajors.map((m) => (
@@ -1084,7 +1084,7 @@ const AdminMajorUniversityManagement = () => {
       {/* ===== Modal: Thêm/Sửa ===== */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1450,7 +1450,7 @@ const AdminMajorUniversityManagement = () => {
                                 const newHistory = (formData.admissionHistory || []).filter((_, i) => i !== index);
                                 setFormData({ ...formData, admissionHistory: newHistory });
                               }}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center transition hover:scale-110"
                             >
                               ✕
                             </button>

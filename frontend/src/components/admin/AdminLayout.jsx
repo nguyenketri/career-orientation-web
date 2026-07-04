@@ -68,6 +68,14 @@ const AdminLayout = ({ children }) => {
           {isOpen ? "✕" : "☰"}
         </button>
 
+        {/* Mobile Sidebar Backdrop */}
+        {isOpen && (
+          <div
+            className="lg:hidden fixed inset-0 z-30 bg-black/50"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
         <aside
           className={`${
@@ -154,10 +162,10 @@ const AdminLayout = ({ children }) => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl print:shadow-none print:max-h-none print:overflow-visible print:rounded-none"
             >
-              <div className="p-8 print:p-0">
-                <div className="flex justify-between items-center mb-8">
+              <div className="p-4 sm:p-8 print:p-0">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900">
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">
                       Báo cáo hệ thống chi tiết
                     </h2>
                     <p className="text-slate-500 text-sm">
@@ -258,11 +266,11 @@ const AdminLayout = ({ children }) => {
                       </h3>
                       <div className="space-y-2">
                         {reportData.revenueTrend.map((item) => (
-                          <div key={item._id} className="flex items-center gap-4">
-                            <span className="text-xs font-medium text-slate-500 w-16">
+                          <div key={item._id} className="flex items-center gap-2 sm:gap-4">
+                            <span className="text-xs font-medium text-slate-500 w-10 sm:w-16 shrink-0">
                               {item._id}
                             </span>
-                            <div className="flex-1 h-4 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="flex-1 min-w-0 h-4 bg-slate-200 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-orange-500"
                                 style={{
@@ -279,7 +287,7 @@ const AdminLayout = ({ children }) => {
                                 }}
                               />
                             </div>
-                            <span className="text-xs font-bold text-slate-900">
+                            <span className="text-xs font-bold text-slate-900 shrink-0 whitespace-nowrap">
                               {item.amount.toLocaleString()}đ
                             </span>
                           </div>

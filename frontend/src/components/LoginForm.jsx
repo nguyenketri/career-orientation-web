@@ -166,7 +166,7 @@ const LoginForm = () => {
 
         <div className="flex w-full justify-center overflow-hidden">
           <GoogleLogin
-            width="280"
+            width="240"
             onSuccess={async (credentialResponse) => {
               try {
                 setLoading(true);

@@ -78,7 +78,7 @@ const Navbar = () => {
         </Link>
 
         {/* Center Navigation - Desktop */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-6 xl:gap-8">
           {navLinks
             .filter((link) => {
               if (isAdminPage) {
@@ -262,7 +262,7 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-orange-500 transition"
+            className="lg:hidden p-2 text-slate-600 hover:text-orange-500 transition"
           >
             <svg
               className="w-6 h-6"
@@ -292,7 +292,7 @@ const Navbar = () => {
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-lg animate-in slide-in-from-top duration-200">
+        <div className="lg:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-lg animate-in slide-in-from-top duration-200">
           <div className="px-4 py-4 flex flex-col gap-4">
             {navLinks
               .filter((link) => {

@@ -240,7 +240,7 @@ const RegisterForm = () => {
 
       <div className="flex w-full justify-center overflow-hidden">
         <GoogleLogin
-          width="280"
+          width="240"
           onSuccess={handleGoogleSuccess}
           onError={() => setError("Đăng nhập Google thất bại")}
         />

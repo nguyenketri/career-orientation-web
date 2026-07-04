@@ -401,23 +401,23 @@ const HollandTestPage = () => {
           </p>
         </div>
 
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
           {/* Left: question + answers + nav buttons */}
-          <div className="flex-1 min-w-0 space-y-4">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+          <div className="w-full flex-1 min-w-0 space-y-4">
+            <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-slate-100">
               <p className="text-lg font-semibold text-slate-800 leading-relaxed mb-6">
                 {currentQuestion?.content}
               </p>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">
                 Mức độ phù hợp với bạn:
               </p>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
                   HOÀN TOÀN
                   <br />
                   KHÔNG
                 </span>
-                <div className="flex gap-3 justify-center flex-1">
+                <div className="flex justify-between sm:justify-center gap-2 sm:gap-3 sm:flex-1">
                   {LIKERT_OPTIONS.map((option) => {
                     const isSelected =
                       answers[currentQuestion?._id]?.score === option.value;
@@ -425,7 +425,7 @@ const HollandTestPage = () => {
                       <button
                         key={option.value}
                         onClick={() => handleSelect(option.value)}
-                        className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg font-bold transition-all duration-200
+                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center text-lg font-bold transition-all duration-200
                           ${
                             isSelected
                               ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-110"
@@ -437,11 +437,15 @@ const HollandTestPage = () => {
                     );
                   })}
                 </div>
-                <span className="text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+                <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
                   RẤT
                   <br />
                   CHÍNH XÁC
                 </span>
+                <div className="flex sm:hidden justify-between text-[10px] font-bold text-slate-400 uppercase px-1">
+                  <span>Hoàn toàn không</span>
+                  <span>Rất chính xác</span>
+                </div>
               </div>
             </div>
 
@@ -513,12 +517,12 @@ const HollandTestPage = () => {
           </div>
 
           {/* Right sidebar */}
-          <div className="w-56 shrink-0 space-y-4">
+          <div className="w-full lg:w-56 lg:shrink-0 space-y-4">
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-700 mb-3 text-sm">
                 📋 Bảng điều hướng
               </h3>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-5 gap-1.5">
                 {questions.map((q, idx) => {
                   const isCurrent = idx === safeIndex;
                   const isDone = !!answers[q._id];

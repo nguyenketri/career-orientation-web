@@ -374,10 +374,10 @@ const MbtiTestPage = () => {
           </p>
         </div>
 
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
           {/* Left: question + A/B options + nav buttons */}
-          <div className="flex-1 min-w-0 space-y-4">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+          <div className="w-full flex-1 min-w-0 space-y-4">
+            <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-slate-100">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
                 Câu hỏi {safeIndex + 1}
               </p>
@@ -524,12 +524,12 @@ const MbtiTestPage = () => {
           </div>
 
           {/* Right sidebar */}
-          <div className="w-56 shrink-0 space-y-4">
+          <div className="w-full lg:w-56 lg:shrink-0 space-y-4">
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
               <h3 className="font-bold text-slate-700 mb-3 text-sm">
                 📋 Bảng điều hướng
               </h3>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-5 gap-1.5">
                 {questions.map((q, idx) => {
                   const isCurrent = idx === safeIndex;
                   const isDone = !!answers[q._id];

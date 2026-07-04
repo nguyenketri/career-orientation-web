@@ -349,37 +349,45 @@ const AdminDashboard = () => {
               ))}
             </select>
           </div>
-          <div className="flex items-end justify-between h-64 gap-3">
-            {chartMonths.map((month) => {
-              const monthData = monthlyRevenueData.find((m) => m.month === month);
-              const amount = monthData ? monthData.amount : 0;
-              const heightPct = Math.max((amount / maxRevenue) * 100, 3);
-              const isCurrentMonth = month === "T" + (new Date().getMonth() + 1);
-              return (
-                <div
-                  key={month}
-                  className="relative flex-1 flex flex-col items-center gap-2 h-full"
-                  onMouseEnter={() => setHoveredMonth(month)}
-                  onMouseLeave={() => setHoveredMonth(null)}
-                >
-                  {hoveredMonth === month && (
-                    <div className="absolute -top-2 -translate-y-full bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10">
-                      {fmtVND(amount)}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+          <div className="overflow-x-auto -mx-2 px-2">
+            <div
+              className="flex items-end justify-between h-64 gap-3"
+              style={{ minWidth: chartMonths.length > 6 ? `${chartMonths.length * 48}px` : undefined }}
+            >
+              {chartMonths.map((month) => {
+                const monthData = monthlyRevenueData.find((m) => m.month === month);
+                const amount = monthData ? monthData.amount : 0;
+                const heightPct = Math.max((amount / maxRevenue) * 100, 3);
+                const isCurrentMonth = month === "T" + (new Date().getMonth() + 1);
+                return (
+                  <div
+                    key={month}
+                    className="relative flex-1 flex flex-col items-center gap-2 h-full shrink-0"
+                    onMouseEnter={() => setHoveredMonth(month)}
+                    onMouseLeave={() => setHoveredMonth(null)}
+                    onClick={() =>
+                      setHoveredMonth((prev) => (prev === month ? null : month))
+                    }
+                  >
+                    {hoveredMonth === month && (
+                      <div className="absolute -top-2 -translate-y-full bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10">
+                        {fmtVND(amount)}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+                      </div>
+                    )}
+                    <div className="w-full flex-1 flex items-end justify-center">
+                      <div
+                        className={`w-full max-w-[42px] min-w-[20px] rounded-t-lg transition-all duration-500 cursor-pointer ${
+                          isCurrentMonth ? "bg-[#0f172a]" : "bg-blue-100 hover:bg-blue-200"
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
                     </div>
-                  )}
-                  <div className="w-full flex-1 flex items-end justify-center">
-                    <div
-                      className={`w-full max-w-[42px] rounded-t-lg transition-all duration-500 cursor-pointer ${
-                        isCurrentMonth ? "bg-[#0f172a]" : "bg-blue-100 hover:bg-blue-200"
-                      }`}
-                      style={{ height: `${heightPct}%` }}
-                    />
+                    <span className="text-xs text-slate-400 font-medium">{month}</span>
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">{month}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -420,35 +428,113 @@ const AdminDashboard = () => {
               Danh sách {totalUsersCount.toLocaleString("vi-VN")} người dùng đang hoạt động
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Tìm theo tên, email..."
-              className="hidden md:block px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition w-56"
+              className="w-full sm:w-56 px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
             />
-            <button
-              onClick={handleExportExcel}
-              disabled={exporting}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition disabled:opacity-50"
-            >
-              {exporting ? "Đang xuất..." : "Xuất Excel"}
-            </button>
-            <button
-              onClick={() => {
-                setCreateForm(emptyUserForm);
-                setCreateError("");
-                setCreateModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition"
-            >
-              <span>+</span> Thêm mới
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition disabled:opacity-50"
+              >
+                {exporting ? "Đang xuất..." : "Xuất Excel"}
+              </button>
+              <button
+                onClick={() => {
+                  setCreateForm(emptyUserForm);
+                  setCreateError("");
+                  setCreateModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition"
+              >
+                <span>+</span> Thêm mới
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card List */}
+        <div className="lg:hidden divide-y divide-slate-50 border-t border-slate-100">
+          {loadingUsers ? (
+            <p className="px-6 py-10 text-center text-slate-400">Đang tải...</p>
+          ) : users.length === 0 ? (
+            <p className="px-6 py-10 text-center text-slate-400">
+              Không tìm thấy người dùng nào.
+            </p>
+          ) : (
+            users.map((user) => (
+              <div key={user._id} className="p-5 space-y-3">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user.name?.charAt(0)?.toUpperCase() || "U"
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 truncate">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      user.status === "ACTIVE"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {user.status === "ACTIVE" ? "Hoạt động" : "Đã khóa"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      PLAN_BADGE[user.subscriptionPlan] || PLAN_BADGE.FREE
+                    }`}
+                  >
+                    {user.subscriptionPlan || "FREE"}
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                    Đăng ký {fmtDate(user.createdAt)}
+                  </span>
+                </div>
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => openEdit(user)}
+                    className="flex-1 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(user)}
+                    className={`flex-1 px-3 py-2 text-xs font-bold rounded-xl transition ${
+                      user.status === "ACTIVE"
+                        ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                        : "bg-green-100 text-green-700 hover:bg-green-200"
+                    }`}
+                  >
+                    {user.status === "ACTIVE" ? "Khóa" : "Mở khóa"}
+                  </button>
+                  <button
+                    onClick={() => setDeletingUser(user)}
+                    className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[820px] text-left">
             <thead>
               <tr className="bg-slate-50 border-y border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wide">

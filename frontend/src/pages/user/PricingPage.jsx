@@ -264,7 +264,7 @@ const PricingPage = () => {
         {plans.map((plan) => (
           <div
             key={plan.type}
-            className={`relative bg-white p-8 rounded-3xl border-2 transition-all hover:shadow-xl ${plan.highlighted ? "border-orange-500 shadow-lg scale-105 z-10" : "border-slate-100 shadow-sm"}`}
+            className={`relative bg-white p-8 rounded-3xl border-2 transition-all hover:shadow-xl ${plan.highlighted ? "border-orange-500 shadow-lg md:scale-105 z-10" : "border-slate-100 shadow-sm"}`}
           >
             {plan.highlighted && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -330,8 +330,8 @@ const PricingPage = () => {
         <h2 className="text-3xl font-black text-center text-slate-900 mb-12">
           So sánh chi tiết các tính năng
         </h2>
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-[640px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
                 <th className="p-5 font-bold">Tính năng</th>

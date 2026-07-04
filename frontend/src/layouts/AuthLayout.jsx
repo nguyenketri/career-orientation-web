@@ -48,6 +48,8 @@ const Star = ({ size }) => (
 const AuthLayout = ({ children }) => {
   const location = useLocation();
   const isLogin = location.pathname === "/login";
+  const isRegister = location.pathname === "/register";
+  const showAuthTabs = isLogin || isRegister;
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 px-4 py-10">
@@ -107,30 +109,33 @@ const AuthLayout = ({ children }) => {
 
         {/* Right: form panel */}
         <div className="w-full min-w-0 lg:w-1/2 px-6 py-10 sm:px-10 sm:py-12">
-          {/* Tab header */}
-          <div className="mb-8 flex items-center justify-center gap-6 text-lg">
-            <Link
-              to="/login"
-              className={`font-bold pb-1 border-b-2 transition-colors ${
-                isLogin
-                  ? "text-slate-900 border-orange-500"
-                  : "text-slate-300 border-transparent hover:text-slate-400"
-              }`}
-            >
-              Đăng nhập
-            </Link>
-            <span className="text-slate-300">hoặc</span>
-            <Link
-              to="/register"
-              className={`font-bold pb-1 border-b-2 transition-colors ${
-                !isLogin
-                  ? "text-slate-900 border-orange-500"
-                  : "text-slate-300 border-transparent hover:text-slate-400"
-              }`}
-            >
-              Đăng ký
-            </Link>
-          </div>
+          {/* Tab header — chỉ hiện ở Đăng nhập/Đăng ký, các trang quên/đặt lại
+              mật khẩu tự có tiêu đề riêng nên không cần tab gây hiểu nhầm */}
+          {showAuthTabs && (
+            <div className="mb-8 flex items-center justify-center gap-6 text-lg">
+              <Link
+                to="/login"
+                className={`font-bold pb-1 border-b-2 transition-colors ${
+                  isLogin
+                    ? "text-slate-900 border-orange-500"
+                    : "text-slate-300 border-transparent hover:text-slate-400"
+                }`}
+              >
+                Đăng nhập
+              </Link>
+              <span className="text-slate-300">hoặc</span>
+              <Link
+                to="/register"
+                className={`font-bold pb-1 border-b-2 transition-colors ${
+                  !isLogin
+                    ? "text-slate-900 border-orange-500"
+                    : "text-slate-300 border-transparent hover:text-slate-400"
+                }`}
+              >
+                Đăng ký
+              </Link>
+            </div>
+          )}
 
           {children}
         </div>

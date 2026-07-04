@@ -322,7 +322,7 @@ const AdminPaymentManagement = () => {
                     <p className="text-sm font-mono font-bold text-blue-600">#{payment.transactionCode}</p>
                     <p className="text-xs text-slate-400">{fmtDateTime(payment.createdAt)}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${STATUS_BADGE[payment.status]}`}>
+                  <span className={`px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap ${STATUS_BADGE[payment.status]}`}>
                     {STATUS_LABEL[payment.status]}
                   </span>
                 </div>
@@ -433,7 +433,7 @@ const AdminPaymentManagement = () => {
                       {fmtDateTime(payment.createdAt)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${STATUS_BADGE[payment.status]}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${STATUS_BADGE[payment.status]}`}>
                         {STATUS_LABEL[payment.status]}
                       </span>
                     </td>

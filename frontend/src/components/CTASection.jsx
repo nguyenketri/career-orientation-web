@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import mascot from "../assets/Mascot1.png";
 
 const CTASection = () => {
   return (
@@ -33,14 +34,46 @@ const CTASection = () => {
               </div>
             </div>
 
-            {/* Image/Mockup */}
+            {/* Phone Mockup - xem trước cuộc trò chuyện với AI Mentor */}
             <div className="relative w-full max-w-sm lg:max-w-md">
               <div className="relative z-10 transform rotate-6 transition-transform hover:rotate-0 duration-500">
-                <img
-                  src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=2070&auto=format&fit=crop"
-                  alt="App Mockup"
-                  className="rounded-[3rem] border-[8px] border-slate-800 shadow-2xl w-full h-auto object-cover aspect-[9/19]"
-                />
+                <div className="flex aspect-[9/19] w-full flex-col overflow-hidden rounded-[3rem] border-[8px] border-slate-800 bg-slate-950 shadow-2xl">
+                  {/* Status bar */}
+                  <div className="flex items-center justify-between px-6 pt-4 pb-2 text-[10px] font-bold text-white/60">
+                    <span>9:41</span>
+                    <span>●●●●</span>
+                  </div>
+
+                  {/* Chat header */}
+                  <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+                    <img src={mascot} alt="" className="h-8 w-8 object-contain" />
+                    <div>
+                      <p className="text-xs font-bold text-white">AI Mentor</p>
+                      <p className="text-[10px] text-teal-400">● Đang hoạt động</p>
+                    </div>
+                  </div>
+
+                  {/* Chat bubbles */}
+                  <div className="flex-1 space-y-3 overflow-hidden px-4 py-4">
+                    <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/10 px-3 py-2 text-[11px] leading-relaxed text-white">
+                      Mình hợp ngành Khoa học dữ liệu không nhỉ? 🤔
+                    </div>
+                    <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-orange-500 px-3 py-2 text-[11px] leading-relaxed text-white">
+                      Dựa trên sở thích Toán học của bạn, mình gợi ý tìm hiểu
+                      ngành Khoa học dữ liệu và AI nhé! 🚀
+                    </div>
+                    <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/10 px-3 py-2 text-[11px] leading-relaxed text-white">
+                      Trường nào đào tạo tốt ngành này vậy?
+                    </div>
+                  </div>
+
+                  {/* Input bar */}
+                  <div className="border-t border-white/10 px-4 py-3">
+                    <div className="rounded-full bg-white/10 px-4 py-2 text-[11px] text-white/40">
+                      Nhắn tin với AI Mentor...
+                    </div>
+                  </div>
+                </div>
               </div>
               {/* Decorative Glow */}
               <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full"></div>

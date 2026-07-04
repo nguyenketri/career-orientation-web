@@ -48,7 +48,7 @@ const features = [
       </div>
     ),
     link: "/mentor",
-    actionText: "Đặt câu hỏi ✉",
+    actionText: "Bắt đầu chat",
     variant: "dark",
     badge:
       "Trò chuyện cùng AI để khám phá bản thân, đội ngũ học thuật luôn sẵn sàng hỗ trợ bạn...",
@@ -133,17 +133,20 @@ const FeatureSection = () => {
                 </div>
               )}
 
-              {/* Action Link */}
+              {/* Action */}
               <div className="mt-auto">
-                <span
-                  className={`text-sm font-bold flex items-center gap-1 ${
-                    feature.variant === "dark"
-                      ? "text-white"
-                      : "text-slate-400 group-hover:text-blue-600"
-                  }`}
-                >
-                  {feature.actionText}
-                </span>
+                {feature.variant === "dark" ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition group-hover:bg-orange-500 group-hover:text-white">
+                    {feature.actionText}
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-sm font-bold text-slate-400 group-hover:text-blue-600">
+                    {feature.actionText}
+                  </span>
+                )}
               </div>
             </Link>
           ))}

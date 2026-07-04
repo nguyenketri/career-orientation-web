@@ -59,9 +59,9 @@ const HistoryPage = () => {
         ]);
 
         setHollandResults(hollandRes.data?.data || hollandRes.data || []);
-        setHollandStability(hollandRes.data?.stabilityScore || 0);
+        setHollandStability(hollandRes.stabilityScore || 0);
         setMbtiResults(mbtiRes.data?.data || mbtiRes.data || []);
-        setMbtiStability(mbtiRes.data?.stabilityScore || 0);
+        setMbtiStability(mbtiRes.stabilityScore || 0);
         setAcademicResults(academicRes.data?.data || academicRes.data || []);
       } catch (err) {
         console.error("Error fetching history:", err);

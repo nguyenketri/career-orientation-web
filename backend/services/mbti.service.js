@@ -13,17 +13,31 @@ const genAI = new GoogleGenerativeAI(
 // Thời gian ước tính cho mỗi câu hỏi MBTI (giây) — dùng để tính thời gian làm bài
 const TIME_PER_QUESTION_SEC = 15;
 
+const MBTI_DIMENSIONS = ["EI", "SN", "TF", "JP"];
+const MBTI_PLAN_TOTAL = { PAID: 48, PREMIUM: 72, FREE: 28 };
+
+// Lấy đều nhau số câu hỏi cho từng dimension EI/SN/TF/JP (thay vì random trên
+// toàn bộ pool). Random tự do trên cả pool có thể vô tình cho 1 bài test nhiều
+// câu EI hơn hẳn JP chẳng hạn, khiến type cuối cùng bị lệch theo số lượng câu
+// hỏi ngẫu nhiên nhận được thay vì theo đúng lựa chọn của người dùng.
 const getQuestions = async (plan) => {
-  // $ne (không dùng === false/true) để tương thích ngược với các câu hỏi cũ
-  // trong Mongo Atlas chưa có field isActive/isDeleted (coi như mặc định là còn hoạt động)
-  const allQuestions = await MbtiQuestion.find({
-    isDeleted: { $ne: true },
-    isActive: { $ne: false },
-  });
-  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-  if (plan === "PAID") return shuffled.slice(0, 48);
-  if (plan === "PREMIUM") return shuffled.slice(0, 72);
-  return shuffled.slice(0, 28); // FREE default
+  const total = MBTI_PLAN_TOTAL[plan] || MBTI_PLAN_TOTAL.FREE;
+  const perDimension = Math.floor(total / MBTI_DIMENSIONS.length);
+
+  const selected = [];
+  for (const dimension of MBTI_DIMENSIONS) {
+    // $ne (không dùng === false/true) để tương thích ngược với các câu hỏi cũ
+    // trong Mongo Atlas chưa có field isActive/isDeleted (coi như mặc định là còn hoạt động)
+    const pool = await MbtiQuestion.find({
+      dimension,
+      isDeleted: { $ne: true },
+      isActive: { $ne: false },
+    });
+    const shuffled = pool.sort(() => 0.5 - Math.random());
+    selected.push(...shuffled.slice(0, Math.min(perDimension, shuffled.length)));
+  }
+
+  return selected.sort(() => 0.5 - Math.random());
 };
 
 const submitMbtiTest = async (userId, answers) => {

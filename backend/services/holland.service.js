@@ -12,17 +12,33 @@ const genAI = new GoogleGenerativeAI(
 // Thời gian ước tính cho mỗi câu hỏi Holland (giây) — dùng để tính thời gian làm bài
 const TIME_PER_QUESTION_SEC = 20;
 
+const HOLLAND_TYPES = ["R", "I", "A", "S", "E", "C"];
+const HOLLAND_PLAN_TOTAL = { PAID: 60, PREMIUM: 90, FREE: 42 };
+
+// Lấy đều nhau số câu hỏi cho từng nhóm R/I/A/S/E/C (thay vì random trên toàn bộ
+// pool). Ngân hàng câu hỏi hiện không đều giữa các nhóm (vd nhóm C nhiều hơn hẳn
+// các nhóm khác) — nếu random tự do, 1 lần test có thể vô tình chứa nhiều câu
+// nhóm này hơn nhóm kia, khiến điểm cộng dồn theo nhóm bị lệch bởi số lượng câu
+// hỏi chứ không phải do lựa chọn thực sự của người dùng (kết quả bị "dính" 1 type
+// dù trả lời khác nhau). Chia đều số câu mỗi nhóm để đảm bảo công bằng.
 const getQuestions = async (plan) => {
-  // $ne (không dùng === false/true) để tương thích ngược với các câu hỏi cũ
-  // trong Mongo Atlas chưa có field isActive/isDeleted (coi như mặc định là còn hoạt động)
-  const allQuestions = await HollandQuestion.find({
-    isDeleted: { $ne: true },
-    isActive: { $ne: false },
-  });
-  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-  if (plan === "PAID") return shuffled.slice(0, 60);
-  if (plan === "PREMIUM") return shuffled.slice(0, 90);
-  return shuffled.slice(0, 42); // FREE default
+  const total = HOLLAND_PLAN_TOTAL[plan] || HOLLAND_PLAN_TOTAL.FREE;
+  const perType = Math.floor(total / HOLLAND_TYPES.length);
+
+  const selected = [];
+  for (const type of HOLLAND_TYPES) {
+    // $ne (không dùng === false/true) để tương thích ngược với các câu hỏi cũ
+    // trong Mongo Atlas chưa có field isActive/isDeleted (coi như mặc định là còn hoạt động)
+    const pool = await HollandQuestion.find({
+      type,
+      isDeleted: { $ne: true },
+      isActive: { $ne: false },
+    });
+    const shuffled = pool.sort(() => 0.5 - Math.random());
+    selected.push(...shuffled.slice(0, Math.min(perType, shuffled.length)));
+  }
+
+  return selected.sort(() => 0.5 - Math.random());
 };
 
 const submitHollandTest = async (userId, answers) => {

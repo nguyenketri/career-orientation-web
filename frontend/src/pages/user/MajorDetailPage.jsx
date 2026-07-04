@@ -398,12 +398,12 @@ const MajorDetailPage = () => {
           {/* LEFT */}
           <div className="lg:col-span-2">
             {/* Tabs */}
-            <div className="flex gap-6 border-b border-slate-200 mb-8 overflow-x-auto">
+            <div className="flex flex-wrap gap-x-5 gap-y-2 sm:gap-6 border-b border-slate-200 mb-8">
               {tabs.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => setActiveTab(t.key)}
-                  className={`pb-3 text-sm font-bold whitespace-nowrap transition relative ${
+                  className={`pb-3 text-xs sm:text-sm font-bold whitespace-nowrap transition relative ${
                     activeTab === t.key
                       ? "text-slate-900"
                       : "text-slate-400 hover:text-slate-600"

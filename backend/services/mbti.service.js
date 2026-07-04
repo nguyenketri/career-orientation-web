@@ -14,7 +14,12 @@ const genAI = new GoogleGenerativeAI(
 const TIME_PER_QUESTION_SEC = 15;
 
 const getQuestions = async (plan) => {
-  const allQuestions = await MbtiQuestion.find({ isDeleted: false });
+  // $ne (không dùng === false/true) để tương thích ngược với các câu hỏi cũ
+  // trong Mongo Atlas chưa có field isActive/isDeleted (coi như mặc định là còn hoạt động)
+  const allQuestions = await MbtiQuestion.find({
+    isDeleted: { $ne: true },
+    isActive: { $ne: false },
+  });
   const shuffled = allQuestions.sort(() => 0.5 - Math.random());
   if (plan === "PAID") return shuffled.slice(0, 48);
   if (plan === "PREMIUM") return shuffled.slice(0, 72);

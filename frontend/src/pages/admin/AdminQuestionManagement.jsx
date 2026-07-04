@@ -1,19 +1,66 @@
-import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
-import { getAuthHeader } from "../../utils/auth";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axiosClient from "../../api/axios";
+
+// Phải khớp DIMENSION_PAIRS ở backend/models/mbtiQuestion.model.js —
+// mỗi dimension chỉ có đúng 2 giá trị hợp lệ, chọn 1 cho optionA thì optionB
+// tự động nhận giá trị còn lại, không cho phép nhập tay để tránh dữ liệu sai.
+const DIMENSION_PAIRS = { EI: ["E", "I"], SN: ["S", "N"], TF: ["T", "F"], JP: ["J", "P"] };
+const DIMENSION_LABEL = {
+  EI: "Hướng ngoại / Hướng nội",
+  SN: "Giác quan / Trực giác",
+  TF: "Lý trí / Cảm xúc",
+  JP: "Nguyên tắc / Linh hoạt",
+};
+const DIMENSION_BADGE = {
+  EI: "bg-blue-100 text-blue-600",
+  SN: "bg-purple-100 text-purple-600",
+  TF: "bg-orange-100 text-orange-600",
+  JP: "bg-teal-100 text-teal-600",
+};
+const HOLLAND_TYPES = ["R", "I", "A", "S", "E", "C"];
+const HOLLAND_LABEL = {
+  R: "Realistic",
+  I: "Investigative",
+  A: "Artistic",
+  S: "Social",
+  E: "Enterprising",
+  C: "Conventional",
+};
+const HOLLAND_BADGE = {
+  R: "bg-blue-100 text-blue-600",
+  I: "bg-purple-100 text-purple-600",
+  A: "bg-pink-100 text-pink-600",
+  S: "bg-green-100 text-green-600",
+  E: "bg-orange-100 text-orange-600",
+  C: "bg-slate-200 text-slate-600",
+};
+
+const fmtDate = (d) =>
+  d && !isNaN(new Date(d).getTime()) ? new Date(d).toLocaleDateString("vi-VN") : "—";
+const shortId = (id) => `...${String(id || "").slice(-7)}`;
+const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+const emptyMbtiForm = {
+  question: "",
+  dimension: "EI",
+  optionA: { text: "", typeValue: "E" },
+  optionB: { text: "", typeValue: "I" },
+};
+const emptyHollandForm = { content: "", type: "R" };
 
 const AdminQuestionManagement = () => {
   const [activeTab, setActiveTab] = useState("mbti");
+
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
   const [mbtiQuestions, setMbtiQuestions] = useState([]);
   const [hollandQuestions, setHollandQuestions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  // Pagination states
   const [mbtiPage, setMbtiPage] = useState(1);
   const [mbtiTotalPages, setMbtiTotalPages] = useState(1);
   const [mbtiTotalCount, setMbtiTotalCount] = useState(0);
@@ -21,58 +68,167 @@ const AdminQuestionManagement = () => {
   const [hollandTotalPages, setHollandTotalPages] = useState(1);
   const [hollandTotalCount, setHollandTotalCount] = useState(0);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  const [toast, setToast] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
-  const fetchPaginatedData = useCallback(async () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [formData, setFormData] = useState(emptyMbtiForm);
+  const [formError, setFormError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const [deletingItem, setDeletingItem] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const currentPage = activeTab === "mbti" ? mbtiPage : hollandPage;
+  const setCurrentPage = activeTab === "mbti" ? setMbtiPage : setHollandPage;
+  const totalPages = activeTab === "mbti" ? mbtiTotalPages : hollandTotalPages;
+  const totalCount = activeTab === "mbti" ? mbtiTotalCount : hollandTotalCount;
+  const questions = activeTab === "mbti" ? mbtiQuestions : hollandQuestions;
+
+  const showToast = (m) => {
+    setToast(m);
+    setTimeout(() => setToast(""), 2600);
+  };
+
+  const fetchStats = async () => {
+    setLoadingStats(true);
+    try {
+      const res = await axiosClient.get("/admin/questions/stats");
+      setStats(res.data.data);
+    } catch (err) {
+      console.error("Error fetching question stats:", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchPaginatedData = async (tab, page, search, status) => {
     setLoading(true);
     try {
-      if (activeTab === "mbti") {
-        const res = await axios.get(
-          `${API_URL}/admin/questions/mbti?page=${mbtiPage}&limit=10`,
-          { headers: getAuthHeader() },
-        );
+      const endpoint = tab === "mbti" ? "/admin/questions/mbti" : "/admin/questions/holland";
+      const res = await axiosClient.get(endpoint, {
+        params: { page, limit: 10, search: search || undefined, status: status || undefined },
+      });
+      if (tab === "mbti") {
         setMbtiQuestions(res.data.data.questions);
         setMbtiTotalPages(res.data.data.pages);
         setMbtiTotalCount(res.data.data.total);
       } else {
-        const res = await axios.get(
-          `${API_URL}/admin/questions/holland?page=${hollandPage}&limit=10`,
-          { headers: getAuthHeader() },
-        );
         setHollandQuestions(res.data.data.questions);
         setHollandTotalPages(res.data.data.pages);
         setHollandTotalCount(res.data.data.total);
       }
     } catch (err) {
       console.error("Error fetching questions:", err);
-      alert("Lỗi khi tải câu hỏi");
+      showToast("Không thể tải danh sách câu hỏi.");
     } finally {
       setLoading(false);
     }
-  }, [activeTab, mbtiPage, hollandPage]);
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      await fetchPaginatedData();
-    };
-    loadData();
-  }, [activeTab, mbtiPage, hollandPage, fetchPaginatedData]);
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  useEffect(() => {
+    fetchPaginatedData(activeTab, currentPage, searchTerm, statusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, mbtiPage, hollandPage, searchTerm, statusFilter]);
+
+  const refreshAll = () => {
+    fetchStats();
+    fetchPaginatedData(activeTab, currentPage, searchTerm, statusFilter);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchTerm("");
+    setStatusFilter("");
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  // ===== Đồng bộ dữ liệu — tải lại toàn bộ thẻ thống kê + danh sách đang xem =====
+  const handleSync = async () => {
+    setSyncing(true);
+    await Promise.all([
+      fetchStats(),
+      fetchPaginatedData(activeTab, currentPage, searchTerm, statusFilter),
+    ]);
+    setSyncing(false);
+    showToast("Đã đồng bộ dữ liệu mới nhất từ hệ thống.");
+  };
+
+  // ===== Xuất Excel (CSV) — toàn bộ câu hỏi của tab đang xem, khớp bộ lọc hiện tại =====
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const endpoint = activeTab === "mbti" ? "/admin/questions/mbti" : "/admin/questions/holland";
+      const res = await axiosClient.get(endpoint, {
+        params: { page: 1, limit: 10000, search: searchTerm || undefined, status: statusFilter || undefined },
+      });
+      const all = res.data.data.questions || [];
+
+      let header, rows;
+      if (activeTab === "mbti") {
+        header = ["ID", "Câu hỏi", "Chiều", "Lựa chọn A", "Giá trị A", "Lựa chọn B", "Giá trị B", "Trạng thái", "Cập nhật"];
+        rows = all.map((q) => [
+          q._id,
+          q.question,
+          q.dimension,
+          q.optionA?.text,
+          q.optionA?.typeValue,
+          q.optionB?.text,
+          q.optionB?.typeValue,
+          q.isActive === false ? "Tạm ẩn" : "Hoạt động",
+          fmtDate(q.updatedAt),
+        ]);
+      } else {
+        header = ["ID", "Nội dung", "Nhóm RIASEC", "Trạng thái", "Cập nhật"];
+        rows = all.map((q) => [
+          q._id,
+          q.content,
+          q.type,
+          q.isActive === false ? "Tạm ẩn" : "Hoạt động",
+          fmtDate(q.updatedAt),
+        ]);
+      }
+
+      const csv = "﻿" + [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `caZup-cau-hoi-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      showToast("Không thể xuất dữ liệu, vui lòng thử lại.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ===== Thêm mới / Sửa =====
   const handleOpenModal = (item = null) => {
     setEditingItem(item);
+    setFormError("");
     if (item) {
       setFormData(item);
     } else {
-      setFormData(
-        activeTab === "mbti"
-          ? {
-              question: "",
-              dimension: "EI",
-              optionA: { text: "", typeValue: "" },
-              optionB: { text: "", typeValue: "" },
-            }
-          : { content: "", type: "R" },
-      );
+      setFormData(activeTab === "mbti" ? emptyMbtiForm : emptyHollandForm);
     }
     setIsModalOpen(true);
   };
@@ -80,500 +236,646 @@ const AdminQuestionManagement = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingItem(null);
+    setFormError("");
+  };
+
+  // Đổi dimension -> reset lại cặp giá trị A/B hợp lệ tương ứng
+  const handleDimensionChange = (dimension) => {
+    const [a, b] = DIMENSION_PAIRS[dimension];
+    setFormData((f) => ({
+      ...f,
+      dimension,
+      optionA: { ...f.optionA, typeValue: a },
+      optionB: { ...f.optionB, typeValue: b },
+    }));
+  };
+
+  // Đổi giá trị Option A -> Option B tự động nhận giá trị còn lại của cặp (không cho nhập tay)
+  const handleOptionALetterChange = (letter) => {
+    const pair = DIMENSION_PAIRS[formData.dimension] || [];
+    const other = pair.find((v) => v !== letter) || "";
+    setFormData((f) => ({
+      ...f,
+      optionA: { ...f.optionA, typeValue: letter },
+      optionB: { ...f.optionB, typeValue: other },
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+    setSubmitting(true);
     try {
-      const endpoint =
-        activeTab === "mbti"
-          ? "/admin/questions/mbti"
-          : "/admin/questions/holland";
+      const endpoint = activeTab === "mbti" ? "/admin/questions/mbti" : "/admin/questions/holland";
       if (editingItem) {
-        await axios.put(`${API_URL}${endpoint}/${editingItem._id}`, formData, {
-          headers: getAuthHeader(),
-        });
+        await axiosClient.put(`${endpoint}/${editingItem._id}`, formData);
+        showToast("Đã cập nhật câu hỏi.");
       } else {
-        await axios.post(`${API_URL}${endpoint}`, formData, {
-          headers: getAuthHeader(),
-        });
+        await axiosClient.post(endpoint, formData);
+        showToast("Đã thêm câu hỏi mới.");
       }
-      await fetchPaginatedData();
       handleCloseModal();
+      refreshAll();
     } catch (err) {
-      console.error("Error saving question:", err);
-      alert("Lỗi khi lưu câu hỏi");
+      setFormError(err.response?.data?.message || "Không thể lưu câu hỏi.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa câu hỏi này?")) return;
+  // ===== Bật / tạm ẩn câu hỏi khỏi bài test (không xóa) =====
+  const handleToggleStatus = async (item) => {
     try {
-      const endpoint =
-        activeTab === "mbti"
-          ? "/admin/questions/mbti"
-          : "/admin/questions/holland";
-      await axios.delete(`${API_URL}${endpoint}/${id}`, {
-        headers: getAuthHeader(),
-      });
-      await fetchPaginatedData();
+      const endpoint = activeTab === "mbti" ? "/admin/questions/mbti" : "/admin/questions/holland";
+      await axiosClient.patch(`${endpoint}/${item._id}/status`);
+      showToast(item.isActive === false ? "Đã kích hoạt lại câu hỏi." : "Đã tạm ẩn câu hỏi khỏi bài test.");
+      refreshAll();
     } catch (err) {
-      console.error("Error deleting question:", err);
-      alert("Lỗi khi xóa câu hỏi");
+      console.error(err);
+      showToast("Không thể cập nhật trạng thái.");
     }
   };
 
-  if (loading && mbtiQuestions.length === 0 && hollandQuestions.length === 0)
-    return (
-      <div className="flex items-center justify-center h-full text-slate-600">
-        Đang tải...
-      </div>
-    );
-
-  const filteredQuestions = (
-    activeTab === "mbti" ? mbtiQuestions : hollandQuestions
-  ).filter((q) =>
-    (q.question || q.content || q.text || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
-  );
-
-  const renderPagination = () => {
-    let currentPage, setCurrentPage, totalPages;
-
-    if (activeTab === "mbti") {
-      currentPage = mbtiPage;
-      setCurrentPage = setMbtiPage;
-      totalPages = mbtiTotalPages;
-    } else {
-      currentPage = hollandPage;
-      setCurrentPage = setHollandPage;
-      totalPages = hollandTotalPages;
+  // ===== Xóa (mềm) =====
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+    setDeleteSubmitting(true);
+    try {
+      const endpoint = activeTab === "mbti" ? "/admin/questions/mbti" : "/admin/questions/holland";
+      await axiosClient.delete(`${endpoint}/${deletingItem._id}`);
+      setDeletingItem(null);
+      showToast("Đã xóa câu hỏi.");
+      refreshAll();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Không thể xóa câu hỏi.");
+    } finally {
+      setDeleteSubmitting(false);
     }
-
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-2 py-6 border-t border-slate-100">
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          Trước
-        </button>
-        <div className="flex items-center gap-1">
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i + 1}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
-                currentPage === i + 1
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-slate-100 text-slate-600"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          Sau
-        </button>
-      </div>
-    );
   };
+
+  const pageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [1];
+    if (currentPage > 3) pages.push("...");
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  };
+
+  const statCards = [
+    { name: "Tổng số câu hỏi", value: stats?.totalQuestions ?? 0, sub: "MBTI + Holland", icon: "📚" },
+    {
+      name: "MBTI Questions",
+      value: stats?.mbtiTotal ?? 0,
+      sub: `${stats?.mbtiActive ?? 0} đang hoạt động`,
+      icon: "🧠",
+    },
+    {
+      name: "Holland Questions",
+      value: stats?.hollandTotal ?? 0,
+      sub: `${stats?.hollandActive ?? 0} đang hoạt động`,
+      icon: "🎯",
+    },
+    { name: "Active Status", value: `${stats?.activePct ?? 0}%`, sub: "Tỉ lệ câu hỏi hoạt động", icon: "✅", isText: true },
+  ];
+
+  const questionText = (q) => q.question || q.content || "";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="px-1">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900">
-          Quản lý Câu hỏi
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Quản lý nội dung câu hỏi cho các bài kiểm tra định hướng nghề nghiệp
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
-            🧠
-          </div>
-          <div>
-            <p className="text-slate-500 text-sm font-medium">
-              Tổng câu hỏi MBTI
-            </p>
-            <p className="text-2xl font-bold text-slate-900">
-              {mbtiTotalCount}
-            </p>
-          </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg">
+          {toast}
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl">
-            🎯
-          </div>
-          <div>
-            <p className="text-slate-500 text-sm font-medium">
-              Tổng câu hỏi Holland
-            </p>
-            <p className="text-2xl font-bold text-slate-900">
-              {hollandTotalCount}
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-full md:w-auto justify-center">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900">Quản lý Câu hỏi</h1>
+          <p className="text-slate-500 text-sm mt-1">Quản lý ngân hàng câu hỏi khảo sát MBTI và Holland</p>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setActiveTab("mbti")}
-            className={`flex-1 md:flex-none px-6 py-2 font-bold rounded-lg transition-all ${
-              activeTab === "mbti"
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            onClick={handleSync}
+            disabled={syncing}
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition disabled:opacity-50 flex items-center gap-2"
           >
-            MBTI
+            <svg className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {syncing ? "Đang đồng bộ..." : "Sync Data"}
           </button>
           <button
-            onClick={() => setActiveTab("holland")}
-            className={`flex-1 md:flex-none px-6 py-2 font-bold rounded-lg transition-all ${
-              activeTab === "holland"
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold transition disabled:opacity-50 flex items-center gap-2"
           >
-            Holland
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {exporting ? "Đang xuất..." : "Xuất Excel"}
           </button>
-        </div>
-
-        <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              🔍
-            </span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm câu hỏi..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
           <button
             onClick={() => handleOpenModal()}
-            className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition-all shadow-sm whitespace-nowrap shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition flex items-center gap-2"
           >
-            + Thêm mới
+            <span>+</span> Thêm câu hỏi mới
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Mobile View */}
-        <div className="lg:hidden p-4 space-y-4">
-          {filteredQuestions.length > 0 ? (
-            filteredQuestions.map((q) => (
-              <div
-                key={q._id}
-                className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3"
-              >
-                <div className="flex justify-between items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="text-slate-900 font-medium leading-relaxed">
-                      {q.question || q.content || q.text || (
-                        <span className="text-slate-400 italic">
-                          Không có nội dung câu hỏi
-                        </span>
-                      )}
-                    </p>
-                    {activeTab === "mbti" && q.dimension && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mt-1 block">
-                        Dimension: {q.dimension}
-                      </span>
-                    )}
-                    {activeTab === "holland" && q.type && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 mt-1 block">
-                        Category: {q.type}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => handleOpenModal(q)}
-                      className="p-2 text-blue-600 bg-white border border-slate-200 rounded-lg transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDelete(q._id)}
-                      className="p-2 text-red-600 bg-white border border-slate-200 rounded-lg transition-colors"
-                      title="Xóa"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-10 text-center space-y-3">
-              <span className="text-5xl block">📂</span>
-              <p className="text-slate-500 font-medium">
-                {searchTerm
-                  ? `Không tìm thấy câu hỏi nào khớp với "${searchTerm}"`
-                  : `Không có câu hỏi nào trong mục ${
-                      activeTab === "mbti" ? "MBTI" : "Holland"
-                    }`}
-              </p>
-              {!searchTerm && (
-                <button
-                  onClick={() => handleOpenModal()}
-                  className="text-blue-600 hover:underline text-sm font-bold"
-                >
-                  Thêm câu hỏi đầu tiên ngay
-                </button>
-              )}
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {statCards.map((card) => (
+          <div key={card.name} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-slate-500 text-sm font-medium">{card.name}</p>
+              <span className="text-lg bg-slate-50 rounded-lg p-1.5">{card.icon}</span>
             </div>
-          )}
-        </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-1">
+              {loadingStats ? "…" : card.isText ? card.value : Number(card.value).toLocaleString("vi-VN")}
+            </h3>
+            <p className="text-xs text-slate-400">{card.sub}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* Desktop View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full min-w-[800px] text-left">
+      {/* Tabs + Filters */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => handleTabChange("mbti")}
+              className={`px-6 py-2 font-bold rounded-lg transition-all text-sm ${
+                activeTab === "mbti" ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              MBTI Questions <span className="ml-1 text-xs opacity-70">{mbtiTotalCount}</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("holland")}
+              className={`px-6 py-2 font-bold rounded-lg transition-all text-sm ${
+                activeTab === "holland" ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Holland Questions <span className="ml-1 text-xs opacity-70">{hollandTotalCount}</span>
+            </button>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">
+              Tìm kiếm
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Tìm kiếm nội dung câu hỏi..."
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">
+              Trạng thái
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
+            >
+              <option value="">Tất cả</option>
+              <option value="active">Hoạt động</option>
+              <option value="inactive">Tạm ẩn</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Table - Desktop */}
+      <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-sm font-bold text-slate-600">
-                  Câu hỏi
-                </th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-600 text-right">
-                  Hành động
-                </th>
+              <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                <th className="px-6 py-3">ID</th>
+                <th className="px-6 py-3">Nội dung câu hỏi</th>
+                <th className="px-6 py-3">{activeTab === "mbti" ? "Chiều" : "Nhóm RIASEC"}</th>
+                {activeTab === "mbti" && <th className="px-6 py-3">Lựa chọn A/B</th>}
+                <th className="px-6 py-3">Trạng thái</th>
+                <th className="px-6 py-3 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredQuestions.length > 0 ? (
-                filteredQuestions.map((q) => (
-                  <tr
-                    key={q._id}
-                    className="hover:bg-slate-50 transition-colors group"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-slate-900 font-medium">
-                          {q.question || q.content || q.text || (
-                            <span className="text-slate-400 italic">
-                              Không có nội dung câu hỏi
-                            </span>
-                          )}
-                        </span>
-                        {activeTab === "mbti" && q.dimension && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mt-1">
-                            Dimension: {q.dimension}
-                          </span>
-                        )}
-                        {activeTab === "holland" && q.type && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 mt-1">
-                            Category: {q.type}
-                          </span>
-                        )}
-                      </div>
+              {loading ? (
+                <tr>
+                  <td colSpan={activeTab === "mbti" ? 6 : 5} className="px-6 py-10 text-center text-slate-400">
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : questions.length === 0 ? (
+                <tr>
+                  <td colSpan={activeTab === "mbti" ? 6 : 5} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <span className="text-5xl">📂</span>
+                      <p className="text-slate-500 font-medium">
+                        {searchTerm ? `Không tìm thấy câu hỏi nào khớp với "${searchTerm}"` : "Không có câu hỏi nào."}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                questions.map((q) => (
+                  <tr key={q._id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-6 py-4 text-xs font-mono text-slate-400">{shortId(q._id)}</td>
+                    <td className="px-6 py-4 max-w-sm">
+                      <p className="text-slate-900 font-medium leading-snug">{questionText(q)}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Cập nhật: {fmtDate(q.updatedAt)}</p>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-6 py-4">
+                      {activeTab === "mbti" ? (
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${DIMENSION_BADGE[q.dimension]}`}
+                          title={DIMENSION_LABEL[q.dimension]}
+                        >
+                          {q.dimension}
+                        </span>
+                      ) : (
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${HOLLAND_BADGE[q.type]}`}
+                          title={HOLLAND_LABEL[q.type]}
+                        >
+                          {q.type}
+                        </span>
+                      )}
+                    </td>
+                    {activeTab === "mbti" && (
+                      <td className="px-6 py-4 text-xs text-slate-600 space-y-1">
+                        <p>
+                          <span className="font-bold text-slate-400">A:</span> {q.optionA?.text}{" "}
+                          <span className="text-slate-400">({q.optionA?.typeValue})</span>
+                        </p>
+                        <p>
+                          <span className="font-bold text-slate-400">B:</span> {q.optionB?.text}{" "}
+                          <span className="text-slate-400">({q.optionB?.typeValue})</span>
+                        </p>
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                          q.isActive === false ? "text-amber-600" : "text-teal-600"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${q.isActive === false ? "bg-amber-500" : "bg-teal-500"}`} />
+                        {q.isActive === false ? "Tạm ẩn" : "Hoạt động"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenModal(q)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Chỉnh sửa"
+                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
                         >
-                          ✏️
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                         </button>
                         <button
-                          onClick={() => handleDelete(q._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Xóa"
+                          onClick={() => handleToggleStatus(q)}
+                          title={q.isActive === false ? "Kích hoạt lại" : "Tạm ẩn khỏi bài test"}
+                          className={`p-2 rounded-lg transition ${
+                            q.isActive === false ? "text-green-600 hover:bg-green-50" : "text-amber-600 hover:bg-amber-50"
+                          }`}
                         >
-                          🗑️
+                          {q.isActive === false ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 012.132-3.411m3.712-2.98A9.958 9.958 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.043 5.411M3 3l18 18" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setDeletingItem(q)}
+                          title="Xóa"
+                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan="2" className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <span className="text-5xl">📂</span>
-                      <p className="text-slate-500 font-medium">
-                        {searchTerm
-                          ? `Không tìm thấy câu hỏi nào khớp với "${searchTerm}"`
-                          : `Không có câu hỏi nào trong mục ${
-                              activeTab === "mbti" ? "MBTI" : "Holland"
-                            }`}
-                      </p>
-                      {!searchTerm && (
-                        <button
-                          onClick={() => handleOpenModal()}
-                          className="text-blue-600 hover:underline text-sm font-bold"
-                        >
-                          Thêm câu hỏi đầu tiên ngay
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>
         </div>
-        {renderPagination()}
+
+        {/* Pagination */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-slate-100">
+          <p className="text-xs text-slate-500">
+            Hiển thị {questions.length > 0 ? (currentPage - 1) * 10 + 1 : 0} -{" "}
+            {(currentPage - 1) * 10 + questions.length} trong {totalCount.toLocaleString("vi-VN")} kết quả
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition"
+            >
+              ‹
+            </button>
+            {pageNumbers().map((p, idx) =>
+              p === "..." ? (
+                <span key={`e${idx}`} className="px-1 text-slate-400 font-bold">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-8 h-8 rounded-lg text-sm font-bold transition ${
+                    currentPage === p ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {p}
+                </button>
+              ),
+            )}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition"
+            >
+              ›
+            </button>
+          </div>
+        </div>
       </div>
 
+      {/* Mobile Cards */}
+      <div className="grid grid-cols-1 gap-4 lg:hidden">
+        {loading ? (
+          <div className="text-center py-10 text-slate-400">Đang tải...</div>
+        ) : questions.length === 0 ? (
+          <div className="text-center py-10 text-slate-500">Không có câu hỏi nào.</div>
+        ) : (
+          questions.map((q) => (
+            <div key={q._id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <div className="flex justify-between items-start gap-3">
+                <p className="text-slate-900 font-medium leading-snug">{questionText(q)}</p>
+                <span
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold ${
+                    activeTab === "mbti" ? DIMENSION_BADGE[q.dimension] : HOLLAND_BADGE[q.type]
+                  }`}
+                >
+                  {activeTab === "mbti" ? q.dimension : q.type}
+                </span>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                  q.isActive === false ? "text-amber-600" : "text-teal-600"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${q.isActive === false ? "bg-amber-500" : "bg-teal-500"}`} />
+                {q.isActive === false ? "Tạm ẩn" : "Hoạt động"}
+              </span>
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleOpenModal(q)}
+                  className="flex-1 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                >
+                  Sửa
+                </button>
+                <button
+                  onClick={() => handleToggleStatus(q)}
+                  className={`flex-1 px-3 py-2 text-xs font-bold rounded-xl transition ${
+                    q.isActive === false ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  }`}
+                >
+                  {q.isActive === false ? "Kích hoạt" : "Tạm ẩn"}
+                </button>
+                <button
+                  onClick={() => setDeletingItem(q)}
+                  className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition"
+            >
+              Trước
+            </button>
+            <span className="text-sm text-slate-500">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition"
+            >
+              Sau
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ===== Modal: Thêm mới / Sửa câu hỏi ===== */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-              <h3 className="text-lg font-bold mb-4">
-                {editingItem ? "Cập nhật" : "Thêm mới"} câu hỏi
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {activeTab === "mbti" ? (
-                  <input
-                    required
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Câu hỏi"
-                    value={formData.question || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, question: e.target.value })
-                    }
-                  />
-                ) : (
-                  <input
-                    required
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Câu hỏi"
-                    value={formData.content || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
-                    }
-                  />
-                )}
-                {activeTab === "mbti" && (
-                  <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <motion.form
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onSubmit={handleSubmit}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-7 space-y-4 my-8"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-black text-slate-900">
+                  {editingItem ? "Cập nhật câu hỏi" : "Thêm câu hỏi mới"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {formError && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-2">{formError}</p>}
+
+              {activeTab === "mbti" ? (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500">Nội dung câu hỏi</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={formData.question || ""}
+                      onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                      className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500">Chiều tính cách</label>
                     <select
-                      className="w-full p-2 border rounded-lg"
                       value={formData.dimension || "EI"}
-                      onChange={(e) =>
-                        setFormData({ ...formData, dimension: e.target.value })
-                      }
+                      onChange={(e) => handleDimensionChange(e.target.value)}
+                      className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
                     >
-                      {["EI", "SN", "TF", "JP"].map((d) => (
+                      {Object.keys(DIMENSION_PAIRS).map((d) => (
                         <option key={d} value={d}>
-                          {d}
+                          {d} — {DIMENSION_LABEL[d]}
                         </option>
                       ))}
                     </select>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        required
-                        className="p-2 border rounded-lg"
-                        placeholder="Option A"
-                        value={formData.optionA?.text || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            optionA: {
-                              ...formData.optionA,
-                              text: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                      <input
-                        required
-                        className="p-2 border rounded-lg"
-                        placeholder="Value A"
-                        value={formData.optionA?.typeValue || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            optionA: {
-                              ...formData.optionA,
-                              typeValue: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                      <input
-                        required
-                        className="p-2 border rounded-lg"
-                        placeholder="Option B"
-                        value={formData.optionB?.text || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            optionB: {
-                              ...formData.optionB,
-                              text: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                      <input
-                        required
-                        className="p-2 border rounded-lg"
-                        placeholder="Value B"
-                        value={formData.optionB?.typeValue || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            optionB: {
-                              ...formData.optionB,
-                              typeValue: e.target.value,
-                            },
-                          })
-                        }
-                      />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs font-bold text-slate-500">Nội dung lựa chọn A</label>
+                        <input
+                          required
+                          value={formData.optionA?.text || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, optionA: { ...formData.optionA, text: e.target.value } })
+                          }
+                          className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <label className="text-xs font-bold text-slate-500">Giá trị</label>
+                        <select
+                          value={formData.optionA?.typeValue || ""}
+                          onChange={(e) => handleOptionALetterChange(e.target.value)}
+                          className="w-full mt-1 px-2 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                        >
+                          {(DIMENSION_PAIRS[formData.dimension] || []).map((v) => (
+                            <option key={v} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </>
-                )}
-                {activeTab === "holland" && (
-                  <input
-                    required
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Category (R, I, A, S, E, C)"
-                    value={formData.type || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                  />
-                )}
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="px-4 py-2 bg-slate-100 rounded-lg"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-                  >
-                    Lưu
-                  </button>
-                </div>
-              </form>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs font-bold text-slate-500">Nội dung lựa chọn B</label>
+                        <input
+                          required
+                          value={formData.optionB?.text || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, optionB: { ...formData.optionB, text: e.target.value } })
+                          }
+                          className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <label className="text-xs font-bold text-slate-500">Giá trị</label>
+                        <input
+                          disabled
+                          value={formData.optionB?.typeValue || ""}
+                          className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 text-center"
+                          title="Tự động nhận giá trị còn lại của cặp — không thể chọn trùng với Option A"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500">Nội dung câu hỏi</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={formData.content || ""}
+                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      className="w-full mt-1 px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500">Nhóm RIASEC</label>
+                    <select
+                      value={formData.type || "R"}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
+                    >
+                      {HOLLAND_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t} — {HOLLAND_LABEL[t]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition disabled:opacity-50"
+              >
+                {submitting ? "Đang lưu..." : "Lưu câu hỏi"}
+              </button>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Confirm: Xóa câu hỏi ===== */}
+      <AnimatePresence>
+        {deletingItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 space-y-4 text-center"
+            >
+              <div className="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center text-2xl">
+                🗑️
+              </div>
+              <h2 className="text-lg font-black text-slate-900">Xóa câu hỏi này?</h2>
+              <p className="text-sm text-slate-500 line-clamp-3">{questionText(deletingItem)}</p>
+              <p className="text-xs text-slate-400">
+                Câu hỏi sẽ bị ẩn khỏi hệ thống và không còn xuất hiện trong bài test mới.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setDeletingItem(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deleteSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition disabled:opacity-50"
+                >
+                  {deleteSubmitting ? "Đang xóa..." : "Xóa câu hỏi"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

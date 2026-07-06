@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import LogoAssemblyHero from "./LogoAssemblyHero";
 
+const WALK_RANGE = 55; // px fox travels to each side inside the card
+const WALK_TIMES = [0, 0.46, 0.5, 0.96, 1]; // walk right, quick turn, walk left, quick turn
+
 const HeroSection = () => {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 via-white to-white px-6 pt-16 pb-24 md:pt-24 md:pb-32">
       {/* Decorative Elements */}
@@ -48,12 +54,59 @@ const HeroSection = () => {
 
         {/* Visual */}
         <div className="relative mx-auto max-w-md lg:max-w-none">
-          <div className="rounded-[32px] border border-blue-100 bg-gradient-to-br from-blue-50 to-orange-50 p-10 shadow-2xl shadow-blue-100 md:p-14">
-            <img
-              src="/logoCazup.png"
-              alt="caZup - Nền tảng định hướng ngành học AI"
-              className="mx-auto h-auto max-h-72 w-full object-contain drop-shadow-xl"
-            />
+          <div className="overflow-hidden rounded-[32px] border border-blue-100 bg-gradient-to-br from-blue-50 to-orange-50 p-10 shadow-2xl shadow-blue-100 md:p-14">
+            <div className="relative flex h-56 items-end justify-center sm:h-64">
+              {/* Fox walking back and forth across the card */}
+              <motion.div
+                className="relative"
+                animate={
+                  prefersReducedMotion
+                    ? {}
+                    : { x: [-WALK_RANGE, WALK_RANGE, WALK_RANGE, -WALK_RANGE, -WALK_RANGE] }
+                }
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  times: WALK_TIMES,
+                }}
+              >
+                {/* Ground shadow, squashes with each footstep */}
+                <motion.div
+                  className="absolute -bottom-1 left-1/2 h-3 w-24 -translate-x-1/2 rounded-full bg-slate-900/15 blur-sm"
+                  animate={
+                    prefersReducedMotion
+                      ? {}
+                      : { scaleX: [1, 0.75, 1], opacity: [0.45, 0.25, 0.45] }
+                  }
+                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {/* Flips to face its walking direction */}
+                <motion.div
+                  animate={
+                    prefersReducedMotion
+                      ? {}
+                      : { scaleX: [1, 1, -1, -1, 1] }
+                  }
+                  transition={{
+                    duration: 7,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    times: WALK_TIMES,
+                  }}
+                >
+                  {/* Footstep bob */}
+                  <motion.img
+                    src="/logoCazup.png"
+                    alt="caZup - Nền tảng định hướng ngành học AI"
+                    className="h-auto max-h-56 w-auto object-contain drop-shadow-xl sm:max-h-64"
+                    animate={prefersReducedMotion ? {} : { y: [0, -8, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </motion.div>
+              </motion.div>
+            </div>
             <p className="mt-4 text-center text-3xl font-black tracking-tight text-slate-900">
               ca<span className="text-orange-500">Z</span>up
             </p>

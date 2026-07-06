@@ -328,18 +328,18 @@ const AdminQuestionManagement = () => {
   const statCards = [
     { name: "Tổng số câu hỏi", value: stats?.totalQuestions ?? 0, sub: "MBTI + Holland", icon: "📚" },
     {
-      name: "MBTI Questions",
+      name: "Câu hỏi MBTI",
       value: stats?.mbtiTotal ?? 0,
       sub: `${stats?.mbtiActive ?? 0} đang hoạt động`,
       icon: "🧠",
     },
     {
-      name: "Holland Questions",
+      name: "Câu hỏi Holland",
       value: stats?.hollandTotal ?? 0,
       sub: `${stats?.hollandActive ?? 0} đang hoạt động`,
       icon: "🎯",
     },
-    { name: "Active Status", value: `${stats?.activePct ?? 0}%`, sub: "Tỉ lệ câu hỏi hoạt động", icon: "✅", isText: true },
+    { name: "Trạng thái hoạt động", value: `${stats?.activePct ?? 0}%`, sub: "Tỉ lệ câu hỏi hoạt động", icon: "✅", isText: true },
   ];
 
   const questionText = (q) => q.question || q.content || "";
@@ -367,7 +367,7 @@ const AdminQuestionManagement = () => {
             <svg className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {syncing ? "Đang đồng bộ..." : "Sync Data"}
+            {syncing ? "Đang đồng bộ..." : "Đồng bộ dữ liệu"}
           </button>
           <button
             onClick={handleExportExcel}

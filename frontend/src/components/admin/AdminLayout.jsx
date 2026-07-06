@@ -32,7 +32,7 @@ const AdminLayout = ({ children }) => {
   const admin = getUser();
 
   const menuItems = [
-    { name: "Dashboard", path: "/admin/dashboard", icon: NAV_ICONS.dashboard },
+    { name: "Tổng quan", path: "/admin/dashboard", icon: NAV_ICONS.dashboard },
     { name: "Quản lý User", path: "/admin/users", icon: NAV_ICONS.users },
     { name: "Quản lý Ngành/Trường", path: "/admin/majors", icon: NAV_ICONS.school },
     { name: "Quản lý Câu hỏi", path: "/admin/questions", icon: NAV_ICONS.question },
@@ -83,8 +83,8 @@ const AdminLayout = ({ children }) => {
           } lg:translate-x-0 fixed lg:static z-40 w-64 h-full bg-[#0f172a] text-white flex flex-col transition-transform duration-300`}
         >
           <div className="p-6 border-b border-slate-700">
-            <h1 className="text-lg font-bold">Admin Panel</h1>
-            <p className="text-xs text-slate-400">System Controller</p>
+            <h1 className="text-lg font-bold">Trang quản trị</h1>
+            <p className="text-xs text-slate-400">Bộ điều khiển hệ thống</p>
           </div>
 
           <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
@@ -110,14 +110,14 @@ const AdminLayout = ({ children }) => {
               className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm transition"
             >
               <NavIcon d={NAV_ICONS.report} className="w-4 h-4" />
-              Generate Report
+              Tạo báo cáo
             </button>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-2 text-slate-400 hover:text-white text-sm transition px-2"
             >
               <NavIcon d={NAV_ICONS.logout} className="w-4 h-4" />
-              Sign Out
+              Đăng xuất
             </button>
           </div>
         </aside>
@@ -134,7 +134,7 @@ const AdminLayout = ({ children }) => {
                     {admin?.name || "Admin"}
                   </p>
                   <p className="text-[11px] text-slate-400 leading-tight">
-                    Hệ thống Controller
+                    Quản trị viên hệ thống
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 group-hover:ring-2 group-hover:ring-blue-200 transition shrink-0">
@@ -237,12 +237,12 @@ const AdminLayout = ({ children }) => {
 
                       <div className="bg-slate-50 p-6 rounded-2xl">
                         <h3 className="font-bold text-slate-900 mb-4">
-                          Phân bổ loại Test
+                          Phân bổ loại Trắc nghiệm
                         </h3>
                         <div className="space-y-3">
                           <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
                             <span className="font-medium text-slate-700">
-                              Holland Test
+                              Trắc nghiệm Holland
                             </span>
                             <span className="font-bold text-slate-900">
                               {reportData.testDistribution.holland}
@@ -250,7 +250,7 @@ const AdminLayout = ({ children }) => {
                           </div>
                           <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
                             <span className="font-medium text-slate-700">
-                              MBTI Test
+                              Trắc nghiệm MBTI
                             </span>
                             <span className="font-bold text-slate-900">
                               {reportData.testDistribution.mbti}

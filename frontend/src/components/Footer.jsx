@@ -60,7 +60,7 @@ const Footer = () => {
 
       {/* Bottom */}
       <div className="mx-auto mt-16 max-w-7xl border-t border-slate-800 pt-6 text-center text-sm text-slate-500 font-medium">
-        © Contact caZUP by email: cazup.vn@gmail.com.
+        © Liên hệ caZup qua email: cazup.vn@gmail.com.
       </div>
     </footer>
   );

@@ -13,6 +13,7 @@ const PLAN_BADGE = {
   PAID: "bg-blue-100 text-blue-600",
   PREMIUM: "bg-orange-100 text-orange-600",
 };
+const PLAN_LABEL = { FREE: "Cơ bản", PAID: "Tiêu chuẩn", PREMIUM: "Cao cấp" };
 
 const fmtVND = (n) => `${Number(n || 0).toLocaleString("vi-VN")} VND`;
 const fmtDate = (d) =>
@@ -499,7 +500,7 @@ const AdminDashboard = () => {
                       PLAN_BADGE[user.subscriptionPlan] || PLAN_BADGE.FREE
                     }`}
                   >
-                    {user.subscriptionPlan || "FREE"}
+                    {PLAN_LABEL[user.subscriptionPlan] || PLAN_LABEL.FREE}
                   </span>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
                     Đăng ký {fmtDate(user.createdAt)}
@@ -599,7 +600,7 @@ const AdminDashboard = () => {
                           PLAN_BADGE[user.subscriptionPlan] || PLAN_BADGE.FREE
                         }`}
                       >
-                        {user.subscriptionPlan || "FREE"}
+                        {PLAN_LABEL[user.subscriptionPlan] || PLAN_LABEL.FREE}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -755,8 +756,8 @@ const AdminDashboard = () => {
                     onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
                   >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
+                    <option value="user">Người dùng</option>
+                    <option value="admin">Quản trị viên</option>
                   </select>
                 </div>
                 <div>
@@ -766,9 +767,9 @@ const AdminDashboard = () => {
                     onChange={(e) => setCreateForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
                   >
-                    <option value="FREE">FREE</option>
-                    <option value="PAID">PAID</option>
-                    <option value="PREMIUM">PREMIUM</option>
+                    <option value="FREE">Cơ bản</option>
+                    <option value="PAID">Tiêu chuẩn</option>
+                    <option value="PREMIUM">Cao cấp</option>
                   </select>
                 </div>
               </div>
@@ -831,8 +832,8 @@ const AdminDashboard = () => {
                     onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
                   >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
+                    <option value="user">Người dùng</option>
+                    <option value="admin">Quản trị viên</option>
                   </select>
                 </div>
                 <div>
@@ -842,9 +843,9 @@ const AdminDashboard = () => {
                     onChange={(e) => setEditForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200 transition"
                   >
-                    <option value="FREE">FREE</option>
-                    <option value="PAID">PAID</option>
-                    <option value="PREMIUM">PREMIUM</option>
+                    <option value="FREE">Cơ bản</option>
+                    <option value="PAID">Tiêu chuẩn</option>
+                    <option value="PREMIUM">Cao cấp</option>
                   </select>
                 </div>
               </div>

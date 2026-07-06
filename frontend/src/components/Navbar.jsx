@@ -53,16 +53,16 @@ const Navbar = () => {
   const isAdminUser = user?.role === "admin";
 
   const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "Compare", path: "/comparison" },
-    { name: "Recommend", path: "/recommend" },
-    { name: "Tests", path: "/tests" },
+    { name: "Trang chủ", path: "/" },
+    { name: "So sánh", path: "/comparison" },
+    { name: "Gợi ý", path: "/recommend" },
+    { name: "Trắc nghiệm", path: "/tests" },
     { name: "AI Mentor", path: "/mentor" },
-    { name: "History", path: "/history" },
+    { name: "Lịch sử", path: "/history" },
   ];
 
   if (isAdminUser) {
-    navLinks.push({ name: "Admin Panel", path: "/admin/dashboard" });
+    navLinks.push({ name: "Trang quản trị", path: "/admin/dashboard" });
   }
 
   return (
@@ -255,7 +255,7 @@ const Navbar = () => {
               to="/pricing"
               className="hidden sm:block bg-[#0f172a] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-slate-800 transition shadow-sm"
             >
-              Upgrade
+              Nâng cấp
             </Link>
           )}
 

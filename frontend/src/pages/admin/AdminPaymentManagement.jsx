@@ -9,6 +9,7 @@ const STATUS_BADGE = {
 };
 const STATUS_LABEL = { SUCCESS: "Thành công", PENDING: "Đang chờ", FAILED: "Thất bại" };
 const PLAN_BADGE = { PAID: "bg-blue-50 text-blue-600", PREMIUM: "bg-purple-50 text-purple-600" };
+const PLAN_LABEL = { FREE: "Cơ bản", PAID: "Tiêu chuẩn", PREMIUM: "Cao cấp" };
 
 const fmtDateTime = (d) =>
   d && !isNaN(new Date(d).getTime())
@@ -287,8 +288,8 @@ const AdminPaymentManagement = () => {
               className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition"
             >
               <option value="">Tất cả</option>
-              <option value="PAID">PAID</option>
-              <option value="PREMIUM">PREMIUM</option>
+              <option value="PAID">Tiêu chuẩn</option>
+              <option value="PREMIUM">Cao cấp</option>
             </select>
           </div>
           {(statusFilter || planFilter || searchTerm) && (
@@ -344,7 +345,7 @@ const AdminPaymentManagement = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className={`px-2 py-1 rounded text-xs font-bold ${PLAN_BADGE[payment.planType]}`}>
-                    {payment.planType}
+                    {PLAN_LABEL[payment.planType] || payment.planType}
                   </span>
                   {payment.status === "PENDING" && (
                     <div className="flex gap-2">
@@ -415,7 +416,7 @@ const AdminPaymentManagement = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${PLAN_BADGE[payment.planType]}`}>
-                        {payment.planType}
+                        {PLAN_LABEL[payment.planType] || payment.planType}
                       </span>
                     </td>
                     <td className="px-6 py-4">

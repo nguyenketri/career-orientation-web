@@ -155,7 +155,7 @@ const LogoAssemblyHero = () => {
         </motion.div>
       ))}
 
-      {/* Wordmark assembly: "C" + fox mascot (as the "a") + "Zup" */}
+      {/* Wordmark assembly: "c" + fox mascot (as the "a") + "Zup" = brand name "caZup" */}
       <div className="absolute left-1/2 top-[44%] z-20 flex -translate-x-1/2 -translate-y-1/2 items-center">
         <motion.span
           className="text-3xl font-black text-slate-900 sm:text-5xl md:text-6xl lg:text-7xl"
@@ -163,7 +163,7 @@ const LogoAssemblyHero = () => {
           animate={{ opacity: 1, x: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 100, damping: 14, delay: 0.55 }}
         >
-          C
+          c
         </motion.span>
 
         <motion.div

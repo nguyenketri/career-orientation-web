@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../../api/axios";
 
+const PLAN_LABEL = { FREE: "Cơ bản", PAID: "Tiêu chuẩn", PREMIUM: "Cao cấp" };
+
 const DashboardPage = () => {
   const [userData, setUserData] = useState(null);
 
@@ -52,10 +54,10 @@ const DashboardPage = () => {
             <h2 className="text-xl font-bold mb-6">Gói dịch vụ hiện tại</h2>
             <div className="text-center py-4">
               <div className="text-3xl font-black text-blue-600 mb-2">
-                {subscriptionPlan}
+                {PLAN_LABEL[subscriptionPlan] || subscriptionPlan}
               </div>
               <p className="text-slate-500">
-                Bạn đang sử dụng gói {subscriptionPlan}. Nâng cấp để mở khóa lộ
+                Bạn đang sử dụng gói {PLAN_LABEL[subscriptionPlan] || subscriptionPlan}. Nâng cấp để mở khóa lộ
                 trình chuyên sâu.
               </p>
             </div>

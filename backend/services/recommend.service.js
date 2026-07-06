@@ -52,6 +52,16 @@ const calculateCombinations = (scores) => {
       subjects: ["math", "literature", "english"],
       score: math + literature + english,
     },
+    {
+      name: "D07",
+      subjects: ["math", "chemistry", "english"],
+      score: math + chemistry + english,
+    },
+    {
+      name: "D15",
+      subjects: ["literature", "geography", "english"],
+      score: literature + geography + english,
+    },
   ];
 
   return combinations.filter((c) => c.score > 0);
@@ -126,8 +136,18 @@ const recommendBySubjects = async (
   // Lấy danh sách ngành của các trường mà điểm học sinh (theo từng tổ hợp) có
   // khả năng đỗ. Lọc điểm chuẩn / học phí theo ĐÚNG năm đang chọn.
   for (const combo of combinations) {
+    // Ngành phù hợp là ngành có khai báo tổ hợp này trong subjectCombinations
+    // (một ngành tại một trường thường được xét tuyển bằng NHIỀU tổ hợp, không
+    // chỉ tổ hợp "chính" lưu trên UniversityMajor), nên lọc theo Major trước.
+    const matchingMajorIds = await Major.find({
+      subjectCombinations: combo.name,
+      isDeleted: { $ne: true },
+    }).distinct("_id");
+
+    if (matchingMajorIds.length === 0) continue;
+
     const um = await UniversityMajor.find({
-      subjectCombination: combo.name,
+      major: { $in: matchingMajorIds },
       isDeleted: false,
     })
       .populate({

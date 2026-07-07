@@ -8,11 +8,11 @@ import { getUser } from "../../utils/auth";
 import UpgradePrompt from "../../components/UpgradePrompt";
 
 /* Logo trường trong vòng tròn, tự fallback về chữ cái đầu nếu ảnh lỗi */
-const SchoolLogo = ({ src, name, size = "w-16 h-16" }) => {
+const SchoolLogo = ({ src, name, size = "w-16 h-16", wrap = "mx-auto" }) => {
   const [err, setErr] = useState(false);
   return (
     <div
-      className={`${size} mx-auto rounded-full bg-white ring-2 ring-slate-100 shadow-sm flex items-center justify-center overflow-hidden`}
+      className={`${size} ${wrap} rounded-full bg-white ring-2 ring-slate-100 shadow-sm flex items-center justify-center overflow-hidden`}
     >
       {src && !err ? (
         <img
@@ -275,10 +275,10 @@ const ComparisonPage = () => {
                   onClick={() => handleSelect(item)}
                   className="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-center gap-3"
                 >
-                  <SchoolLogo src={item.university?.image} name={item.university?.name} size="w-8 h-8" />
-                  <div>
-                    <div className="font-bold text-slate-900 text-sm">{item.major?.name}</div>
-                    <div className="text-xs text-slate-500">{item.university?.name}</div>
+                  <SchoolLogo src={item.university?.image} name={item.university?.name} size="w-8 h-8" wrap="shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{item.major?.name}</div>
+                    <div className="text-xs text-slate-500 truncate">{item.university?.name}</div>
                   </div>
                 </div>
               ))}

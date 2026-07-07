@@ -173,7 +173,7 @@ const LogoAssemblyHero = () => {
           transition={{ type: "spring", stiffness: 90, damping: 11, delay: 0.85 }}
         >
           <motion.img
-            src="/logoCazup.png"
+            src="/logocaZup.svg"
             alt="caZup"
             className="h-full w-full object-contain drop-shadow-lg"
             animate={prefersReducedMotion ? {} : { y: [0, -5, 0] }}

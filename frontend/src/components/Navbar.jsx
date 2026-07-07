@@ -71,7 +71,7 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center hover:opacity-80 transition">
           <img
-            src="/logoCazup.png"
+            src="/logocaZup.svg"
             alt="caZup Logo"
             className="h-8 w-auto object-contain"
           />

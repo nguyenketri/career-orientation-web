@@ -98,7 +98,7 @@ const HeroSection = () => {
                 >
                   {/* Footstep bob */}
                   <motion.img
-                    src="/logoCazup.png"
+                    src="/logocaZup.svg"
                     alt="caZup - Nền tảng định hướng ngành học AI"
                     className="h-auto max-h-56 w-auto object-contain drop-shadow-xl sm:max-h-64"
                     animate={prefersReducedMotion ? {} : { y: [0, -8, 0] }}

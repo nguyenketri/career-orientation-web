@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { getToken } from "../utils/auth";
 
 const Footer = () => {
+  const isLoggedIn = !!getToken();
   return (
     <footer className="bg-slate-900 px-6 py-16 text-white">
-      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={`mx-auto grid max-w-7xl gap-12 md:grid-cols-2 ${
+          isLoggedIn ? "lg:grid-cols-3" : "lg:grid-cols-4"
+        }`}
+      >
         {/* Brand */}
         <div>
           <h2 className="mb-4 text-3xl font-black text-white">caZup</h2>
@@ -29,18 +35,20 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Account */}
-        <div>
-          <h3 className="mb-4 text-lg font-bold text-white">Tài khoản</h3>
-          <div className="flex flex-col gap-3 text-slate-400 font-medium">
-            <Link to="/login" className="hover:text-blue-400 transition">
-              Đăng nhập
-            </Link>
-            <Link to="/register" className="hover:text-blue-400 transition">
-              Đăng ký
-            </Link>
+        {/* Account — ẩn khi đã đăng nhập để tránh bấm nhầm */}
+        {!isLoggedIn && (
+          <div>
+            <h3 className="mb-4 text-lg font-bold text-white">Tài khoản</h3>
+            <div className="flex flex-col gap-3 text-slate-400 font-medium">
+              <Link to="/login" className="hover:text-blue-400 transition">
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="hover:text-blue-400 transition">
+                Đăng ký
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Social */}
         <div>

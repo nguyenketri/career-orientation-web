@@ -599,26 +599,59 @@ const TestResultPage = () => {
           </AnimatePresence>
         )}
 
-        {getUser()?.subscriptionPlan !== "FREE" && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-black text-slate-900 mb-8 text-center md:text-left">
-              Gợi Ý Ngành & Trường Phù Hợp
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(activeTab === "holland"
-                ? hollandResult?.recommendedMajors
-                : mbtiResult?.recommendedMajors
-              )?.map((major, idx) => (
-                <RecommendationCard
-                  key={major._id}
-                  major={major}
-                  matchPercent={Math.min(100, 90 + idx)}
-                  navigate={navigate}
-                />
-              ))}
+        {(() => {
+          const plan = getUser()?.subscriptionPlan || "FREE";
+          const majors =
+            (activeTab === "holland"
+              ? hollandResult?.recommendedMajors
+              : mbtiResult?.recommendedMajors) || [];
+          return (
+            <div className="mt-16">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+                <h2 className="text-2xl font-black text-slate-900 text-center md:text-left">
+                  Gợi Ý Ngành & Trường Phù Hợp
+                </h2>
+                {plan !== "PREMIUM" && (
+                  <button
+                    onClick={() => navigate("/pricing")}
+                    className="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap"
+                  >
+                    {plan === "FREE"
+                      ? "Gói Cơ Bản: chưa mở khoá — Nâng cấp ngay ›"
+                      : "Gói Tiêu Chuẩn: tối đa 6 gợi ý — Nâng cấp Cao Cấp để xem không giới hạn ›"}
+                  </button>
+                )}
+              </div>
+              {majors.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {majors.map((major, idx) => (
+                    <RecommendationCard
+                      key={major._id}
+                      major={major}
+                      matchPercent={Math.min(100, 90 + idx)}
+                      navigate={navigate}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-center">
+                  <p className="text-blue-900 font-bold mb-1">
+                    Mở khoá gợi ý trường & ngành theo kết quả trắc nghiệm
+                  </p>
+                  <p className="text-blue-700 text-sm mb-5">
+                    Gói Cơ Bản (FREE) chưa bao gồm gợi ý trường/ngành. Nâng cấp Tiêu Chuẩn (PAID) để xem tối đa 6 gợi ý, hoặc Cao Cấp (PREMIUM) để xem không giới hạn.
+                  </p>
+                  <button
+                    onClick={() => navigate("/pricing")}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition"
+                  >
+                    Nâng cấp ngay
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <AiMentorSection
           holland={hollandResult}

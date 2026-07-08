@@ -17,7 +17,7 @@ router.get("/history", authMiddleware, mbtiController.getHistory);
 router.get("/:id", optionalAuthMiddleware, async (req, res) => {
   try {
     const MbtiResult = require("../models/mbtiResult.model");
-    const UniversityMajor = require("../models/universityMajor.model");
+    const { limitMajorsByPlan } = require("../utils/planLimits");
 
     const result = await MbtiResult.findById(req.params.id).populate({
       path: "recommendedMajors",
@@ -28,7 +28,11 @@ router.get("/:id", optionalAuthMiddleware, async (req, res) => {
     });
     if (!result) return res.status(404).json({ message: "Not found" });
 
-    res.status(200).json({ status: "success", data: result });
+    const plan = req.user?.subscriptionPlan || "FREE";
+    const data = result.toObject();
+    data.recommendedMajors = limitMajorsByPlan(data.recommendedMajors, plan);
+
+    res.status(200).json({ status: "success", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

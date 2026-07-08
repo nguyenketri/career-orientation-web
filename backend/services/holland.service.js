@@ -3,6 +3,7 @@ const HollandQuestion = require("../models/hollandQuestion.model");
 const Major = require("../models/major.model");
 const HollandResult = require("../models/hollandResult.model");
 const User = require("../models/user.model");
+const { limitMajorsByPlan } = require("../utils/planLimits");
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(
@@ -76,15 +77,15 @@ const submitHollandTest = async (userId, answers) => {
     plan = user?.subscriptionPlan || "FREE";
   }
 
-  //  tìm ngành phù hợp - Only for PAID and PREMIUM
-  let recommendedMajors = [];
-  if (plan === "PAID" || plan === "PREMIUM") {
-    const majors = await Major.find({
-      hollandTypes: { $in: topTypes },
-      isDeleted: false,
-    });
-    recommendedMajors = majors.map((m) => m._id);
-  }
+  //  Luôn tính đầy đủ ngành phù hợp và lưu toàn bộ vào DB — số lượng hiển thị
+  // cho user được giới hạn theo gói ở thời điểm ĐỌC (limitMajorsByPlan), không
+  // phải ở thời điểm lưu, để user nâng cấp gói thì bài test cũ cũng mở khoá
+  // thêm gợi ý ngay lập tức.
+  const majors = await Major.find({
+    hollandTypes: { $in: topTypes },
+    isDeleted: false,
+  });
+  const recommendedMajors = majors.map((m) => m._id);
 
   // Lưu kết quả vào database
   const newResult = await HollandResult.create({
@@ -96,8 +97,18 @@ const submitHollandTest = async (userId, answers) => {
   });
 
   // Fetch populated data
-  const populatedResult = await HollandResult.findById(newResult._id).populate(
-    "recommendedMajors",
+  const populatedResult = await HollandResult.findById(
+    newResult._id,
+  ).populate({
+    path: "recommendedMajors",
+    populate: {
+      path: "universities",
+      model: "University",
+    },
+  });
+  populatedResult.recommendedMajors = limitMajorsByPlan(
+    populatedResult.recommendedMajors,
+    plan,
   );
 
   return populatedResult;

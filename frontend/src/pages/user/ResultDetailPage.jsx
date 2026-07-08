@@ -26,6 +26,7 @@ import {
   COMPAT_LABEL,
 } from "../../utils/mbtiCareerMap";
 import axiosClient from "../../api/axios";
+import { getUser } from "../../utils/auth";
 
 const tagClass = (c) =>
   c === "green"
@@ -36,6 +37,92 @@ const tagClass = (c) =>
 
 const RECOMMEND_IMG =
   "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=70";
+
+// Số ngành/trường gợi ý theo gói — khớp với backend/utils/planLimits.js.
+// Hiển thị ở đây để user hiểu rõ vì sao danh sách bị giới hạn và cần nâng cấp
+// gói nào để xem thêm.
+const buildUniversityMatches = (majors) =>
+  (majors || [])
+    .flatMap((m, mi) =>
+      (m.universities || []).slice(0, 1).map((u) => ({
+        id: `${m._id}-${u._id}`,
+        name: u.name,
+        location: u.location,
+        program: m.name,
+        match: Math.max(72, 96 - mi * 4),
+        website: u.website,
+        uniId: u._id,
+      })),
+    );
+
+// Bảng "Trường & Ngành phù hợp" dùng chung cho cả Holland và MBTI — số dòng
+// hiển thị do backend giới hạn theo gói hiện tại (planLimits.js: FREE 0 /
+// PAID tối đa 6 / PREMIUM không giới hạn), nên bảng luôn khớp với gói thật.
+const SchoolMatchSection = ({ matches, plan, navigate, title }) => (
+  <div>
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <h2 className="text-2xl font-black">{title}</h2>
+      {plan !== "PREMIUM" && (
+        <button
+          onClick={() => navigate("/pricing")}
+          className="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap"
+        >
+          {plan === "FREE"
+            ? "Gói Cơ Bản: chưa mở khoá — Nâng cấp ngay ›"
+            : `Gói Tiêu Chuẩn: tối đa 6 gợi ý — Nâng cấp Cao Cấp để xem không giới hạn ›`}
+        </button>
+      )}
+    </div>
+    {matches.length > 0 ? (
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/70">
+                <th className="px-6 py-4 font-medium">Trường</th>
+                <th className="px-6 py-4 font-medium">Ngành gợi ý</th>
+                <th className="px-6 py-4 font-medium">Độ phù hợp</th>
+                <th className="px-6 py-4 font-medium text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {matches.map((u) => (
+                <tr key={u.id} className="hover:bg-slate-50/60 transition">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900">{u.name}</div>
+                    <div className="text-xs text-slate-400">{u.location}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600 italic">{u.program}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-slate-800 w-9">{u.match}%</span>
+                      <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${u.match}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => (u.website ? window.open(u.website, "_blank", "noopener,noreferrer") : u.uniId && navigate(`/university/${u.uniId}`))} className="text-orange-600 text-sm font-bold hover:underline">
+                      Xem trường ›
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : (
+      <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-center">
+        <p className="text-blue-900 font-bold mb-1">Mở khoá gợi ý trường & ngành theo tính cách</p>
+        <p className="text-blue-700 text-sm mb-5">
+          Gói Cơ Bản (FREE) chưa bao gồm gợi ý trường/ngành. Nâng cấp Tiêu Chuẩn (PAID) để xem tối đa 6 gợi ý, hoặc Cao Cấp (PREMIUM) để xem không giới hạn.
+        </p>
+        <button onClick={() => navigate("/pricing")} className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition">Nâng cấp ngay</button>
+      </div>
+    )}
+  </div>
+);
 
 const ResultDetailPage = () => {
   const { type, id } = useParams();
@@ -153,19 +240,7 @@ const ResultDetailPage = () => {
     result.topTypes?.length > 0 ? result.topTypes : top3.map((x) => x.type);
   const congruence = getCongruence(scores);
   const careerRecs = getCareerRecommendations(topTypes, scores);
-  const universityMatches = (result.recommendedMajors || [])
-    .flatMap((m, mi) =>
-      (m.universities || []).slice(0, 1).map((u) => ({
-        id: `${m._id}-${u._id}`,
-        name: u.name,
-        location: u.location,
-        program: m.name,
-        match: Math.max(72, 96 - mi * 4),
-        website: u.website,
-        uniId: u._id,
-      })),
-    )
-    .slice(0, 6);
+  const universityMatches = buildUniversityMatches(result.recommendedMajors);
 
   // ---- MBTI derived ----
   const mType = result.mbtiType;
@@ -173,6 +248,10 @@ const ResultDetailPage = () => {
   const careers = getMbtiCareers(mType);
   const insight = getMbtiInsight(mType, result);
   const nextSteps = getMbtiNextSteps(mType);
+  const mbtiUniversityMatches = buildUniversityMatches(result.recommendedMajors);
+
+  // ---- Gói hiện tại (dùng để hiển thị lời nhắc nâng cấp đúng ngữ cảnh) ----
+  const currentPlan = getUser()?.subscriptionPlan || "FREE";
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 md:px-8 pt-24 pb-20 text-slate-900">
@@ -364,55 +443,12 @@ const ResultDetailPage = () => {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-black mb-5">Trường & Ngành phù hợp</h2>
-              {universityMatches.length > 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/70">
-                          <th className="px-6 py-4 font-medium">Trường</th>
-                          <th className="px-6 py-4 font-medium">Ngành gợi ý</th>
-                          <th className="px-6 py-4 font-medium">Độ phù hợp</th>
-                          <th className="px-6 py-4 font-medium text-right">Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {universityMatches.map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-50/60 transition">
-                            <td className="px-6 py-4">
-                              <div className="font-bold text-slate-900">{u.name}</div>
-                              <div className="text-xs text-slate-400">{u.location}</div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-slate-600 italic">{u.program}</td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-black text-slate-800 w-9">{u.match}%</span>
-                                <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${u.match}%` }} />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => (u.website ? window.open(u.website, "_blank", "noopener,noreferrer") : u.uniId && navigate(`/university/${u.uniId}`))} className="text-orange-600 text-sm font-bold hover:underline">
-                                Xem trường ›
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-center">
-                  <p className="text-blue-900 font-bold mb-1">Mở khoá gợi ý trường & ngành theo tính cách</p>
-                  <p className="text-blue-700 text-sm mb-5">Nâng cấp gói PAID/PREMIUM để caZup gợi ý ngành & trường phù hợp nhất với hồ sơ của bạn.</p>
-                  <button onClick={() => navigate("/pricing")} className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition">Nâng cấp ngay</button>
-                </div>
-              )}
-            </div>
+            <SchoolMatchSection
+              matches={universityMatches}
+              plan={currentPlan}
+              navigate={navigate}
+              title="Trường & Ngành phù hợp"
+            />
           </motion.div>
         ) : (
           /* ===== MBTI BODY ===== */
@@ -481,6 +517,13 @@ const ResultDetailPage = () => {
                   </table>
                 </div>
               </div>
+
+              <SchoolMatchSection
+                matches={mbtiUniversityMatches}
+                plan={currentPlan}
+                navigate={navigate}
+                title="Trường & Ngành phù hợp theo MBTI"
+              />
             </div>
 
             {/* Right column */}

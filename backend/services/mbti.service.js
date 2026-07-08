@@ -4,6 +4,7 @@ const MbtiResult = require("../models/mbtiResult.model");
 const Major = require("../models/major.model");
 
 const User = require("../models/user.model");
+const { limitMajorsByPlan } = require("../utils/planLimits");
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(
@@ -76,15 +77,16 @@ const submitMbtiTest = async (userId, answers) => {
   const user = userId ? await User.findById(userId) : null;
   const plan = user?.subscriptionPlan || "FREE";
 
-  // Tìm ngành phù hợp (chứa mbtiType) - Only for PAID and PREMIUM
-  let recommendedMajors = [];
-  if (plan === "PAID" || plan === "PREMIUM") {
-    const majors = await Major.find({
-      mbtiTypes: { $in: [mbtiType] },
-      isDeleted: false,
-    });
-    recommendedMajors = majors.map((m) => m._id);
-  }
+  // Luôn tính đầy đủ ngành phù hợp (chứa mbtiType) và lưu toàn bộ vào DB — số
+  // lượng hiển thị cho user được giới hạn theo gói ở thời điểm ĐỌC (xem
+  // limitMajorsByPlan), không phải ở thời điểm lưu. Nhờ vậy khi user nâng cấp
+  // gói, các bài test cũ cũng lập tức hiện thêm gợi ý thay vì bị "đóng băng"
+  // theo gói cũ.
+  const majors = await Major.find({
+    mbtiTypes: { $in: [mbtiType] },
+    isDeleted: false,
+  });
+  const recommendedMajors = majors.map((m) => m._id);
 
   // Luôn lưu kết quả vào database kể cả guest để có Object ID
   const newResult = await MbtiResult.create({
@@ -95,15 +97,26 @@ const submitMbtiTest = async (userId, answers) => {
   });
 
   // Fetch populated data
-  const populatedResult = await MbtiResult.findById(newResult._id).populate(
-    "recommendedMajors",
+  const populatedResult = await MbtiResult.findById(newResult._id).populate({
+    path: "recommendedMajors",
+    populate: {
+      path: "universities",
+      model: "University",
+    },
+  });
+  populatedResult.recommendedMajors = limitMajorsByPlan(
+    populatedResult.recommendedMajors,
+    plan,
   );
 
   return populatedResult;
 };
 
 const getMbtiHistory = async (userId) => {
-  return await MbtiResult.find({ user: userId })
+  const user = await User.findById(userId);
+  const plan = user?.subscriptionPlan || "FREE";
+
+  const results = await MbtiResult.find({ user: userId })
     .populate({
       path: "recommendedMajors",
       populate: {
@@ -112,6 +125,12 @@ const getMbtiHistory = async (userId) => {
       },
     })
     .sort({ createdAt: -1 });
+
+  return results.map((r) => {
+    const obj = r.toObject();
+    obj.recommendedMajors = limitMajorsByPlan(obj.recommendedMajors, plan);
+    return obj;
+  });
 };
 
 const generateAiAnalysis = async (resultId) => {

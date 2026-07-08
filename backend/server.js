@@ -1,7 +1,6 @@
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-process.env.PUPPETEER_CACHE_DIR = "./.cache/puppeteer";
 const express = require("express");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");

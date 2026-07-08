@@ -89,19 +89,23 @@ const RecommendationCard = ({ major, matchPercent, navigate }) => (
 
 const AiMentorSection = ({ holland, mbti, plan, navigate }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [notice, setNotice] = useState(null); // { type: 'error' | 'upgrade', message }
   const hollandType = holland?.hollandType || "N/A";
   const mbtiType = mbti?.mbtiType || "N/A";
 
   const handleDownloadPdf = async () => {
     if (plan !== "PREMIUM") {
-      alert(
-        "Tính năng này chỉ dành cho gói Premium. Vui lòng nâng cấp để sử dụng.",
-      );
+      setNotice({
+        type: "upgrade",
+        message:
+          "Xuất báo cáo PDF chi tiết là tính năng dành riêng cho gói Cao Cấp (PREMIUM).",
+      });
       return;
     }
 
     try {
       setIsDownloading(true);
+      setNotice(null);
       const response = await axios.get("/pdf/export", {
         responseType: "blob",
       });
@@ -118,7 +122,10 @@ const AiMentorSection = ({ holland, mbti, plan, navigate }) => {
       link.parentNode.removeChild(link);
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      alert("Có lỗi xảy ra khi tải báo cáo. Vui lòng thử lại sau.");
+      setNotice({
+        type: "error",
+        message: "Có lỗi xảy ra khi tải báo cáo. Vui lòng thử lại sau.",
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -228,6 +235,80 @@ const AiMentorSection = ({ holland, mbti, plan, navigate }) => {
           {isDownloading ? "Đang tạo báo cáo..." : "Tải báo cáo chi tiết (PDF)"}
         </button>
       </div>
+
+      <AnimatePresence>
+        {notice && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div
+              className={`mt-4 flex items-start gap-3 rounded-2xl border p-4 ${
+                notice.type === "upgrade"
+                  ? "bg-blue-50 border-blue-100"
+                  : "bg-red-50 border-red-100"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  notice.type === "upgrade"
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-red-100 text-red-600"
+                }`}
+              >
+                {notice.type === "upgrade" ? (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.387 2.618a1 1 0 001.766 0l1.387-2.618a1 1 0 00-.788-1.838l-4-1.714a.999.999 0 01-.356.257L3 11.24l7-3a1 1 0 000-1.84l-7-3a1 1 0 00-.788 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`text-sm font-bold ${
+                    notice.type === "upgrade" ? "text-blue-900" : "text-red-900"
+                  }`}
+                >
+                  {notice.message}
+                </p>
+                <div className="flex items-center gap-4 mt-2">
+                  {notice.type === "upgrade" ? (
+                    <button
+                      onClick={() => navigate("/pricing")}
+                      className="text-sm font-bold text-blue-600 hover:underline"
+                    >
+                      Nâng cấp Premium ›
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="text-sm font-bold text-red-600 hover:underline"
+                    >
+                      Thử lại
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setNotice(null)}
+                    className="text-sm font-medium text-slate-400 hover:text-slate-600"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

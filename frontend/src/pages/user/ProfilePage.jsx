@@ -1,6 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getProfile, updateProfile } from "../../services/userService";
 import { useNavigate } from "react-router-dom";
+
+const MAX_AVATAR_DIMENSION = 400;
+const AVATAR_JPEG_QUALITY = 0.85;
+
+// Nén + resize ảnh xuống dạng JPEG base64 phía client trước khi gửi lên server
+// (cùng kỹ thuật với upload ảnh ở AI Mentor) — tránh phình document User trong DB.
+const compressAvatar = (file) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > MAX_AVATAR_DIMENSION || height > MAX_AVATAR_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_AVATAR_DIMENSION) / width);
+          width = MAX_AVATAR_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_AVATAR_DIMENSION) / height);
+          height = MAX_AVATAR_DIMENSION;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", AVATAR_JPEG_QUALITY));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Không thể đọc ảnh."));
+    };
+    img.src = url;
+  });
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState({
@@ -16,6 +50,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [avatarDirty, setAvatarDirty] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,6 +87,28 @@ const ProfilePage = () => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
+  const handleAvatarSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Vui lòng chọn một tệp ảnh." });
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Ảnh quá lớn. Vui lòng chọn ảnh dưới 15MB." });
+      return;
+    }
+    try {
+      const compressed = await compressAvatar(file);
+      setProfile((prev) => ({ ...prev, avatar: compressed }));
+      setAvatarDirty(true);
+      setMessage({ type: "", text: "" });
+    } catch {
+      setMessage({ type: "error", text: "Không thể xử lý ảnh, vui lòng thử ảnh khác." });
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -61,12 +119,14 @@ const ProfilePage = () => {
         dob: profile.dob,
         phone: profile.phone,
         bio: profile.bio,
+        ...(avatarDirty ? { avatar: profile.avatar } : {}),
       });
       if (res && res.data) {
         // Sync local storage and dispatch update event
         localStorage.setItem("user", JSON.stringify(res.data));
         window.dispatchEvent(new Event("userUpdate"));
       }
+      setAvatarDirty(false);
       setMessage({ type: "success", text: "Đã cập nhật hồ sơ thành công!" });
     } catch {
       setMessage({
@@ -95,15 +155,44 @@ const ProfilePage = () => {
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Avatar Section */}
             <div className="flex flex-col items-center shrink-0 w-full md:w-auto">
-              <div className="w-40 h-40 rounded-full overflow-hidden bg-blue-50 border-4 border-blue-100 mb-6 shadow-lg">
-                <img
-                  src={profile.avatar}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
+              <div className="relative w-40 h-40 mb-6">
+                <div className="w-40 h-40 rounded-full overflow-hidden bg-blue-50 border-4 border-blue-100 shadow-lg">
+                  <img
+                    src={profile.avatar}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Đổi ảnh đại diện"
+                  className="absolute bottom-1 right-1 w-11 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-lg border-4 border-white transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
                 />
               </div>
-              <p className="text-sm text-slate-400 text-center font-medium mb-6">
-                Avatar tự động cấp từ hệ thống
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-sm text-blue-600 hover:text-blue-700 text-center font-bold mb-1 underline underline-offset-2"
+              >
+                Đổi ảnh đại diện
+              </button>
+              <p className="text-xs text-slate-400 text-center font-medium mb-6">
+                {avatarDirty
+                  ? "Ảnh mới sẽ được lưu khi bạn bấm “Lưu Thông Tin”"
+                  : "JPG, PNG tối đa 15MB"}
               </p>
 
               {/* Plan Card */}

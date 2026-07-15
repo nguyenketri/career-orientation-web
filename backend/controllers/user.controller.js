@@ -31,9 +31,12 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// Giới hạn ảnh base64 ~2MB (đã nén JPEG phía client) để tránh phình DB document
+const MAX_AVATAR_LENGTH = 2 * 1024 * 1024;
+
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, dob, phone, bio } = req.body;
+    const { name, dob, phone, bio, avatar } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) {
       return res
@@ -45,6 +48,14 @@ exports.updateProfile = async (req, res) => {
     if (dob) user.dob = dob;
     if (phone !== undefined) user.phone = phone; // allow clearing phone
     if (bio !== undefined) user.bio = bio; // allow clearing bio
+    if (avatar) {
+      if (!avatar.startsWith("data:image/") || avatar.length > MAX_AVATAR_LENGTH) {
+        return res
+          .status(400)
+          .json({ status: "error", message: "Ảnh đại diện không hợp lệ hoặc quá lớn." });
+      }
+      user.avatar = avatar;
+    }
 
     await user.save();
 

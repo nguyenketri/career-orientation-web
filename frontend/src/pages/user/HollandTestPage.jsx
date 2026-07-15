@@ -401,68 +401,150 @@ const HollandTestPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-5 items-start">
-          {/* Left: question + answers + nav buttons */}
-          <div className="w-full flex-1 min-w-0 space-y-4">
-            <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-slate-100">
-              <p className="text-lg font-semibold text-slate-800 leading-relaxed mb-6">
-                {currentQuestion?.content}
-              </p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">
-                Mức độ phù hợp với bạn:
-              </p>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
-                  HOÀN TOÀN
-                  <br />
-                  KHÔNG
+        <div className="space-y-4">
+          {/* Navigator — nằm ngang phía trên câu hỏi, tránh dư thừa chiều cao so với sidebar cũ */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="font-bold text-slate-700 text-sm">
+                📋 Bảng điều hướng
+              </h3>
+              <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />
+                  Đang làm
                 </span>
-                <div className="flex justify-between sm:justify-center gap-2 sm:gap-3 sm:flex-1">
-                  {LIKERT_OPTIONS.map((option) => {
-                    const isSelected =
-                      answers[currentQuestion?._id]?.score === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => handleSelect(option.value)}
-                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center text-lg font-bold transition-all duration-200
-                          ${
-                            isSelected
-                              ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-110"
-                              : "bg-white border-slate-300 text-slate-700 hover:border-blue-400 hover:shadow-md"
-                          }`}
-                      >
-                        {option.value}
-                      </button>
-                    );
-                  })}
-                </div>
-                <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
-                  RẤT
-                  <br />
-                  CHÍNH XÁC
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-orange-400 inline-block" />
+                  Đã làm
                 </span>
-                <div className="flex sm:hidden justify-between text-[10px] font-bold text-slate-400 uppercase px-1">
-                  <span>Hoàn toàn không</span>
-                  <span>Rất chính xác</span>
-                </div>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded border border-slate-300 inline-block" />
+                  Chưa làm
+                </span>
               </div>
             </div>
+            <div className="grid grid-cols-[repeat(8,minmax(0,1fr))] sm:grid-cols-[repeat(12,minmax(0,1fr))] md:grid-cols-[repeat(15,minmax(0,1fr))] lg:grid-cols-[repeat(18,minmax(0,1fr))] gap-1.5">
+              {questions.map((q, idx) => {
+                const isCurrent = idx === safeIndex;
+                const isDone = !!answers[q._id];
+                return (
+                  <button
+                    key={q._id}
+                    onClick={() => {
+                      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+                      setCurrentIndex(idx);
+                    }}
+                    title={`Câu ${idx + 1}`}
+                    className={`h-7 w-full rounded text-[11px] font-bold transition-all
+                      ${
+                        isCurrent
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : isDone
+                            ? "bg-orange-400 text-white"
+                            : "bg-white border border-slate-200 text-slate-500 hover:border-blue-300"
+                      }`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {error && (
-              <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-center text-red-600 text-sm font-medium">
-                {error}
+          {/* Question + answers */}
+          <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-sm border border-slate-100">
+            <p className="text-lg font-semibold text-slate-800 leading-relaxed mb-6">
+              {currentQuestion?.content}
+            </p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">
+              Mức độ phù hợp với bạn:
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+                HOÀN TOÀN
+                <br />
+                KHÔNG
+              </span>
+              <div className="flex justify-between sm:justify-center gap-2 sm:gap-3 sm:flex-1">
+                {LIKERT_OPTIONS.map((option) => {
+                  const isSelected =
+                    answers[currentQuestion?._id]?.score === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => handleSelect(option.value)}
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center text-lg font-bold transition-all duration-200
+                        ${
+                          isSelected
+                            ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-110"
+                            : "bg-white border-slate-300 text-slate-700 hover:border-blue-400 hover:shadow-md"
+                        }`}
+                    >
+                      {option.value}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+              <span className="hidden sm:block text-xs font-bold text-slate-400 shrink-0 text-center leading-tight">
+                RẤT
+                <br />
+                CHÍNH XÁC
+              </span>
+              <div className="flex sm:hidden justify-between text-[10px] font-bold text-slate-400 uppercase px-1">
+                <span>Hoàn toàn không</span>
+                <span>Rất chính xác</span>
+              </div>
+            </div>
+          </div>
 
-            <div className="flex justify-between items-center">
+          {error && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-center text-red-600 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => {
+                if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+                safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests");
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              {safeIndex === 0 ? "Quay lại" : "Câu trước"}
+            </button>
+
+            {isAllAnswered || safeIndex === totalQuestions - 1 ? (
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex items-center gap-2 px-8 py-3 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
+              >
+                {submitting ? "Đang phân tích..." : "Nộp bài"}
+              </button>
+            ) : (
               <button
                 onClick={() => {
                   if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-                  safeIndex > 0 ? setCurrentIndex((i) => i - 1) : navigate("/tests");
+                  setCurrentIndex((i) => i + 1);
                 }}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm"
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all shadow-md"
               >
+                Tiếp theo
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4"
@@ -474,112 +556,29 @@ const HollandTestPage = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
+                    d="M9 5l7 7-7 7"
                   />
                 </svg>
-                {safeIndex === 0 ? "Quay lại" : "Câu trước"}
               </button>
-
-              {isAllAnswered || safeIndex === totalQuestions - 1 ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
-                >
-                  {submitting ? "Đang phân tích..." : "Nộp bài"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-                    setCurrentIndex((i) => i + 1);
-                  }}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all shadow-md"
-                >
-                  Tiếp theo
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Right sidebar */}
-          <div className="w-full lg:w-56 lg:shrink-0 space-y-4">
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">
-                📋 Bảng điều hướng
-              </h3>
-              <div className="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-5 gap-1.5">
-                {questions.map((q, idx) => {
-                  const isCurrent = idx === safeIndex;
-                  const isDone = !!answers[q._id];
-                  return (
-                    <button
-                      key={q._id}
-                      onClick={() => {
-                        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-                        setCurrentIndex(idx);
-                      }}
-                      title={`Câu ${idx + 1}`}
-                      className={`h-8 w-full rounded text-xs font-bold transition-all
-                        ${
-                          isCurrent
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : isDone
-                              ? "bg-orange-400 text-white"
-                              : "bg-white border border-slate-200 text-slate-500 hover:border-blue-300"
-                        }`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-3 space-y-1.5 text-xs text-slate-500 border-t pt-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-blue-600 shrink-0" />
-                  <span>Đang làm</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-orange-400 shrink-0" />
-                  <span>Đã làm</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded border border-slate-300 shrink-0" />
-                  <span>Chưa làm</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">
-                🔔 Hướng dẫn
-              </h3>
-              <ol className="text-xs text-slate-500 space-y-2 list-decimal list-inside leading-relaxed">
-                <li>Đọc kỹ từng câu hỏi và chọn mức độ phù hợp từ 1 đến 5.</li>
-                <li>
-                  Không có câu trả lời đúng hay sai, chỉ có câu phù hợp với bạn
-                  nhất.
-                </li>
-                <li>
-                  Thời gian làm bài: {Math.round(timeLimitSec / 60)} phút. Hết
-                  giờ hệ thống sẽ tự động nộp bài.
-                </li>
-              </ol>
-            </div>
+          {/* Hướng dẫn */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-700 mb-3 text-sm">
+              🔔 Hướng dẫn
+            </h3>
+            <ol className="text-xs text-slate-500 space-y-1.5 sm:space-y-0 list-decimal list-inside leading-relaxed sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-1.5">
+              <li>Đọc kỹ từng câu hỏi và chọn mức độ phù hợp từ 1 đến 5.</li>
+              <li>
+                Không có câu trả lời đúng hay sai, chỉ có câu phù hợp với bạn
+                nhất.
+              </li>
+              <li>
+                Thời gian làm bài: {Math.round(timeLimitSec / 60)} phút. Hết
+                giờ hệ thống sẽ tự động nộp bài.
+              </li>
+            </ol>
           </div>
         </div>
       </div>

@@ -1,4 +1,12 @@
-const puppeteer = require("puppeteer");
+// Render (production) là môi trường Linux tối giản: thiếu các thư viện hệ
+// thống mà Chrome đầy đủ cần (libnss3, libatk...) và RAM giới hạn khiến
+// puppeteer full-Chrome liên tục lỗi 500 (dù local Windows luôn chạy được
+// vì có sẵn đủ thư viện). @sparticuz/chromium là bản Chromium build riêng
+// cho môi trường serverless/PaaS — không phụ thuộc thư viện hệ thống ngoài,
+// nhẹ hơn nhiều, dùng cho production; local dev vẫn dùng puppeteer đầy đủ.
+const isProd = process.env.NODE_ENV === "production" || !!process.env.RENDER;
+const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
+const chromium = isProd ? require("@sparticuz/chromium") : null;
 const User = require("../models/user.model");
 const HollandResult = require("../models/hollandResult.model");
 const MbtiResult = require("../models/mbtiResult.model");
@@ -413,26 +421,33 @@ const generateTestResultPdf = async (userId, res) => {
 
     let browser;
     try {
-      console.log(`[PDF Service] Launching Puppeteer`);
+      console.log(`[PDF Service] Launching Puppeteer (env: ${isProd ? "production/sparticuz" : "local/full-chrome"})`);
 
-      // Không tự đoán executablePath (trước đây hardcode "/usr/bin/google-chrome"
-      // ở production và một đường dẫn Chrome cá nhân trên máy Windows ở dev) —
-      // để Puppeteer tự tìm trình duyệt nó đã cài qua `.puppeteerrc.cjs` /
-      // `npx puppeteer browsers install chrome` (chạy ở bước build/postinstall).
-      // Cách đoán đường dẫn cũ dễ trỏ sai (khác máy, khác version, khác OS) và
-      // là nguyên nhân chính khiến export PDF lỗi 500 trên production.
-      // process.env.PUPPETEER_EXECUTABLE_PATH vẫn được tôn trọng nếu có, cho
-      // phép override thủ công khi cần mà không phải sửa code.
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-        ],
-      });
+      if (isProd) {
+        // executablePath() tải/giải nén binary Chromium đóng gói sẵn trong
+        // chính package @sparticuz/chromium — không phụ thuộc bước cài Chrome
+        // riêng ở build time, nên miễn nhiễm với các lỗi build OOM / sai
+        // đường dẫn từng gặp trước đây trên Render.
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        });
+      } else {
+        // process.env.PUPPETEER_EXECUTABLE_PATH vẫn được tôn trọng nếu có,
+        // cho phép override thủ công khi cần mà không phải sửa code.
+        browser = await puppeteer.launch({
+          headless: true,
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+          ],
+        });
+      }
       console.log(`[PDF Service] Browser launched successfully`);
 
       const page = await browser.newPage();

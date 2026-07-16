@@ -74,7 +74,10 @@ const PricingPage = () => {
       type: "FREE",
       features: [
         { text: "So sánh tối đa 2 trường cùng lúc", checked: true },
-        { text: "Gợi ý ngành/trường theo điểm thi (3 lượt/ngày)", checked: true },
+        {
+          text: "Gợi ý ngành/trường theo điểm thi (3 lượt/ngày)",
+          checked: true,
+        },
         { text: "AI Mentor tư vấn (5 câu/ngày)", checked: true },
         { text: "Trắc nghiệm Holland/MBTI rút gọn", checked: true },
         { text: "Gợi ý trường theo kết quả Holland/MBTI", checked: false },
@@ -88,10 +91,16 @@ const PricingPage = () => {
       type: "PAID",
       features: [
         { text: "So sánh chi tiết 5 trường đại học", checked: true },
-        { text: "Gợi ý ngành/trường theo điểm thi (20 lượt/ngày)", checked: true },
+        {
+          text: "Gợi ý ngành/trường theo điểm thi (20 lượt/ngày)",
+          checked: true,
+        },
         { text: "AI Mentor tư vấn (50 câu/ngày)", checked: true },
         { text: "Báo cáo kết quả trắc nghiệm đầy đủ", checked: true },
-        { text: "Gợi ý trường theo kết quả Holland/MBTI (tối đa 6 trường)", checked: true },
+        {
+          text: "Gợi ý trường theo kết quả Holland/MBTI (tối đa 6 trường)",
+          checked: true,
+        },
         { text: "Lưu lịch sử test Holland/MBTI/Recommand", checked: true },
       ],
       highlighted: true,
@@ -103,13 +112,19 @@ const PricingPage = () => {
       type: "PREMIUM",
       features: [
         { text: "So sánh không giới hạn trường & ngành", checked: true },
-        { text: "Gợi ý ngành/trường theo điểm thi (Không giới hạn)", checked: true },
+        {
+          text: "Gợi ý ngành/trường theo điểm thi (Không giới hạn)",
+          checked: true,
+        },
         { text: "AI Mentor tư vấn (Không giới hạn + Ưu tiên)", checked: true },
         {
           text: "Xuất File PDF test Holland/MBTI có AI phân tích kết quả",
           checked: true,
         },
-        { text: "Gợi ý trường theo kết quả Holland/MBTI (Không giới hạn)", checked: true },
+        {
+          text: "Gợi ý trường theo kết quả Holland/MBTI (Không giới hạn)",
+          checked: true,
+        },
         { text: "Hỗ trợ 24/7 từ đội ngũ kỹ thuật", checked: true },
       ],
       cta: "Mua Premium",
@@ -279,7 +294,7 @@ const PricingPage = () => {
             </h3>
             <div className="flex items-baseline gap-1 mb-8">
               <span className="text-4xl font-black text-slate-900">
-                {plan.price === 0 ? "0đ" : `${(plan.price / 1000).toFixed(0)}k`}
+                {plan.price === 0 ? "0 VND" : `${plan.price} VND`}
               </span>
               <span className="text-slate-400 text-sm">/tháng</span>
             </div>
@@ -351,13 +366,17 @@ const PricingPage = () => {
                 <td className="p-5">Không giới hạn</td>
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="p-5 font-medium">Gợi ý ngành/trường theo điểm thi</td>
+                <td className="p-5 font-medium">
+                  Gợi ý ngành/trường theo điểm thi
+                </td>
                 <td className="p-5">3 lượt/ngày</td>
                 <td className="p-5">20 lượt/ngày</td>
                 <td className="p-5">Không giới hạn</td>
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="p-5 font-medium">Gợi ý trường theo kết quả Holland/MBTI</td>
+                <td className="p-5 font-medium">
+                  Gợi ý trường theo kết quả Holland/MBTI
+                </td>
                 <td className="p-5">Chưa mở khoá</td>
                 <td className="p-5">Tối đa 6 trường</td>
                 <td className="p-5">Không giới hạn</td>

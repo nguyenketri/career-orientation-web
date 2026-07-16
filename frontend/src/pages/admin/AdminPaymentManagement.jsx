@@ -383,16 +383,15 @@ const AdminPaymentManagement = () => {
                 <th className="px-6 py-3">Gói dịch vụ</th>
                 <th className="px-6 py-3">Số tiền</th>
                 <th className="px-6 py-3">Phương thức</th>
-                <th className="px-6 py-3">Thời gian</th>
                 <th className="px-6 py-3">Trạng thái</th>
                 <th className="px-6 py-3 text-right">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-slate-400">Đang tải...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-slate-400">Đang tải...</td></tr>
               ) : payments.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-slate-400">Không có dữ liệu thanh toán</td></tr>
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-slate-400">Không có dữ liệu thanh toán</td></tr>
               ) : (
                 payments.map((payment) => (
                   <tr key={payment._id} className="hover:bg-slate-50/60 transition-colors">
@@ -429,9 +428,6 @@ const AdminPaymentManagement = () => {
                         </svg>
                         Quét mã QR
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
-                      {fmtDateTime(payment.createdAt)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${STATUS_BADGE[payment.status]}`}>
